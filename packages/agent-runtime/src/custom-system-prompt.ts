@@ -20,7 +20,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { resolveAgentDir } from "./agent-dir.js";
 import { join } from "node:path";
 
 const MAX_PROMPT_BYTES = 64 * 1024;
@@ -42,7 +42,7 @@ export function customSystemPromptDirs(
 ): CustomSystemPromptDirs {
   return {
     ...(workspaceRoot?.trim() ? { project: join(workspaceRoot.trim(), ".pi") } : {}),
-    global: join(homedir(), ".pi", "agent"),
+    global: resolveAgentDir(),
   };
 }
 

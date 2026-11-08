@@ -7,6 +7,7 @@ import {
   expandSlashInvocation,
   loadComposerTemplates,
 } from "./prompt-templates.js";
+import { resolveAgentDir } from "./agent-dir.js";
 
 describe("expandSlashInvocation", () => {
   const templates = [
@@ -145,7 +146,7 @@ describe("loadComposerTemplates", () => {
   it("derives the project dir from the workspace root", () => {
     const dirs = composerTemplateDirs("/tmp/ws");
     expect(dirs.project).toBe(join("/tmp/ws", ".pi", "prompts"));
-    expect(dirs.user.endsWith(join(".pi", "agent", "prompts"))).toBe(true);
+    expect(dirs.user).toBe(join(resolveAgentDir(), "prompts"));
     expect(composerTemplateDirs(null).project).toBeUndefined();
   });
 });

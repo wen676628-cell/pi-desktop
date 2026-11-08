@@ -38,11 +38,14 @@ in `docs/project/pi-150-adoption.md`.
 - Native Pi sessions use pi-coding-agent's SDK-managed identity, whose
   attribution follows that SDK's install-telemetry setting. The Desktop-owned
   main and delegated Agent paths use the explicit identity above.
-
 The extension shim is a versioned compatibility subset, not the full 1.5.0
 coding-agent API. Its legacy `VERSION` marker remains sourced from
 `TRUSTED_EXTENSION_KERNEL_VERSION` and intentionally identifies the modeled
 0.87.1 extension surface.
+
+### Shared agent directory
+
+Desktop resolves the pi agent directory exactly like the CLI: `PI_CODING_AGENT_DIR` when set, otherwise `~/.pi/agent` (`packages/agent-runtime/src/agent-dir.ts`). Native Pi sessions, custom system prompts, prompt templates, project `AGENTS.md`, trusted extensions, and the model-config importer all read that one directory, so a Desktop profile and the CLI profile describe the same sessions, skills, prompts and providers instead of two silent copies. A whitespace-only value falls back to the default.
 
 Do not reintroduce imports from removed `pi-agent-core` harness, session,
 compaction, or prompt-template APIs. Keep desktop behavior in the agent-runtime

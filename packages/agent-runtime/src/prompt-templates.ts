@@ -11,6 +11,7 @@
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { resolveAgentDir } from "./agent-dir.js";
 import { parse } from "yaml";
 
 export type ComposerTemplateSource = "project" | "user";
@@ -69,7 +70,7 @@ export function composerTemplateDirs(
 ): ComposerTemplateDirs {
   return {
     ...(workspaceRoot ? { project: join(workspaceRoot, ".pi", "prompts") } : {}),
-    user: join(homedir(), ".pi", "agent", "prompts"),
+    user: join(resolveAgentDir(), "prompts"),
   };
 }
 

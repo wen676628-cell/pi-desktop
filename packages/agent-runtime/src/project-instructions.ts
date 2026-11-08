@@ -1,5 +1,5 @@
 import { readFile, realpath } from "node:fs/promises";
-import { homedir } from "node:os";
+import { resolveAgentDir } from "./agent-dir.js";
 import nodePath, { type PlatformPath, dirname, join, relative, resolve } from "node:path";
 
 const INSTRUCTION_FILE_NAMES = [
@@ -12,8 +12,6 @@ const INSTRUCTION_FILE_NAMES = [
 // oversized global file can never starve project instructions.
 const MAX_GLOBAL_INSTRUCTION_BYTES = 32 * 1024;
 const MAX_PROJECT_INSTRUCTION_BYTES = 32 * 1024;
-const GLOBAL_INSTRUCTION_PATH = join(homedir(), ".pi", "agent", "AGENTS.md");
-const GLOBAL_INSTRUCTION_SOURCE = "~/.pi/agent/AGENTS.md";
 
 export type ProjectInstruction = {
   source: string;
@@ -25,7 +23,7 @@ export type ProjectInstructions = {
 };
 
 export function globalInstructionPath(): string {
-  return GLOBAL_INSTRUCTION_PATH;
+  return join(resolveAgentDir(), "AGENTS.md");
 }
 
 export function isWithinRoot(
@@ -155,14 +153,15 @@ export async function loadProjectInstructions(
 export async function loadInstructionChain(
   workspaceRoot: string | null | undefined,
   workspacePath?: string,
-  globalPath = GLOBAL_INSTRUCTION_PATH,
+  globalPath?: string,
 ): Promise<ProjectInstructions | undefined> {
+  const resolvedGlobalPath = globalPath ?? globalInstructionPath();
   const entries: ProjectInstruction[] = [];
   try {
-    const content = (await readFile(globalPath, "utf8")).trim();
+    const content = (await readFile(resolvedGlobalPath, "utf8")).trim();
     if (content) {
       entries.push(
-        limitInstruction(GLOBAL_INSTRUCTION_SOURCE, content, MAX_GLOBAL_INSTRUCTION_BYTES)
+        limitInstruction("~/.pi/agent/AGENTS.md", content, MAX_GLOBAL_INSTRUCTION_BYTES)
           .entry,
       );
     }

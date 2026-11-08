@@ -94,7 +94,10 @@ async function scanPi(
   home: string,
   env: ModelConfigImportEnv,
 ): Promise<ModelConfigImportDraft[]> {
-  const agentDir = path.join(home, ".pi", "agent");
+  const configuredAgentDir = env.PI_CODING_AGENT_DIR?.trim();
+  const agentDir = configuredAgentDir && configuredAgentDir.length > 0
+    ? path.resolve(configuredAgentDir)
+    : path.join(home, ".pi", "agent");
   const fallbackDir = path.join(home, ".pi");
   const [models, auth, modelsStore] = await Promise.all([
     readFirstJson(
