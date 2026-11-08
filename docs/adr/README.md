@@ -412,3 +412,4 @@ Each ADR includes:
 | 0345 | [One settings destination owns one subject](0345-one-settings-destination-one-subject.md) | Accepted (D684; amends D143, D166, D678) |
 | 0346 | [`@agent` mentions route a turn to a named subagent](0346-composer-agent-mentions.md) | Accepted (issue #986; extends 0024 / 0062) |
 | 0347 | [One PI_HOME configuration owner for Desktop and CLI](0347-shared-pi-home-config-backend.md) | Proposed |
+| 0348 | [Session storage scope for the shared PI_HOME](0348-session-storage-scope.md) | Proposed |

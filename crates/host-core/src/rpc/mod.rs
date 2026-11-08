@@ -35,6 +35,7 @@ use crate::agent_capabilities::CapabilityLevel;
 use crate::artifacts;
 use crate::audit;
 use crate::background_tasks;
+use crate::config_backend;
 use crate::notifications;
 use crate::permissions::{PermissionDecision, PermissionEvaluationParams, PermissionManager};
 use crate::plans;
@@ -2588,12 +2589,35 @@ async fn handle_request(
             Ok(json!({ "value": value }))
         }
 
+        "config.get" => {
+            let home = config_backend::pi_home();
+            Ok(config_backend::snapshot(&home)
+                .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?)
+        }
+        "config.reload" => {
+            let st = state.lock().await;
+            let home = config_backend::pi_home();
+            let imported = config_backend::import_providers(&st.db, &st.secrets, &home)
+                .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            let version = config_backend::version_token(&home)
+                .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            Ok(json!({ "imported": imported, "version": version }))
+        }
+        "config.export" => {
+            let st = state.lock().await;
+            let home = config_backend::pi_home();
+            let exported = config_backend::export_providers(&st.db, &st.secrets, &home)
+                .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            Ok(json!({ "exported": exported }))
+        }
         "providers.list" => {
             let include_disabled = params
                 .get("includeDisabled")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true);
             let st = state.lock().await;
+            let _ =
+                config_backend::import_providers(&st.db, &st.secrets, &config_backend::pi_home());
             let list = providers::list_providers(&st.db, &st.secrets, include_disabled)
                 .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
             Ok(json!({ "providers": list }))
@@ -2619,6 +2643,8 @@ async fn handle_request(
             let st = state.lock().await;
             let provider =
                 providers::create_provider(&st.db, &st.secrets, input).map_err(provider_rpc_err)?;
+            let _ =
+                config_backend::export_providers(&st.db, &st.secrets, &config_backend::pi_home());
             Ok(json!({ "provider": provider }))
         }
         "providers.update" => {
@@ -2627,6 +2653,8 @@ async fn handle_request(
             let st = state.lock().await;
             let provider =
                 providers::update_provider(&st.db, &st.secrets, input).map_err(provider_rpc_err)?;
+            let _ =
+                config_backend::export_providers(&st.db, &st.secrets, &config_backend::pi_home());
             Ok(json!({ "provider": provider }))
         }
         "providers.delete" => {
@@ -2637,6 +2665,8 @@ async fn handle_request(
             let st = state.lock().await;
             let ok = providers::delete_provider(&st.db, &st.secrets, id)
                 .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            let _ =
+                config_backend::export_providers(&st.db, &st.secrets, &config_backend::pi_home());
             Ok(json!({ "ok": ok }))
         }
         "providers.get" => {
@@ -2671,6 +2701,8 @@ async fn handle_request(
             let st = state.lock().await;
             let provider = providers::set_provider_secret(&st.db, &st.secrets, id, secret_value)
                 .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            let _ =
+                config_backend::export_providers(&st.db, &st.secrets, &config_backend::pi_home());
             Ok(json!({ "provider": provider }))
         }
         "providers.listModels" => {

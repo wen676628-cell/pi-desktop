@@ -1,7 +1,12 @@
 # 07. Shared PI_HOME and Config Backend
 
-Status: Proposed design for ADR 0347. This document is the implementation
+Status: P1/P2 implemented in host-core; P3 recorded in ADR 0348. This document is the implementation
 breakdown; the decision and its rationale live in
+> Format note (2026-11-08): the pi CLI stores providers and models in
+> `models.json`, API keys in `auth.json`, and non-secret settings in
+> `settings.json`. Earlier drafts of this record borrowed Hermes' `config.yaml`
+> / `.env` names; the implementation and the remaining text below refer to the
+> pi JSON files.
 [ADR 0347](../../adr/0347-shared-pi-home-config-backend.md).
 
 ## 1. Goal
@@ -154,3 +159,5 @@ provider deleted in the CLI does not reappear after a Desktop restart.
    in the same step, or keep one profile per home for now?
 3. Is a `remote` config backend needed before P4, or can it wait for the remote
    gateway ADR?
+
+

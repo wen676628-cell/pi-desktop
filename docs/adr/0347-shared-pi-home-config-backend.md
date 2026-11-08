@@ -1,9 +1,14 @@
 # ADR 0347: One PI_HOME configuration owner for Desktop and CLI
 
-- Status: Proposed
+- Status: Implemented candidate (P1/P2); session scope decided in ADR 0348
 - Date: 2026-11-08
 - Relates: ADR 0002 (pi kernel), ADR 0003 (hybrid runtime), ADR 0004 (no remote gateway in MVP)
 - Spec: `docs/spec/02-architecture/07-shared-pi-home.md`
+> Format note (2026-11-08): the pi CLI stores providers and models in
+> `models.json`, API keys in `auth.json`, and non-secret settings in
+> `settings.json`. Earlier drafts of this record borrowed Hermes' `config.yaml`
+> / `.env` names; the implementation and the remaining text below refer to the
+> pi JSON files.
 
 ## Context
 
@@ -68,3 +73,5 @@ P2 must ship with: a pre-migration backup, an idempotent migration, a feature fl
 - Deleting a provider on either side removes it once, without resurrection.
 - Secrets are never logged, never echoed in RPC diagnostics, and the `.env` file is owner-only.
 - Killing the desktop window does not stop the backend; reattaching restores the same configuration and sessions.
+
+
