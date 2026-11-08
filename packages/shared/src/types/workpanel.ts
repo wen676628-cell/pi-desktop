@@ -1,0 +1,129 @@
+import type { UiMessage } from "./messages.js";
+
+/** Shared public types grouped by the owning application domain. */
+// --- Work panel (review / browser / files / plugin views) ---
+
+export type DiffLineType = "add" | "del" | "context";
+
+export type DiffLine = {
+  type: DiffLineType;
+  text: string;
+};
+
+export type DiffHunk = {
+  /** Raw `@@ -a,b +c,d @@ …` header line. */
+  header: string;
+  lines: DiffLine[];
+};
+
+export type ReviewChangeOperation = "write" | "edit" | "delete";
+export type ReviewChangeStatus = "added" | "modified" | "deleted";
+export type ReviewChangeState = "active" | "rolledBack";
+
+/**
+ * Durable, message-owned change evidence returned by a workspace mutation.
+ * Unlike WorkspaceDiff, this record remains valid after a git commit.
+ */
+export type ReviewChange = {
+  version: 1;
+  snapshotId: string;
+  messageId: string;
+  /** Relative inside the execution workspace; absolute for other approved roots. */
+  path: string;
+  operation: ReviewChangeOperation;
+  status: ReviewChangeStatus;
+  state: ReviewChangeState;
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+  binary?: boolean;
+  truncated?: boolean;
+  reversible: boolean;
+  /** Host-resolved execution root; never a renderer authorization grant. */
+  root?: string;
+};
+
+export type ReviewContextLines = 1 | 3 | 5;
+export type ReviewTurn = {
+  id: string;
+  userMessageId: string;
+  createdAt: string;
+  title: string;
+  changeCount: number;
+  /** Deduplicated recorded operation totals, not a net diff; null/absent means unknown. */
+  additions?: number | null;
+  deletions?: number | null;
+};
+export type ReviewTurnsPage = { turns: ReviewTurn[]; nextBefore?: number };
+export type ReviewHistoryChange = { message: UiMessage; root?: string };
+export type ReviewChangesPage = {
+  turnId: string | null;
+  changes: ReviewHistoryChange[];
+  nextOffset?: number;
+};
+export type ReviewContextResult = {
+  hunks: DiffHunk[];
+  unavailable?: "legacy" | "binary" | "tooLarge";
+};
+
+export type ReviewRollbackStatus =
+  | "rolledBack"
+  | "alreadyRolledBack"
+  | "conflict"
+  | "unavailable";
+
+export type ReviewRollbackResult = {
+  status: ReviewRollbackStatus;
+  snapshotId: string;
+  messageId?: string;
+  path?: string;
+};
+
+export type ReviewFileRollbackResult = {
+  status: ReviewRollbackStatus;
+  changes: ReviewRollbackResult[];
+};
+
+export type DiffFileStatus =
+  | "added"
+  | "modified"
+  | "deleted"
+  | "renamed"
+  | "untracked";
+
+export type DiffFile = {
+  path: string;
+  oldPath?: string;
+  status: DiffFileStatus;
+  additions: number;
+  deletions: number;
+  binary?: boolean;
+  /** Patch exceeded the per-file cap; hunks are omitted. */
+  tooLarge?: boolean;
+  hunks: DiffHunk[];
+};
+
+export type WorkspaceDiff = {
+  /** Workspace root is a git work tree. */
+  repo: boolean;
+  /** No pending changes (only meaningful when repo). */
+  clean: boolean;
+  files: DiffFile[];
+  /** File list hit the cap; more changes exist than listed. */
+  truncated?: boolean;
+};
+
+export type BrowserAction = "back" | "forward" | "reload" | "stop";
+
+export type BrowserState = {
+  /** Main-owned origin for retained browser resource tabs. */
+  sessionId?: string;
+  tabId?: string;
+  /** Navigation failure; the previous document must not be presented as ready. */
+  loadError?: string;
+  url: string;
+  title: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+};

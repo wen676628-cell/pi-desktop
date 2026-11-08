@@ -1,0 +1,1190 @@
+# 06. Settings Information Architecture
+
+## 1. Settings root (Codex full-page shell)
+
+Settings is a **full-window page** that replaces the app sidebar + main chrome (Codex electron behavior):
+
+- Switching to a different Settings destination starts the content pane at the
+  top, including plugin destinations. Re-selecting the current destination or
+  updating settings in place preserves the current scroll position. Global
+  search deep links leave an open plugin destination, then scroll to their
+  target row before paint. Consuming the search anchor does not reset the pane
+  again.
+- Settings remains usable when an unrelated startup read fails: a successfully
+  loaded settings snapshot is retained independently from the remaining
+  bootstrap data. If the settings read itself is unavailable, the content pane
+  shows a compact loading/failure state with a retry action instead of an empty
+  section.
+
+- Left settings rail only, **275px**, using the same `sidebar-surface` material
+  as the main sidebar: native vibrancy with shared tint/sheen on macOS, opaque
+  `--ds-bg-sidebar` on Windows/Linux, and shared optional background imagery.
+  macOS settings-wrapper ancestry is transparent; the content pane and its
+  titlebar remain opaque. Only a nested settings content enter wrapper plays a
+  route animation; the scrolling inner pane, rail, and backing never fade or
+  translate. That entrance is opacity-only. Settings dialogs and sheets portal
+  to a viewport-fixed `#pi-desktop-overlays` host on the document element and
+  cover the full window, including the rail.
+- Returning to the app restores the prior sidebar collapsed/expanded state
+  without a sidebar entrance animation or a width ramp. Real toggle and
+  automatic collapse/restore transitions on the visible shell still animate;
+  initial presentation and route restoration do not.
+- Top of rail: traffic-light clearance and the pill **Search settings…**
+- The **Back to app** (`返回应用`) action is pinned to the foot of the rail, not
+  the top: it keeps its chevron + label form as a 32px control, and it shares
+  the horizontal band of the main shell's sidebar footer icon row (settings /
+  plugins / notifications), so the action does not jump vertically when the
+  full-page takeover opens or closes. The directory above it scrolls when the
+  window is too short for every destination, so a pinned action never covers a
+  row
+- The 46px top band is a native window drag region across both the rail and the
+  content pane, but it is drawn in two parts so each keeps its own surface: the
+  rail drags via its own top strip on the rail surface, and the content pane's
+  band starts at the rail edge on the primary surface. The band must never paint
+  the primary surface over the rail, which would show two colors in one top row.
+  Interactive controls remain explicitly non-draggable
+- A compact navigation directory with short, parallel labels and icons, in this
+  exact order. **One destination owns one subject** (D684 / ADR 0345): a
+  destination is never the landing place for whatever did not fit elsewhere,
+  and a subject that belongs to none of them is a missing destination rather
+  than an extra card on an unrelated page:
+  1. **Appearance / 外观** — Lucide `Palette` (theme, language, type, chrome)
+  2. **Conversation / 对话** — Lucide `MessageSquare` (transcript presentation and composer input)
+  3. **Shortcuts / 快捷键** — Lucide `Keyboard` (keyboard shortcuts)
+  4. **Voice / 语音** — Lucide `Mic` (Live Voice enablement and provider bindings)
+  5. **Behavior / 行为** — Lucide `SlidersHorizontal` (session defaults, execution, computer use)
+  6. **Models / 模型** — Lucide `Bot` (providers and default model)
+  7. **Instructions / 指令** — Lucide `FileText` (global and project instruction files)
+  8. **Skills / 技能** — Lucide `BookOpen` (reusable agent instructions)
+  9. **MCP** — Lucide `Server` (agent connections)
+  10. **Subagents / 子智能体** — Lucide `Sparkles` (built-in and personal parallel agents)
+  11. **Projects / 项目** — Lucide `Archive` (durable project index)
+  12. **System / 系统** — Lucide `Monitor` (network, storage, power, window close behavior)
+  13. **Cloud sync / 云同步** — Lucide `CloudDownload` (encrypted portable configuration backup and bidirectional sync; Experimental, all builds)
+  14. **Remote Hosts / 远程主机** — Lucide `Globe` (experimental SSH hosts, sessions, and explicit model copy)
+  15. **Info / 信息** — Lucide `Info` (versions, logs, updates, developer)
+  Rail icons are decorative (`aria-hidden` via the SVG default) and stay
+  monochrome with the rail label, except on the selected row, where the glyph
+  takes the accent alongside the row's accent-tinted pill; do not reuse
+  refresh/rotate glyphs here. No two destinations share a glyph: Models keeps
+  `Bot` and Subagents takes the `Sparkles` the retired AI destination released.
+- The destinations named `general` and `ai` are retired. Their ids stay
+  resolvable — `general` → Appearance, `ai` → Behavior — so a stored selection,
+  a native menu, or a link written before the split lands on a real page
+  instead of an empty content pane. Neither id appears in the directory or in
+  search results.
+- The directory remains a flat searchable list in the same exact order. For
+  scanability, the destinations are shown in four titled visual clusters:
+  `Preferences` / `偏好` (Appearance, Conversation, Shortcuts, Voice),
+  `Agent` / `智能体` (Behavior, Models, Instructions, Skills, MCP, Subagents),
+  `Workspace` / `工作区` (Projects), and `System` / `系统` (System, Cloud sync,
+  Remote Hosts, Info; Cloud sync and Remote Hosts are Experimental destinations
+  available in all builds). Headings are muted, non-interactive labels at the
+  smallest legible type step with letter spacing, and they use whitespace for
+  separation; no divider lines are rendered. These are visual landmarks only,
+  not a second navigation level.
+  When search filters the directory, empty clusters and their headings disappear.
+- **Voice** is a regular Preferences destination after Shortcuts, present in
+  every build with no Experimental badge and no developer-mode requirement. Its
+  rail row, page, search hits, and idle Composer entry are available to all
+  users.
+  It is the only place to enable Live Voice. See the Voice section below.
+- Every destination opens with a **page header**: the rail's glyph repeated at
+  page scale on an accent-tinted fill, the page title, and — for destinations
+  whose own content does not already start with a description — one line saying
+  what the destination decides. The capability, model and project workbenches
+  keep their own opening description and carry no header subtitle, so a page
+  never states its purpose twice.
+- **Cloud sync / 云同步** is an Experimental `System` / `系统` destination
+  available in development and packaged builds. Its rail row, page, and
+  settings-search hits are available in every build, and both the row and page
+  title carry `settings.configSync.experimental`. Developer mode does not gate
+  it; sync behavior itself is unchanged.
+- **Remote Hosts / 远程主机** is an Experimental destination in all builds,
+  independent of developer mode. The rail, page and search hits remain available.
+  The row and title carry `settings.remoteHosts.experimental`. After pairing,
+  each host offers **New project**, reconnect, and remove. New project opens the
+  unified Create project dialog with Remote selected and that host preselected;
+  selecting an absolute directory creates a locally managed project bound to
+  the remote workspace. The inventory does not list or create conversations.
+  The Add action row precedes the inventory; SSH installation and existing-host
+  pairing open an accessible dialog. Cancel, Escape, backdrop dismissal, and
+  successful submission close it and clear the draft, returning focus to its
+  trigger. SSH hosts offer eligible-provider
+  copy with empty selection and explicit credential-copy consent. Remote chat
+  uses Host defaults and never activates local workspaces.
+  The narrow MVP supports text, tool/input responses and read-only files/diffs;
+  terminal, attachments, local model controls and local plugin/MCP actions are absent.
+- Loaded plugin Settings entries may appear only in a final **Extensions** group
+  after all core groups. The host owns their ordering, search result, titlebar
+  and fallback to General. The rail icon is the destination's host token
+  (scenic themes: Lucide `Palette` via `pluginViewIcon`), never plugin markup
+  and never a generic Skills book glyph. Their content is a sandboxed plugin
+  page measured into the content pane; it never covers the rail or titlebar.
+- Main content pane on primary surface with large section title + elevated
+  rounded cards of rows. Its content uses the full width available after the
+  fixed rail and pane gutters, and resizes continuously with the window.
+
+## 2. Section contents
+
+### Appearance
+
+How the product looks and the chrome around a conversation, in four cards:
+**Interface**, **Sidebar**, **Radial context menu**, **Startup**. Nothing here
+changes what the agent does, and the machine-level cards this page used to
+carry — network, storage, power, close behavior — belong to **System** since
+D684.
+
+- **Interface** card:
+  - **Theme**: a searchable picker row (same anchored-menu pattern as
+    Language). The closed trigger sizes to the current label, capped by the
+    settings control column, and shows the current name. The menu pins System,
+    Light, and Dark at the top, then lists plugin themes after a divider with a
+    "Provided by …" hint. Search matches labels, descriptions, ids, and plugin
+    ids. Selection updates `settings.theme`.
+  - **Language**: a searchable picker row (not a card grid). The closed trigger
+    sizes to the current label, capped by the settings control column, and
+    shows the current native name, or Match system. The menu pins Auto at the
+    top with the detected language inline (e.g. "Currently 简体中文"), then
+    lists every shipped locale with its native name (endonym, never translated)
+    and English name for search and sort. Selection updates `settings.language`.
+    Adding a locale is a catalog plus a registry row; the picker does not
+    hard-code the option list.
+  - **Font**: a searchable picker row (trigger shows the current family rendered
+    in that face) offering the System default and installed system families
+    enumerated by Electron main; the app ships no fonts of its own (ADR 0298),
+    so there is no bundled group and no license badge, and a stack saved while
+    a removed family existed still appears under Saved; selection
+    persists as `AppSettings.fontFamily` and applies to the global UI stack
+    (`--font-sans`) without a reload; System default clears the override;
+    every stack ends in the system-only CJK fallback tier (`PingFang SC`,
+    `Hiragino Sans GB`, `Microsoft YaHei`, `sans-serif`);
+    long system lists are windowed so only the visible slice is in the DOM
+    (bounded font loading) and opening the picker never blocks input
+  - **Font size**: Starbucks-style cup presets (Tall / Grande / Venti /
+    Trenta) plus a
+    percentage slider (80%–150%). Cup labels stay on one line. Selection persists as
+    `AppSettings.fontScale` (`1` = product ramp; absent means 1). The
+    renderer sets `--font-scale` on the root so every `--text-*` step and
+    shared Lucide icon scales in proportion without a reload. Window Zoom
+    In/Out/Reset stays independent. The UI never asks for a px value
+    (D343 / ADR 0180)
+  - **Translucent window** (macOS only): one switch for the native window
+    surface (ADR 0332). On — and absent — keeps the shipped `sidebar` vibrancy
+    material behind a transparent backing; off paints the opaque surface that
+    frees the window from WindowServer's per-frame recomposition. It persists as
+    `AppSettings.macosWindowTranslucency` and is applied when the main window is
+    created, so the row shows a restart hint while the stored value differs from
+    the surface this process launched with instead of pretending to change the
+    live window. Other platforms do not render the row.
+  - **Auto language detection** resolves the OS locale through the main process
+    (`app.getLocale()`) rather than the renderer's `navigator.language`, and the
+    Auto option shows the detected language inline (e.g. "Currently 简体中文")
+  - native select triggers and their opened option lists use the active theme's
+    readable foreground/background pairing on macOS, Windows, and Linux; the
+    shared native-select contract applies to every app surface
+- **Sidebar** card: one master switch for project running activity
+  (`AppSettings.sidebarRunningIndicators`) plus independently gated
+  **Count badge** and **Activity rail** switches
+  (`sidebarRunningBadge`, `sidebarRunningRail`). When unset, the master and
+  Count badge resolve on while Activity rail resolves off; explicit saved
+  values remain authoritative. The two gated switches render as indented
+  sub-rows of the master, so the dependency is visible without a sentence
+  explaining it. They are disabled while the master switch is off and keep
+  their stored value, so re-enabling the master restores the previous choice
+  instead of resetting it. The affordances themselves are described in
+  [01-ui-ia.md §3.2](01-ui-ia.md#32-sidebar-project-groups).
+- **Radial context menu** card: one switch (**Enable on the transcript
+  background**) and four direction pickers (**Up**, **Right**, **Down**,
+  **Left**). The switch is off when `AppSettings.radialMenu.enabled` is absent
+  or false, which keeps the vertical background menu. Each picker stores one
+  `RadialMenuAction`: copy conversation, select conversation text, copy the
+  last answer, scroll to top, jump to latest, open the built-in browser, toggle
+  the work panel, open the project folder, or **Leave empty**. The work panel
+  direction follows the panel's state: it reads **Open work panel** while
+  collapsed and **Close work panel** while open. Pickers are disabled while the
+  switch is off and keep their stored directions for when it is turned back on.
+  Settings search indexes the card and its rows.
+- **Startup** card — **Startup animation** (D679 / ADR 0338): one switch, plus
+  an **End early when ready** sub-switch gated by it. The animation itself is a
+  file, not a value, so the row's other job is making the folder findable: its
+  detail line names the video the next launch would play — or says none was
+  found — and carries the action that opens `<dataDir>/startup/`, creating it on
+  the way. Both preferences persist under `AppSettings.startupAnimation`
+  (`enabled` absent means on, so dropping a file in is sufficient;
+  `skipWhenReady` absent plays the video out) and are read before the main
+  window is created, so like the translucency switch they apply on the next
+  launch. The status is re-scanned per open, because a user who just dropped a
+  file in has not restarted yet.
+
+### System
+
+This installation rather than the product's look or the agent's behavior:
+**Network**, **Storage**, **Power**, and on Windows/Linux **Close behavior**.
+Platform-specific close behavior lives here because it changes
+application-window behavior rather than agent behavior.
+
+- **Power** card: two independent opt-in switches. Keep computer awake uses
+  `prevent-app-suspension` to block idle system sleep for the lifetime of the
+  running desktop app, including between scheduled runs; the display may turn
+  off. Prevent screen sleep uses `prevent-display-sleep` to keep the display on.
+  Both are off when absent, persist separately as
+  `AppSettings.keepAwakeWhileRunning` and `AppSettings.preventScreenSleep`,
+  take effect immediately, restore on startup, and release their own blocker
+  when disabled or during shutdown. Manual sleep and lid close follow the OS.
+- **Storage** shows the effective application data path and the reclaimable cache
+  size. It is included in settings search. Choose directory uses the native picker;
+  confirmation displays both application and browser source paths, the target,
+  migration scope and the restart/backup policy. Cancelling has no side effects.
+  Accepting locks repeat actions until the app exits through ordered shutdown.
+- A separate sandboxed cold-maintenance window shows localized scanning, copying,
+  verifying and internal-path relocation stages, file counts, copied/verified bytes
+  and determinate progress where known. It does not load plugins or agent services.
+  Failure explains that the original profile remains active, then returns to it;
+  settings exposes the error and permits retry. A disconnected selected volume
+  blocks startup with a recovery explanation instead of silently using empty data.
+- **Clear cache** shows a size and requires an inline confirmation describing the
+  retained durable data before clearing and restarting. **Delete old backups** is
+  separate, lists original paths and warns users to check their plugins and old
+  attachments first. Arbitrary plugin-owned absolute references cannot be rewritten
+  by the host. Environment-controlled profiles display why maintenance is disabled.
+  Confirmation gets keyboard focus, asynchronous errors remain visible, and all
+  visible copy is localized. These operations affect only this local installation.
+- **Network** card:
+  - **Proxy**: a segmented control — System, Direct, Custom. System is the
+    default and lets Chromium follow the OS proxy; Direct disables the proxy;
+    Custom applies one HTTP, HTTPS, or SOCKS5 URL to app-owned outbound
+    traffic (model calls, marketplace, updates, model catalog, plugin
+    `net.fetch`, and the in-app browser). Workspace Bash and the system
+    browser used for OAuth are not rewritten.
+  - Custom shows a Proxy URL field (`socks5://127.0.0.1:1080` /
+    `http://127.0.0.1:7890`, including `user:pass@` userinfo), a Bypass list
+    defaulting to
+    `localhost,127.0.0.1,::1,<local>,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16`
+    so loopback MCP, local models and every LAN service stay direct, and a Test
+    action that issues one Chromium fetch through the draft proxy. Credentialed
+    URLs are applied to Chromium through a loopback SOCKS5 relay (issue #490).
+    The URL is validated on blur; invalid schemes are rejected.
+  - The selection persists as optional `AppSettings.networkProxy`
+    (`mode` / `url` / `bypass`). Absent means System. No host protocol or
+    storage schema version bump (D340 / ADR 0177).
+  - System and Direct keep the `url` and `bypass` the user configured: `mode`
+    decides what applies, and the values come back with Custom instead of the
+    built-in `socks5://127.0.0.1:1080` (issue #1541). Nothing applies them
+    while another mode is selected.
+  - **Relaxed network mode**: one switch persisting as
+    `AppSettings.networkPolicy.mode` (`relaxed` | `strict`), **on by default**.
+    When it is on, an endpoint the user typed themselves — a model base URL, an
+    MCP server, a git remote — may be a loopback or LAN address,
+    may use plain `http`, and a transparent proxy's fake-IP answers are
+    tolerated. Off returns those endpoints to the public-HTTPS-only boundary.
+    The first plaintext hop to such an endpoint shows one informational notice.
+    The per-surface acknowledgements this replaced (`networkProxy.allowFakeIp`,
+    `configSync.allowInsecureHttp`) are gone (ADR 0304).
+- **Close behavior** card, on Windows/Linux only: what the window's close
+  button does.
+- File-open target, menu-bar behavior, and bottom-panel behavior are not
+  rendered until their host-backed settings schemas and runtime effects exist.
+
+### Cloud sync
+
+- **Status first**: saved devices show current state, destination, last success
+  and manual run above settings. Pause and inline password unlock remain
+  reachable without expanding connection settings; errors, manual progress and
+  pending activation are never hidden behind a disclosure.
+- **Connection**: initial setup exposes endpoint, private bucket, access key
+  ID, secret key and vault password. Mode uses the shared settings picker;
+  automatic runs use `SettingsToggle`. Advanced settings (region, object
+  prefix, addressing, device label and optional session token) start collapsed
+  with unchanged defaults. Saved connections reopen collapsed, while unfinished
+  drafts reopen for editing. Test and Save remain together at the form footer.
+  Connection testing requires reliable conditional writes; no fallback exists.
+- **Portable configuration**: a disclosure inside the same connection form
+  allows category selection before initial setup and later edits. Supported
+  categories are selected by default; credentials and memory remain explicit
+  opt-ins, with the credential warning shown when selected. All checkboxes use
+  the styled shared `Checkbox`, including disabled and mixed states.
+- **Secondary tools**: history/restore, preview, mappings and security/connection
+  maintenance start collapsed. Expanding does not perform a sync, save, or reset
+  entered values. The preview retains its complete counts.
+- **Safety**: exported secrets and vault keys are never returned to the page.
+  Connection secrets exist only in transient password controls. Imported
+  executable/security-sensitive content keeps local approval and mapping.
+  Public HTTP and redirects are rejected; LAN HTTP follows the shared Host
+  network policy, not a page-specific checkbox. Disconnect preserves local
+  configuration and remote objects. Only the new S3 format is supported;
+  there is no legacy-data detection, migration or compatibility notice.
+- **State and recovery**: show distinct configured, locked, syncing, offline,
+  unsupported-server, conflict, awaiting-activation, paused, and error states.
+  Users can sync now, unlock, pause this device, approve/reject staged items,
+  and disconnect. The page does not imply convergence from an old successful
+  run while a pending state remains.
+- **Fast revisit and drafts**: cache redacted status/history and typed,
+  non-sensitive connection choices. S3 uses a versioned draft key; old drafts
+  are ignored. Secret keys, session tokens and vault passwords never enter
+  renderer persistence. Blank credentials reuse Host storage only for the exact
+  same connection; an explicit token-clear checkbox and new secret replacement
+  can clear the saved session token. Connection/mode changes invalidate history,
+  including late responses from the previous connection.
+- **History and restore**: show the latest 30 revisions for the saved mode and
+  disclose indefinite object retention without automatic cloud cleanup. Sync
+  restore confirms immediate propagation; backup restore confirms local-only
+  application and permits the current backup. Unsaved mode edits do not change
+  these semantics. Both retain local recovery and approval requirements.
+  Password changes are key rewrapping, not revocation of unlocked devices.
+
+### Conversation (`chat` tab)
+
+How a transcript is presented and how the composer takes input. Two cards:
+**Display** then **Input & links**. Nothing on this page changes what the model
+does or what it is allowed to do, and the Display card's caption says so once
+so no row repeats it.
+
+- **Display** card, in rendered order: the **Show thinking** toggle with its
+  **Auto-fold finished thinking** sub-row, the **Transcript display** segmented
+  control with its **Auto-fold finished groups** sub-row, **Context usage
+  display** (remaining or used), **Smooth streaming**, and **Inline
+  visualizations**. Context usage display controls whether the composer toolbar
+  context ring and its popover lead with the remaining or the used capacity
+  figure; the default is remaining.
+- **Input & links** card: the **Enter-to-send** control, the large text paste
+  threshold, and the **Link open destination**. The threshold controls when a
+  text-only paste becomes a temporary session-scratch file; it defaults to 600
+  characters and accepts integer values from 1 through 1,000,000. Link open
+  destination uses the Work panel browser by default and routes chat,
+  transcript, and plugin HTTP(S) clicks to the system browser when set to
+  Default OS browser. Plugin/settings clicks that want the work panel return to
+  chat first so the dock is visible, without recording a navigation hop; a
+  missing session falls back to the OS browser. Workspace HTML preview,
+  BrowserPreview, OAuth, and Feedback keep their existing destinations.
+- Composer text actions are contributed by explicitly installed plugins and
+  appear only while their plugin is enabled and its `composer.transform`
+  permission is granted. The host does not include a prompt-enhancement card or
+  install the standalone `pi.prompt-enhancement` plugin by default. Plugin-owned
+  settings are edited on the Plugins page; the one-time migration of legacy
+  prompt-enhancement preferences is specified in
+  `04-ux/12-prompt-enhancement.md`.
+- **Show thinking** is a toggle that persists as the optional `showThinking`
+  boolean in host-owned settings. Off hides completed reasoning rows and, while
+  reasoning is actively streaming, leaves only the whole-run TextShimmer
+  `Thinking` indicator; a collapsed row shows that indicator without an excerpt.
+  Stored reasoning is retained and reappears when the toggle is turned back on.
+  With it on, a Thinking row starts folded once it is no longer streaming; the row
+  the live turn is still generating stays open, and the **Auto-fold finished
+  thinking** sub-row below can keep every row open instead. It affects
+  presentation only, not model reasoning configuration, and it does not control
+  turn-process or activity-group folding: active processes start open and
+  untouched completed processes fold by default regardless of the toggle. The
+  legacy `thinkingDisplayMode` field (`detailed` / `compact`) is retained only
+  for persisted-settings compatibility and is no longer exposed; an absent or
+  unknown value shows reasoning and an explicit `compact` hides it. Settings
+  search indexes the row.
+- **Auto-fold finished thinking** is an indented sub-row directly under **Show
+  thinking** and appears only while that toggle is on, because with it off no
+  completed reasoning row renders. It persists the optional
+  `autoCollapseThinking` boolean, absent and `true` both meaning fold: only
+  reasoning the live turn is still streaming stays open. Turning it off keeps
+  every rendered Thinking row open. Hiding the sub-row by turning **Show
+  thinking** off never writes a value, so the stored choice survives and comes
+  back with the parent. Settings search indexes both the row and its description.
+- **Transcript display** is a segmented control in Display immediately after the
+  **Show thinking** pair. It persists the optional `transcriptDisplayMode` field as
+  `flat`, `command-first`, or `fully-folded`, with the labels **Flat**,
+  **Commands first**, and **Fully folded**; an absent or unknown value resolves
+  to **Fully folded**, the layout released in v0.20.0. **Flat** renders one
+  outer process disclosure with no nested activity groups. **Commands first**
+  keeps activity groups but lifts `Bash`/run rows into standalone rows, and a
+  normal assistant progress message or a command ends a group. **Fully folded**
+  keeps commands inside their groups and lets only ordinary progress text split
+  them. All three render exactly one process disclosure, change presentation
+  only, and are read at render time, so switching repaints the transcript
+  immediately. The deprecated `keepCommandsExpanded` boolean is no longer
+  exposed and is not read for rendering. Settings search indexes the row.
+  Settings-row segmented controls use content-sized options rather than the
+  standard 240px field-column cap. Labels stay on one line; when space is
+  insufficient, the control moves below the title and whole options wrap
+  within the available pane width without horizontal overflow.
+- **Auto-fold finished groups** is an indented sub-row directly under
+  **Transcript display**, and appears only for **Commands first** and **Fully
+  folded**; **Flat** renders no activity groups, so the row is hidden there and
+  has no effect. It persists the optional `autoCollapseSettledGroups` boolean,
+  absent and `true` both meaning fold: a group whose turn has settled starts
+  closed whatever its size, while a running turn, or a group that still owns a
+  running tool or delegation, stays open. Turning it off leaves every settled
+  group open - there is no size tier. Hiding the sub-row by switching to **Flat**
+  never writes a value, so the stored choice survives and returns with the mode.
+  Settings search indexes both the row and its description.
+
+### Agent behavior (`behavior` tab)
+
+What a new conversation starts with, and what the agent may do while it runs.
+Card order is **Session defaults → Execution → Computer use**.
+
+- **Session defaults** card: the host-backed default operating mode (Agent /
+  Plan / Goal), the global permission mode (ask / accept-edits / auto) that
+  governs how autonomously the agent acts, and the command shell selection.
+  These are one card because they are the same decision asked three ways: what
+  a run begins with. The permission control is a menu select on the shared
+  anchored-menu surface rather than a platform-drawn `<select>` popup, so every
+  Settings picker opens the same way. The closed trigger sizes to the current
+  label, capped by the settings control column.
+- **Execution** card: the infinite provider retry switch and the app-wide
+  **Scheduled tasks** switch. The retry switch is off by default and explains
+  that network/transient provider failures keep retrying until success; Stop
+  still cancels the turn and the setting may continue API usage while enabled.
+  The scheduled-tasks switch persists as optional
+  `AppSettings.scheduledTasksEnabled`, on when absent or true. Off hides the
+  footer clock and global-search page entry, leaves the route if already open,
+  withholds scheduled Agent tools, and blocks new manual/automatic runs and task
+  edits at the Host. Existing task enable states, schedules, and history remain
+  unchanged; active runs can finish. Re-enabling restores access and resumes
+  normal due-time admission without replaying missed occurrences.
+- **Computer use** card: last on the page. It omits card/row explanatory copy
+  and the static scope note; controls, platform and permission status, errors,
+  and the missing-model hint remain unchanged.
+- The **Command shell** row in Session defaults uses the host-discovered catalog of native
+  PowerShell 5.1, PowerShell 7, cmd, Git Bash, and Bash with IDs
+  `windows-powershell`, `windows-pwsh`, `cmd`, `git-bash`, and
+  `bash` where supported. The selected `defaultCommandShell` persists across
+  restart; writes reject unavailable or wrong-platform IDs. If a persisted
+  choice later becomes unavailable, the first available platform shell is used
+  and the fallback state is shown. When the selected shell is available, the
+  selector is the only configured-state indicator; status text is reserved for
+  the default, fallback, and no-effective-shell cases. A Bash turn verifies its
+  pinned ID/dialect before execution. The row renders the same menu select as
+  the permission mode beside it and the Appearance pickers.
+- Context management has **no card and no controls** (D200 / ADR 0061, kept by
+  D203 / ADR 0064). Automatic protection is always on and its budgets and
+  retention limits are derived from the active model's window, so there is
+  nothing a user could tune from here — the reference implementation does not
+  expose these values either. Settings search indexes no compaction keys.
+  Manual `/compact` remains available from the command palette for an idle
+  session; the transcript shows where each compaction happened and the context
+  usage inspector shows whether a checkpoint is installed.
+Speech bindings (`AppSettings.speech`) are **not a Settings surface** (ADR
+0291). The host keeps the speech capability and the `speech/*` IPC for plugins
+and for bindings that are already stored, but nothing here picks a
+transcription or speech provider, protocol, model, or voice, and search indexes
+no speech keys.
+
+Token usage is **not a Settings destination** (D335 / ADR 0173). Completed-turn
+history stays host-owned (`session.endTurn.usage`, `stats.getTokenUsageHistory`).
+The user-facing dashboard is marketplace plugin `pi.token-insights`, opened from
+the command palette (`usage`, `tokens`, `用量`). Settings search does not index
+a usage tab.
+
+### Voice
+
+- This destination owns Live Voice enablement and provider bindings, and is
+  reachable in every build without developer mode. Its enable card keeps the
+  explanation behind the heading's help mark and the Model configuration link
+  on the card's heading line, so no control floats between the rows. Disabled
+  Live Voice has no Composer voice or work icon; enabling it reveals one
+  preparation entry, never auto-starts a call, and never grants work access.
+- Bind an existing compatible provider account, choose the exact next-call
+  binding, and configure its model, voice, and explicit Realtime profile where
+  applicable. An account card with nothing bound shows only its picker: the
+  next-call, model, voice, and profile rows appear with the binding instead of
+  rendering as empty disabled controls. Readiness describes that selected
+  binding, not whether any other configured provider is ready. Credentials
+  remain in the existing Host/Main systems and are not shown or copied into the
+  renderer.
+- Provider-binding edits remain locked while that binding is active. Turning
+  Live Voice off ends the call, but the global compact call bar remains visible
+  through Main termination and renderer media cleanup, including while Settings
+  replaces the chat shell. An unconfirmed release keeps its error visible and
+  suppresses another Start until the app is restarted.
+- Work authorization belongs to an explicit opt-in and target in next-call
+  preparation, not to the Settings enable switch. Context sharing is a separate
+  unchecked, transient next-call choice. Settings copy distinguishes the
+  default voice-only call from explicitly authorized work requests.
+- Legacy Dictation and Host Speech settings remain hidden and their stored
+  values retain their meaning. No new persisted preference, IPC, provider
+  fallback, or permission rule is introduced. See
+  [Live Voice](../03-runtime/live-voice.md) and
+  [Live Work](../03-runtime/live-work-session.md).
+
+### Shortcuts (`shortcuts` tab)
+- **Keyboard shortcuts** card:
+  - lists navigation, agent, and window actions from one shared shortcut map
+  - renders platform-native modifier labels (`⌘` on macOS, `Ctrl` on
+    Windows/Linux) and the platform-specific full-screen default
+  - clicking a binding records the next modifier chord or `F1`–`F12`; `Escape`
+    cancels recording
+  - each binding can be explicitly set to `Unbound`; the disabled state remains
+    editable and is distinct from restoring the default
+  - duplicate application bindings and operating-system/editor-reserved chords
+    are rejected with an inline error; an unbound action never participates in
+    conflict checks
+  - each override can be restored independently and all overrides can be
+    restored together; an individual reset rejects a default already used by
+    another action, preserving both mappings and showing the same conflict error
+  - overrides persist in optional `AppSettings.keybindings`; a missing entry
+    uses the platform default, a valid string uses the custom binding, and
+    `null` disables the action. macOS native-menu accelerators and
+    renderer-owned shortcuts update from the same map
+  - the plugin launcher defaults to `Option + Space` on macOS and `Alt + Space`
+    on Windows/Linux; its native global registration follows the same override.
+    An unbound launcher disables Electron registration, the Windows host hook,
+    and the focused-window fallback
+  - the window-visibility row is one toggle on `Alt + Shift + W`: it hides a
+    visible, focused window to the tray and brings a hidden or minimized window
+    back. It is the only window key — the retired `Cmd/Ctrl + Shift + W` summon
+    row is gone — and it avoids `Cmd/Ctrl + W` because macOS spends that chord
+    on its own close-window command; a stored `closeWindow`/`summonWindow`
+    override is folded into it when the map is read (D438, D439)
+
+### Model configuration (`agent` tab)
+- The model configuration page groups its sections in this order: **AI
+  services** (including model-catalog status and refresh), **Jev**, then the
+  image-generation model selector. The sections use one consistent vertical
+  spacing rhythm.
+- **Defaults** card: a compact settings row shows the provider name and exact
+  model ID beneath the Default model label. A quiet Change action opens the
+  picker without duplicating the current value. The picker groups model-level
+  options by provider, marks the exact current entry, and keeps its searchable
+  list bounded. Account labels are not appended to model IDs. Global operating
+  mode and command shell are owned by Behavior, and Enter-to-send by
+  Conversation.
+- **Vendor accounts** card (D237/D240), between Defaults and Providers:
+  - the card lists accounts, not vendors: one row per local OAuth provider row,
+    including multiple rows for the same vendor. Its list surface uses the same
+    single-level panel and row structure as AI services. The whole section is
+    hidden when the runtime catalog offers no OAuth vendor
+  - a primary Add account action in the card header opens every OAuth-capable
+    vendor; existing accounts do not remove or disable that vendor from the
+    picker, so the same vendor can be added again for a different account
+  - an account row shows the vendor name, a Subscription badge where the access
+    is plan-backed, a Connected or Needs sign-in badge, and the account label.
+    Duplicate accounts receive a stable account number in the row; the default
+    model remains available in Defaults and the account editor
+  - picking a vendor opens a single dialog that renders whatever the flow asks
+    for — an opened browser with a copyable link, a device code, a choice, or a
+    text field — with a cancel action that aborts the local callback server or
+    the polling loop. Plain text prompts submit their trimmed value, including
+    an empty string when the vendor defines it as the default (for example,
+    GitHub Copilot's blank Enterprise URL means github.com).
+  - Remove account is a destructive, two-step action. It deletes that account's
+    OAuth credential and provider row, clears or repairs the global default when
+    needed, and leaves other accounts from the same vendor untouched
+  - Edit account opens a dialog carrying the account label plus the same
+    two-pane model picker the AI service dialog uses (D270): the account's
+    discovered/entitled models on the left, the chosen bindings on the right
+    with per-model context window, max output, and seven thinking-level chips
+    behind the Advanced disclosure, so model selection is identical for both
+    credential kinds. Published levels seed known models; explicit selections
+    remain user-owned. The account has no API key field and discovery
+    resolves the stored OAuth login instead. Saving updates the OAuth provider
+    row and keeps the global default model in sync when that account is selected
+  - Test connection resolves the account's OAuth authorization and reports a
+    transient success or failure without probing the provider with an API key
+  - At viewport widths up to 940px, both provider and vendor-account model
+    panes stack without shrinking to the remaining dialog height. Each model
+    list scrolls within its bounded tray; the dialog body scrolls to reach
+    either tray. Short, wide windows retain the side-by-side layout.
+- **Providers** studio:
+  - OpenAI-compatible and custom-service add-provider dialog (opened from Add
+    provider / empty-state CTA)
+  - provider cards with host, first configured model, secret status,
+    and test / make-default / delete actions
+  - Add account and Add provider use the same primary button treatment
+  - Add Service groups unconfigured API-key providers declared by loaded
+    plugins under each contribution's optional custom category. The category
+    defaults to the plugin name and supports English and Simplified Chinese.
+    Tiles show only the provider name; a one-sentence introduction appears on
+    hover or keyboard focus. Search also matches category, plugin, endpoint,
+    and model IDs. A selection opens the Host-owned API-key form; after saving,
+    that provider remains in the service list and leaves the chooser.
+  - the add/edit dialog configures connection identity (name, endpoint, API
+    style, and authentication). Custom endpoints default to API-key mode and
+    offer a **No API key required** checkbox; choosing it stores `authKind:
+    "none"` and removes any saved API key when editing. Named service presets
+    continue to use API-key authentication. The dialog shrinks to the overlay
+    on a narrow window, and a
+    focused credential field keeps its 2px accent ring inside the dialog
+    instead of clipping against the scrolling body. It then selects one or
+    more models from a searchable multi-select catalog. The discovered-list
+    header has a checkbox that selects or clears every currently visible row,
+    including when a search filter is narrowing the list, and a Fetch list
+    action that re-probes the service immediately. Each selected model has an independent, compact
+    configuration row for context window, max output, supported thinking
+    levels, and the default thinking level. The row keeps the model ID,
+    source, capabilities, and token limits visible at a glance in one shared
+    compact form that keeps neighbouring windows apart (`1.05M · 128K`), and
+    expands in place for edits. The expanded body is a compact sheet, not a stacked
+    form dump: 2xs labels, dense numeric fields without native spinners, the
+    alias hint as a title tooltip rather than a paragraph, the default
+    thinking selector on the thinking label row, and attachments plus
+    subagent delegation on one wrapping row. The first row starts expanded so the form remains
+    discoverable; additional rows stay collapsed to keep large model sets
+    scannable. The bundled models.dev release snapshot pre-fills known rows; custom IDs
+    absent from it use the runtime generic values. The portaled
+    option list can scroll without dismissing the picker; scrolling an
+    outside settings container dismisses it before the trigger can become
+    detached. Search results keep a dedicated no-match state instead of
+    reusing the search placeholder.
+  - Chat Completions model settings include a reasoning effort parameter menu:
+    **Auto**, **Send**, and **Do not send**. Auto restores compatibility defaults;
+    the other choices persist an explicit per-model `supportsReasoningEffort`
+    boolean. The selection survives save/reopen, copying, and configuration sync.
+    Other API formats hide this control without deleting the saved preference.
+  - the context-window field states its provenance: while the number still
+    follows the published models.dev limit, a faint hint under the input says so
+    (`settings.contextWindowCatalogHint`), and the first edit — the preset
+    ladder or the numeric input — pins the value to the user, which removes the
+    hint. A value the user pinned is never replaced by a catalog refresh; an
+    unpublished model shows no hint because there is nothing to follow.
+  - each model option and configuration row shows a compact text/vision
+    capability state. Settings compares the checkbox with the published model
+    record, while the Composer badge and runtime use the effective binding:
+    absent or `null` `supportsImages` follows the published value, and an
+    explicit `true` or `false` overrides it. An unknown model remains
+    conservative unless its configured binding explicitly enables image input.
+  - model discovery is debounced after a valid endpoint, key, or API style
+    change, including no-auth/local endpoints; named add-path discovery waits
+    for an API key (editing reuses the stored secret) and does not mark
+    loading until the debounce fires; the picker remains usable with
+    free-form custom model IDs when discovery is unavailable
+  - thinking chips always render the seven canonical levels in canonical order.
+    Published levels seed known-model bindings, while a row with no published
+    reasoning shows all chips unselected with a concise manual-override hint.
+    This lets a compatible proxy or newly released model be enabled explicitly;
+    the saved binding, not the catalog, owns the effective selection. A row the
+    catalog does not describe — a hand-typed ID, a vendor-account model, or an
+    endpoint that went quiet — still keeps its stored selections, so discovery
+    being unavailable can never erase configuration.
+    The label, optional hint, and default selector sit on one row above one
+    compact grouped control that spans the pane; the seven options share the
+    width equally and wrap only when the pane is narrow.
+    Removing the current default falls back to the first enabled level; no
+    enabled levels disable the default selector and show the model's
+    manual-override hint
+  - a new dialog starts with only **Service**. Named endpoints from
+    models.dev (OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, xAI,
+    Mistral, Together, Fireworks, OpenCode Go, Z.AI, DeepSeek, Qwen/DashScope,
+    Moonshot/Kimi, Zhipu, SiliconFlow, Volcengine Ark, MiniMax,
+    MiniMax (OpenAI), Xiaomi, Kimi
+    For Coding) then show Service + API key, with the published host as a
+    one-line summary. Custom endpoint then shows Service, Name beside Base URL,
+    and API key beside API format in three explicit rows so each input keeps a
+    stable alignment as the form changes. The custom Base URL field accepts
+    only http(s) service base URLs and trims pasted operation paths such as `/models`,
+    `/messages`, `/chat/completions`, or `/responses` when the field loses
+    focus. The placeholder is enough — no helper paragraph under the URL.
+    Invalid URLs show an inline error and block discovery and save. A failed
+    model-list probe reports one classified sentence through the app toast and
+    leaves a one-line “no list” label in the empty pane, or the rows in place
+    above it; raw HTTP/JSON dumps are shown in neither. A settled probe —
+    connected, catalog, or refused — is announced once instead of holding a
+    status row under the key.
+    Named display names and optional custom headers stay behind Advanced settings.
+    The dialog header's upper-right actions include an explicit Advanced settings
+    button that opens a separate compact modal, keeping the main form focused on
+    the endpoint and model panes. The modal uses the header close action only;
+    it does not render a footer action row. The modal offers common presets including a
+    ready-to-use User-Agent, copies the same normalized header record used for
+    persistence as pretty-printed JSON (blank names omitted, last write wins),
+    and imports either a direct JSON header map or
+    `{ "headers": { ... } }`; imported keys merge case-insensitively without
+    duplicating existing rows. The editor keeps at most five header rows visible
+    and scrolls internally for additional rows. Empty headers keep adapter
+    defaults.
+    Service is a searchable anchored menu of vendors (filter by localized
+    name, vendor key, alias, or host), not a native select, region grouping,
+    stepper, or vendor-card grid. Saved named rows store the models.dev `vendorKey` and
+    the preset `apiStyle` (Chat Completions, Responses, Anthropic, Gemini, or
+    `opencode_go`).
+    A saved row carrying an unknown or legacy API style remains editable; the
+    form shows the Chat Completions fallback and can repair the value on save.
+  - helper copy stays out of the model cards; labels, status badges, and the
+    empty/error state carry the necessary context without explanatory
+    paragraphs
+  - empty state with primary add action
+  - API keys are never shown raw after save
+  - vendor-account rows are not rendered in the AI services list; a connected
+    vendor account can still be selected in Defaults and is managed only in the
+    Vendor accounts card
+  - the Providers section header has an **Import from other tools** action.
+    Its inline panel scans only after the user starts a scan, groups local
+    provider drafts by source, and never renders raw credentials. Stored API
+    keys are written to the host secret store; subscription/OAuth logins are
+    not imported. Re-importing an equivalent provider is skipped.
+
+The permission-mode selector remains available in the composer while the
+session is in Agent, Plan, or Goal. In Plan and Goal it controls Bash
+confirmation only: Ask and Accept edits prompt, while Auto may run a mutating
+Bash command without confirmation. The Session defaults card must describe that
+both contract modes are intent boundaries, not strict read-only security
+profiles.
+
+### Jev classifier
+
+- Keep Jev out of the chat provider/model list: it is a TypeSafe structured
+  classifier, not a conversation model, and it owns no provider row.
+- Offer it from **Add service**, in its own Classifiers group, on the add path
+  only: changing an existing row's service never turns it into a classifier.
+  The tile carries the TypeSafe address the key is spent on.
+- Adding Jev is one action with two steps: check the key against TypeSafe, then
+  store it and turn the classifier on. Nothing is written when the check fails,
+  and closing the dialog while the check is still running cancels the whole
+  action, so an enabled Jev always has a key the Agent can spend and an
+  abandoned dialog never leaves a credential behind. The credential is a
+  TypeSafe API key; this integration has no OAuth path.
+- The model configuration page shows the Jev card only once Jev has been added:
+  an install without it has nothing there to configure, and adding stays in the
+  service chooser. The card carries the stored-key state, the Agent-mode switch
+  and the actions that replace or remove the key; removing the key takes the
+  switch down first, then the card. The key itself is entered only in the
+  service dialog, which is also where it is checked. It stays in Host secure
+  storage; the renderer only learns whether one exists. Keep the card free of
+  persistent explanatory paragraphs: its heading help icon provides integration
+  and data-handling details, while the switch help icon explains Agent-mode
+  availability. The setup form keeps the privacy notice visible before a key
+  is stored.
+- The tool is on demand and unavailable in Plan and Goal modes. Removing the
+  key turns Jev off first, then deletes it.
+
+### Agent capability destinations (Skills / MCP / Subagents)
+
+Skills, MCP servers, and user-owned Subagents remain three independent
+destinations under the Agent group. They share a capability-management visual
+system while preserving their different data ownership:
+
+- Each capability page starts with a quiet, page-specific description and a
+  short scope note on one shared line rather than a decorative hero or alert.
+  Light and dark themes use the shared Settings surface, typography, borders,
+  and semantic tokens; capability pages do not introduce a separate color
+  system.
+- Each page is one workbench, not a stack of per-level sections (D257): a
+  single toolbar above a single elevated panel. The toolbar carries the level
+  filter as a segmented control with live counts (All / Global / Project), one
+  search field with a clear affordance, the selected-project picker, and the
+  page's primary actions right-aligned. Subagents omits the filter and the
+  picker because it is global-only, keeping only search and its actions.
+  The panel still uses two in-panel groups: **Built-in** (the five shipped
+  definitions `explorer`, `code-reviewer`, `test-runner`, `fixer`, and
+  `ui-designer`) and **Global** (`~/.agents/subagents`, user-owned). An enabled
+  user document of the same name shadows that builtin in the Task catalog, so
+  the Built-in row is omitted while the user row remains. A disabled user
+  document of the same name leaves the builtin in the catalog (and on the
+  Built-in list) because Task uses the shipped definition again. Built-in rows
+  carry a source badge, **Copy as mine** (opens the create sheet pre-filled from
+  that definition, with the matching template chip selected), and the same
+  enablement switch a user row has (D202 activation, ADR 0270): turning one off
+  writes app-local state rather than a document, the row stays listed and dimmed
+  so the switch is still the way back on, and the next catalog load stops
+  offering it to `Task`. Reveal and delete remain absent because a builtin is
+  not a file.
+- The level filter narrows which groups the panel renders; it never hides the
+  toolbar or moves the actions. New capabilities are created at the level the
+  filter points at — Global under All or Global, Project under Project — and
+  the primary action's tooltip names that destination so the choice is never
+  implicit. Choosing Project without a selected project reports that instead
+  of failing silently.
+- Inside the panel, each level is a group header row — level name, resolved
+  `.agents` path in mono, localized count — followed by its rows. Lists flow
+  at natural page height like every other Settings surface; the page scrolls
+  as one document instead of nesting fixed-height scroll wells.
+- Rows follow the provider-row rhythm: a quiet muted icon, name, a level badge
+  plus any source/transport badges, single-line description, optional mono meta
+  (MCP target, subagent tool grant), then the row actions. Every row carries
+  its own level badge so a row scrolled away from its group header still says
+  where it lives. MCP expresses connection state only through a small status
+  dot inside the state badge — the only color on an otherwise monochrome row.
+  Disabled rows dim their icon and copy while keeping the switch fully legible.
+- Row actions are Edit, an overflow menu, and the enablement switch. Edit and
+  the overflow menu stay quiet until the row is hovered, focused, or has its
+  menu open; the switch is always visible because enablement is the state the
+  list is read for. Without hover the quiet actions are always shown. The
+  overflow menu holds the level-aware destructive, move, and out-of-app
+  actions — Reveal and Remove for skills and subagents, Test connection and
+  Remove for MCP, and Move to Global / Move into <project> on MCP and Skill
+  rows — and Remove arms on first press, relabels to ask for confirmation,
+  and disarms on its own if the menu is dismissed or left alone. The move
+  direction follows the row's own level: a global row offers Move into the
+  project named by the page toolbar's project picker, and a project row offers
+  Move to Global. With no project selected the Move into <project> item is not
+  offered and the project group asks for a project selection instead, so a
+  capability is never sent to an unnamed project.
+- The MCP editor's optional connection timeout accepts 1–600 seconds. A blank
+  value clears the server override and restores the default; saving a changed
+  timeout refreshes that server's live connection.
+- Skeleton rows appear on first paint only. A later refresh keeps the rows it
+  already has and dims the list instead, announcing the refresh to assistive
+  technology, so toggling a switch never replaces the list with skeletons.
+  Enablement flips locally first and reverts only if the host refuses, and
+  busy state is scoped to the row that is working — one pending request never
+  disables the rest of the page. Empty states are quiet centered
+  glyph-and-copy blocks inside the panel. The glyph is a host Lucide icon
+  (`IconBookOpen` / `IconServer` / `IconBot`) inside a chip wrapper; do not
+  pad or resize the SVG itself, because Lucide already sets inline size.
+  An empty level offers the same primary action rather than being a dead end,
+  and a search with no matches says so and suggests widening the level filter.
+- When the viewport is narrow the toolbar stacks: the segmented control spans
+  the width with evenly divided segments, search sits below it, and the
+  actions wrap left-aligned. Group headers drop the resolved path so row copy
+  keeps the width.
+- Skills exposes a Market action beside New and Scan other tools. Market is a second view
+  of the same page, not a new Settings destination: browse catalog sources,
+  preview the assembled markdown (including inlined sibling `.md` files), and
+  install through `skills.create` into `~/.agents/skills`. Built-in picks are
+  English-titled offline fallback. Default GitHub sources are queried with
+  user-added sources; a remote badge uses `sourceId`, not id collision with
+  builtin rows. Documents that would exceed the 128 KiB host cap cannot be
+  installed. A preview that fails is reported in the sheet with its reason and
+  a Retry action — the install button may sit disabled, but never without an
+  explanation — and a market whose sources were refused by the public-network
+  guard says so instead of calling every source unreachable, because a proxied
+  user sees that refusal while the same URL opens in their browser (ADR 0177).
+  A failed catalog query offers Retry; the same action remains available when
+  only some sources failed. It repeats the current search over the configured
+  sources and announces loading while the request runs. After a successful
+  load, a later failure keeps that list on screen with the time it was taken
+  and still offers Retry; the retained list never answers a different query,
+  and it disappears once a retry succeeds.
+  Back reloads the skill list.
+- Skills also exposes **Scan other tools** in its toolbar. The explicit scan
+  opens inline on the Skills page, and imported entries follow the current
+  Global / Project filter and selected project. The native file and folder
+  import actions remain available in their level groups.
+- MCP exposes **Scan other tools** beside Add and Market. The explicit scan
+  opens inline on the MCP page. Imported servers follow the current Global /
+  Project filter and selected project; secrets and header values are never
+  shown in candidate rows.
+- MCP Market installs into the same destination as Add: Global under All or
+  Global, and the selected project under Project. Its installed badges reflect
+  only that destination, so an entry in another level can still be installed
+  here. Project installation requires a selected project and never falls back
+  to Global.
+  MCP Market offers Retry after a failed query or partial source failure. It
+  repeats the current search through the existing market request path and
+  announces loading while the request runs. After a successful load, a later
+  failure keeps that list on screen with the time it was taken and still
+  offers Retry.
+- The Subagents create/edit sheet pins a model with a searchable, provider-
+  grouped anchored menu — the same option-menu control the service picker uses
+  — over the configured, runnable models the Composer offers, plus an
+  inherit-session option. A native `<select>` cannot serve this list: an
+  install can configure dozens of models, and only an anchored surface scrolls
+  inside itself and accepts a filter. Its thinking selector offers inherit-session,
+  do-not-send, and the seven canonical levels. Every option comes from the
+  configured provider catalog, so the sheet never accepts a hand-typed model
+  id; when no provider offers a runnable model it shows an empty state whose
+  action opens Models.
+  A pin that is no longer configured remains visible so editing does not
+  silently drop it. The stored frontmatter value is still
+  `vendorKey-or-name/modelId`; generic or colliding provider aliases use a
+  unique display name, then the stored provider id, to keep each provider's
+  choices distinct.
+
+- The selected model-configuration thinking chip uses a solid accent fill with
+  inverted primary text in both light and dark themes, so the enabled level is
+  visually distinct from the track.
+
+- Subagents open one **New subagent / Edit subagent** sheet that
+  pre-fills the same fields the runtime's `BUILTIN_SUBAGENT_DOCUMENTS` ship
+  with. Above the name field the sheet shows a "Start from template" row of
+  compact name chips (Explorer, Code reviewer, Test runner, Fixer, UI
+  designer, plus a blank option). Chips show the localized name only; the
+  selected chip's one-line caption sits once under the row. Hyphenated preset
+  ids (`code-reviewer`, `test-runner`, `ui-designer`) resolve through an
+  explicit catalog map (`presetReviewerName` / `presetTestRunnerName` /
+  `presetUiDesignerName`) — they must not be
+  turned into keys by capitalizing the first letter. Picking a chip
+  replaces the draft's description, tools and body wholesale and
+  clears inherit-parent-tools. The tool grant row includes an inherit checkbox
+  (`tools: inherit`) plus the seven assignable tools; inherit-only drafts may
+  leave the assignable boxes empty. Saving must keep the inherit token.
+  The chip uses the same accent-tint pill as the tool grant row. Create
+  omits the long subtitle and the per-chip Apply label; model, thinking,
+  output limit and scope sit behind an Advanced disclosure that
+  starts closed on create and open on edit. The output limit caps one delegate
+  response (issue #171). It defaults to an empty field, which reads as "follow
+  the model" rather than "no limit" — empty is the only spelling of that, so
+  the placeholder is the model default and not an unlimited label. It is
+  separate from the model binding's Advanced **Max output** because the binding
+  caps every caller of that model, while this caps one delegate's own
+  responses. The model field
+  is a picker over the configured providers' models; the picker groups entries
+  by provider and every option comes from the configured catalog, so there is
+  no hand-typed pin entry (issue #60). With no providers configured it shows
+  an empty state whose action opens Models. A builtin keeps its Built-in row,
+  which is switched but never edited; the picker is for new and user-owned
+  subagents only.
+  The create/edit sheet stays compact at desktop sizes: form controls are
+  local filled wells with restrained padding, the prompt editor is the only
+  intentionally tall control, and Advanced remains a compact disclosure. Hover
+  and focus lift a control without adding a persistent in-flow divider; invalid
+  form state is announced from the shared error region.
+
+### Instructions (`instructions` tab)
+- Edit the global instruction Markdown used by every PI-Desktop Agent session.
+- Show the resolved instruction-file path and save through the host-backed
+  instruction API; project instructions remain managed from the active project
+  menu and are resolved after the global layer.
+
+### Inline import workbenches
+- Model configuration, external skills, and external MCP scans live inside
+  Models, Skills, and MCP respectively. Each page keeps an explicit scan and
+  selection panel; opening or closing the panel never starts a scan.
+- When an import panel opens, show its scan-scope explanation directly above
+  the Scan action; it does not require a help icon. Result-specific guidance
+  remains attached to its existing control.
+- Skills and MCP imports use the destination selected by the page's current
+  Global / Project filter. Project scans and writes carry the selected project
+  path, and the scan panel resets when that scope changes.
+- Settings has no session-import panel. Session ingestion is available to
+  plugins through the existing host-owned plugin session API; project binding
+  and refresh behavior remain documented with the plugin session contracts.
+
+### Project archive
+- Reuses the durable Projects index as a settings-scale management surface
+- Always includes archived records; archived rows are grouped, never hidden, so
+  the destination still has no visibility toggle
+- Supports project search, add, select, activate, pin, archive/restore, and
+  close
+- A successful session import bound to an archived project restores that
+  project's renderer presentation state after the session refresh, making the
+  imported session visible in the default sidebar. Ordinary refreshes and
+  skipped imports preserve the archive choice.
+- Add project opens the Create project dialog. The user supplies a display name
+  and can select multiple local folders in one native picker; the first folder
+  is the primary root of one logical project, and the remaining folders are
+  retained as roots of that same project rather than separate project tabs.
+  Chats, project instructions, and project memory are shared by the group.
+- The destination is one workbench (D267), revised by D455 into a one-column
+  list with an in-row inspector, and revised again into an inset grouped index
+  in the iOS sense: the selected row is the header of its own card, so the
+  detail opens under the row and repeats nothing the row already states. One
+  toolbar leads the page and nothing is expanded in it: like the capability and
+  inline import workbenches, the destination carries no description line, so no
+  sentence sits between the page title and the controls. It reuses the same
+  composition, control height, and row rhythm as the agent capability pages
+  (D257) and adds no page-specific chrome.
+  1. **Toolbar** — one row carrying the Recent/Name sort as the shared
+     segmented control, the search field with a clear affordance and a match
+     count while searching, and the primary Add project action right-aligned.
+     The destination shows no page-level totals: there is no hero block,
+     decorative gradient, counter banner, or inline counter run. The per-group
+     counts on the index sections are the only totals, so a number is never
+     repeated in two places
+  2. **Workbench** — one column. The always-visible index sections run Pinned,
+     All projects, Archived as non-interactive header lines, each carrying its
+     label and row count. Every section is a labelled region wrapping its own
+     list, so the header is never a non-list child of a list and each row keeps
+     its group name in the accessibility tree. Clicking a row opens its card
+     under that row at full content width, and that row's disclosure indicator
+     turns down while the card is open. Empty sections are omitted, and an index
+     with no rows renders one quiet empty state instead of the workbench
+- Row anatomy reads left to right as identity and right to left as detail: the
+  color glyph, the project name with one status tag (Active, Open, or
+  Archived), and the shortened monospace path that tells two same-named
+  projects apart, then the right-aligned session count and relative last-active
+  time, closed by the row's disclosure indicator. The colored glyph uses Folder
+  for ordinary projects and a filled Star for pinned projects. Rows are tiles
+  separated by the row gap, never by rules. The index starts closed: clicking a
+  row opens its card and keeps Settings open, clicking that row again closes the
+  card, and clicking any other row moves the open card to it. The disclosure
+  indicator turns down only while the card is open, so it never claims a closed
+  card is open. Double-click or Enter activates the project and returns to chat
+- The card under the selected row is the detail panel, and it repeats nothing
+  the row already states — no second copy of the name, the path, or the status
+  tag. It opens with an action bar (New task, Open while the project is not the
+  live workspace, and the overflow menu), continues with the read-only folder
+  and branch facts and the sessions count, and ends with the chats themselves.
+  The overflow menu groups create/edit actions above pin, archive/restore, and
+  the destructive Close action, and closes on Escape or any outside press
+- The inspector menu includes Project memory. Its editor is a compact
+  viewport-level dialog with a list of editable memory cards. Each card
+  supports an optional title, multiline content, and removal; the dialog also
+  supports adding entries, shows an empty state, and keeps Cancel/Save
+  actions. Saved entries are scoped to that project's path and are available
+  in later chats for the project.
+- Project search also matches session titles. Matching a session keeps its
+  owning project in the index; opening that project lists the matching sessions
+  ordered by latest activity, shows a count and relative update time, and reveals
+  additional rows in batches of eight rather than silently truncating the
+  history
+- Activating a project or project session returns to chat; archive and close
+  actions keep Project archive open even when the active workspace changes
+- Opening an archived project also clears its renderer-local archive state so
+  the project becomes visible in the home sidebar; merely selecting its row
+  for inspection does not restore it.
+
+### Info
+- app/host/protocol versions + open logs
+- **Report a problem** row: one action opens the GitHub bug issue form in
+  the system browser. Electron Main owns the URL (`pi-desktop/app/openFeedback`),
+  prefills app version, OS, and environment from Main-owned version info, and
+  never accepts a renderer-supplied destination (D313 / ADR 0157)
+- Updates row with the current delivery state and one applicable action:
+  Check for updates, View release, or Restart to update
+- **Developer** card:
+  - developer mode is off unless the optional persisted
+    `AppSettings.developerMode` value is `true`
+  - the developer mode switch unlocks the Open console button, F12 on every
+    platform, Ctrl+Shift+I on Windows/Linux, the macOS View-menu developer
+    tools item, Copy conversation ID / Open session path on the conversation
+    overflow menu. Remote Hosts remains available independently.
+  - disabling developer mode closes an open console and disables or removes
+    every entry point; Settings search indexes the card, switch, and console
+    action
+- The Updates row always exposes a Release notes action. It opens a modal
+  containing the complete shipped stable changelog in newest-first order,
+  localized to the product language and marking the current and available
+  versions when present
+- When an update is available, downloading, or downloaded and Main attached
+  localized product notes, the Updates row shows a compact "What's new"
+  list under the status text (same notes as the ambient banner; D164). The
+  full-history modal remains available when the app is up to date or update
+  checks are disabled in development
+- Dismissing an update applies to that version across restarts. In-app
+  dismissal cancels an active download and prevents install-on-quit; discovery
+  continues, and a newer version clears the dismissal and resumes automatic
+  delivery.
+
+## 3. Navigation rules
+
+- Profile footer / command palette open Settings full page (default Appearance,
+  the first destination in the directory)
+- Composer model menu and provider setup actions deep-link to the Providers
+  card inside Models
+- Plugin management remains available from the app shell's independent
+  **Plugins** destination, including load, enable, disable, and uninstall; it is
+  not duplicated in Settings
+- Project archive is indexed by Settings search and is not duplicated as a home
+  sidebar destination or standalone global-search page
+- Back to app returns to chat shell from the rail's pinned footer action
+- Developer-only destinations, where declared, join and leave the rail, page,
+  and search as one unit. Cloud sync and Remote Hosts are Experimental but not
+  developer-only, so both remain available in packaged builds and are not
+  hidden when developer mode changes.
+
+## 4. Acceptance
+
+1. Opening Settings hides the coding app sidebar (full-page takeover)
+2. Rail shows the search pill at the top, the back-to-app action pinned at the
+   foot on the main sidebar's footer icon line, and exactly Appearance / 外观,
+   Conversation / 对话, Shortcuts / 快捷键, Voice / 语音, Behavior / 行为,
+   Models / 模型, Instructions / 指令, Skills / 技能, MCP, Subagents / 子智能体,
+   Projects / 项目, System / 系统, Cloud sync / 云同步 and Remote Hosts /
+   远程主机 (both Experimental, all builds), and Info / 信息 in that order. The
+   rows are grouped under Preferences / 偏好, Agent / 智能体,
+   Workspace / 工作区, and System / 系统. There is no Usage / 用量 destination,
+   and no General or AI destination: those ids resolve to Appearance and
+   Behavior without appearing in the rail or in search results.
+3. Appearance is its own destination; the network, storage, power and
+   close-behavior cards it used to share a page with are on System
+4. Providers is part of Models and has no standalone rail destination
+5. Plugins has no Settings destination; the app-shell Plugins page supports
+   load, enable, disable, and uninstall
+6. Appearance shows the host-backed Interface card; Conversation shows Display
+   and Input & links; Behavior shows Session defaults — including the
+   permission mode and the Command shell row — then Execution and Computer use;
+   the Shortcuts destination shows the Keyboard shortcuts card; Info shows the
+   Developer card. Plugin-contributed destinations, when present, appear after
+   every core group under Extensions. Each destination is a renderer-composited
+   sandboxed surface: it preserves the existing Settings rail, titlebar,
+   Windows/Linux minimize/maximize controls, native drag/resize regions, and
+   content geometry. Token
+   usage lives in plugin `pi.token-insights`, not Settings.
+7. Provider secrets never display raw key values
+8. Model configuration shows compact Defaults, separate vendor accounts, the
+   account edit/add dialogs, and AI service cards rather than a dense always-on
+   form dump
+9. A row's explanation is not a permanent second line: it travels as a string
+   into the question mark beside the title, which reveals it on hover and
+   keyboard focus and keeps at least 4.5:1 contrast against its card surface in
+   both light and dark themes. A row's live value (the pinned default model) is
+   data rather than prose and stays visible, and a form field's hint follows the
+   same rule as a row's explanation. A **card** may instead carry one visible
+   caption line under its heading (D684), because that one line orients a whole
+   group rather than explaining a single switch; copy that needs a second
+   sentence stays behind the heading's help mark
+10. Dragging the empty top band from either side of Settings moves the native
+   window without blocking Back, search, or navigation controls
+11. Resizing the window expands or contracts the content cards with the
+    available content pane; the fixed rail and pane gutters remain intact and
+    the page does not gain horizontal overflow
+12. Project archive always exposes archived records and can restore them without
+    duplicating the index in the app shell
+13. Project archive renders no description line — no hero, banner, or page-level
+    counter run — above one search + sort toolbar and a list + one-column
+    workbench whose index holds the Pinned / All projects / Archived section
+    headers; each header's count agrees with its rendered rows, the index starts
+    with nothing expanded and a click opens one row's card without leaving
+    Settings, sorting reorders rows inside every section without hiding any, and
+    clearing the search restores the complete index
+14. Info renders disabled, checking, up-to-date, available, downloading,
+    downloaded, and error update states without adding another destination
+15. Settings dropdowns use `SettingsMenuSelect` (anchored menu), never native
+    `<select>`. Native select option lists outside Settings remain readable in
+    both light and dark themes, including when Chromium delegates the opened
+    list surface to Windows
+16. Shortcut recording rejects modifier-free non-function keys, reserved
+    editor/OS chords, and conflicts; successful overrides immediately drive
+    app behavior and macOS menu accelerators and survive restart
+17. Developer tools remain unavailable by default; enabling developer mode
+    unlocks the localized Settings action and platform shortcuts, persists
+    across restart, and disabling it closes an open console
+18. Context management exposes no settings at all; protection is always on and
+    its budgets scale with the active model's context window, so no persisted
+    value can leave a small-window model uncompactable or the guard disabled
+19. The default operating-mode selector contains Agent, Plan, and Goal; legacy
+    Chat values migrate to Plan and do not reappear as a selectable option
+20. Command shell selection persists a platform-valid catalog ID, exposes
+    status only when it adds information (default, unavailable, fallback, or no
+    effective shell), and never authorizes a stale ID/dialect
+21. Skills, MCP, and Subagents each render one toolbar above one panel; the
+    level filter changes which groups appear without hiding the toolbar or the
+    primary actions, and the counts on the segments agree with the rows the
+    panel renders under the active search
+22. Each capability page can create, edit, and delete a capability without
+    leaving Settings; new capabilities land at the level the filter points at,
+    the primary action names that destination, and choosing a project level
+    with no selected project reports it instead of failing silently
+23. Removing a capability requires two presses of the same menu item, the
+    second press labelled as the confirmation, and the arming lapses on its own
+    if the menu is dismissed
+24. Revealing a project-level skill opens that project's file, not a global
+    file of the same id
+25. Toggling one capability leaves every other row interactive, does not
+    replace the list with skeletons, and restores the previous switch position
+    if the host rejects the change
+26. Info exposes a Report a problem action that opens the GitHub bug form
+    with version and OS filled in; Settings search indexes the row
+27. The Skills page Market view browses public-HTTPS catalogs, previews
+    the assembled document, and installs only through `skills.create`; oversized
+    expanded documents are refused and source badges follow `sourceId`
+28. All Settings UI must use shared primitives from `components/ui.tsx` and
+    `components/settings/`:
+    - Boolean toggles → `SettingsToggle` (not inline `<button role="switch">`)
+    - Multi-option selectors → `SegmentedControl` (not inline
+      `<div className="settings-segment">` with manual button loops)
+    - Dropdowns → `SettingsMenuSelect` (not native `Select` / `<select>`)
+    - Checkboxes → `Checkbox` (not inline `<label><input type="checkbox">`)
+    - Buttons → `Button` (not raw `<button>` with manual class names)
+    - Status indicators → `Badge` (not inline `<span>` with manual classes)
+    - Layout → `SettingsCard` + `SettingsRow` from `features/settings/primitives`
+    Inline reimplementation of any shared primitive is a spec violation.
+
+## 5. General chrome metrics
+
+The shell retains the Codex gold chrome while allowing the content pane to use
+the current window width:
+
+| Token | Value |
+|---|---|
+| Rail width | ~275px (`--ds-settings-nav-width`, shared by the rail and the top band inset) |
+| Rail surface | Shared sidebar material; light opaque fallback `#f3f3f3`, native glass on macOS |
+| Top band | content pane only, inset by the rail width; rail keeps its own surface |
+| Active nav pill | 7px/10px pad, `--radius-md`, accent mixed ~12% into the rail's active tone; the row's glyph takes `--ds-accent` |
+| Rail cluster heading | smallest legible step (`--text-xs-plus`), semibold, `--tracking-wide`, uppercase |
+| Page header | 38px accent-tinted glyph fill (`--radius-md-plus`) + 14px gap + title block |
+| Section title | 28px / 560, first baseline ~y70 |
+| Page subtitle | `--text-md`, `--ds-text-secondary`, one line under the title |
+| Card caption | `--text-sm-plus`, `--ds-text-secondary`, one line under the card heading |
+| Content width | Full available pane width after rail and gutters |
+| Card radius | ~14px elevated stroke |
+| Toggle | **32×20** thumb 16, neutral accent on (not green) |
+| Open-target pill | leading VS Code glyph |

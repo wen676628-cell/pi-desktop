@@ -1,0 +1,960 @@
+//! Durable, message-scoped workspace change snapshots.
+//!
+//! Review evidence is captured at tool execution time instead of being
+//! reconstructed from a mutable git working tree. The previous file content
+//! lives outside the workspace so a later commit cannot erase the review
+//! history, and rollback is guarded by the post-tool content hash.
+
+use anyhow::{anyhow, Context, Result};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use uuid::Uuid;
+
+use crate::workspace::{self, ContainedRoots, ToolRoot};
+
+mod context;
+#[cfg(test)]
+mod context_tests;
+pub(crate) mod file_actions;
+pub(crate) mod query;
+#[cfg(test)]
+mod trim_tests;
+
+const REVIEW_DIR: &str = "review-changes";
+const MAX_SNAPSHOT_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_DIFF_BYTES: u64 = 512 * 1024;
+const MAX_DIFF_LINES: usize = 4000;
+const MAX_DIFF_CELLS: usize = 2_000_000;
+const CONTEXT_LINES: usize = 3;
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ReviewChangeOperation {
+    Write,
+    Edit,
+    Delete,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ReviewChangeStatus {
+    Added,
+    Modified,
+    Deleted,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ReviewChangeState {
+    Active,
+    RolledBack,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewDiffLine {
+    #[serde(rename = "type")]
+    line_type: String,
+    text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewDiffHunk {
+    header: String,
+    lines: Vec<ReviewDiffLine>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewChange {
+    pub version: u8,
+    pub snapshot_id: String,
+    pub message_id: String,
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub root: Option<String>,
+    pub operation: ReviewChangeOperation,
+    pub status: ReviewChangeStatus,
+    pub state: ReviewChangeState,
+    pub additions: usize,
+    pub deletions: usize,
+    pub hunks: Vec<ReviewDiffHunk>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub binary: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub truncated: bool,
+    pub reversible: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RollbackOutcome {
+    pub status: &'static str,
+    pub snapshot_id: String,
+    pub message_id: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SnapshotMeta {
+    version: u8,
+    session_id: String,
+    message_id: String,
+    path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    root: Option<String>,
+    #[serde(default)]
+    context_saved: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    context_unavailable: Option<String>,
+    operation: ReviewChangeOperation,
+    before_exists: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    before_hash: Option<String>,
+    after_exists: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    after_hash: Option<String>,
+    reversible: bool,
+    state: ReviewChangeState,
+}
+
+#[derive(Debug)]
+pub struct PendingChange {
+    snapshot_dir: PathBuf,
+    before_path: PathBuf,
+    resolved: PathBuf,
+    session_id: String,
+    message_id: String,
+    snapshot_id: String,
+    path: String,
+    root: String,
+    within_workspace: bool,
+    operation: ReviewChangeOperation,
+    before_exists: bool,
+    before_hash: Option<String>,
+    before_copied: bool,
+}
+
+#[derive(Debug, Clone)]
+enum DiffOp {
+    Equal(String),
+    Add(String),
+    Del(String),
+}
+
+fn safe_component(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+fn session_review_dir(data_dir: &Path, session_id: &str) -> Result<PathBuf> {
+    if !safe_component(session_id) {
+        return Err(anyhow!("invalid session id"));
+    }
+    Ok(data_dir.join(REVIEW_DIR).join(session_id))
+}
+
+fn snapshot_dir(data_dir: &Path, session_id: &str, snapshot_id: &str) -> Result<PathBuf> {
+    if !safe_component(snapshot_id) {
+        return Err(anyhow!("invalid snapshot id"));
+    }
+    Ok(session_review_dir(data_dir, session_id)?.join(snapshot_id))
+}
+
+fn metadata_path(dir: &Path) -> PathBuf {
+    dir.join("meta.json")
+}
+
+fn before_path(dir: &Path) -> PathBuf {
+    dir.join("before")
+}
+
+fn relative_path(root: &Path, path: &Path) -> String {
+    let canonical_root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    path.strip_prefix(&canonical_root)
+        .or_else(|_| path.strip_prefix(root))
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
+fn hash_file(path: &Path) -> Result<String> {
+    let mut file = fs::File::open(path)
+        .with_context(|| format!("open file for review hash: {}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
+
+fn write_meta(path: &Path, meta: &SnapshotMeta) -> Result<()> {
+    let temp = path.with_extension("json.tmp");
+    fs::write(&temp, serde_json::to_vec_pretty(meta)?)?;
+    fs::rename(&temp, path)?;
+    Ok(())
+}
+
+fn read_meta(data_dir: &Path, session_id: &str, snapshot_id: &str) -> Result<SnapshotMeta> {
+    let dir = snapshot_dir(data_dir, session_id, snapshot_id)?;
+    let bytes = fs::read(metadata_path(&dir))
+        .with_context(|| format!("review snapshot not found: {snapshot_id}"))?;
+    let meta: SnapshotMeta = serde_json::from_slice(&bytes)?;
+    if meta.session_id != session_id || meta.message_id.trim().is_empty() {
+        return Err(anyhow!("review snapshot does not belong to this session"));
+    }
+    Ok(meta)
+}
+
+fn tool_operation(tool_name: &str) -> Option<ReviewChangeOperation> {
+    match tool_name {
+        "Write" => Some(ReviewChangeOperation::Write),
+        "Edit" => Some(ReviewChangeOperation::Edit),
+        _ => None,
+    }
+}
+
+/// Capture the pre-tool file without making review a prerequisite for tool
+/// success. A missing or unreadable old file simply produces a non-reversible
+/// review record after the tool completes.
+pub fn prepare_change(
+    data_dir: &Path,
+    session_id: &str,
+    message_id: &str,
+    workspace_root: Option<&Path>,
+    roots: &ContainedRoots,
+    tool_name: &str,
+    args: &Value,
+    allow_external_paths: bool,
+) -> Result<Option<PendingChange>> {
+    let Some(operation) = tool_operation(tool_name) else {
+        return Ok(None);
+    };
+    let Some(root) = workspace_root else {
+        return Ok(None);
+    };
+    let Some(input) = args.get("path").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    // Execution lazily creates a safe visualization root before resolving its
+    // target. Do the same after authorization so the first mutation is captured,
+    // not only later edits after that root already exists.
+    if let Some(claimed) = roots.lexical_root(input) {
+        if claimed.kind == ToolRoot::Visualization && claimed.allows_implicit_access() {
+            crate::visualizations::ensure_session_root(&claimed.path)?;
+        }
+    }
+    let Ok((resolved, root_kind)) =
+        workspace::resolve_tool_path_with_external(root, roots, input, allow_external_paths)
+    else {
+        return Ok(None);
+    };
+    if crate::tools::ignore_rules::is_sensitive_path(&resolved) {
+        return Ok(None);
+    }
+
+    let snapshot_id = Uuid::new_v4().to_string();
+    let snapshot_dir = snapshot_dir(data_dir, session_id, &snapshot_id)?;
+    fs::create_dir_all(&snapshot_dir)?;
+    let before_path = before_path(&snapshot_dir);
+    let metadata = fs::metadata(&resolved).ok();
+    let before_exists = metadata.as_ref().is_some_and(|value| value.is_file());
+    let before_hash = if before_exists {
+        hash_file(&resolved).ok()
+    } else {
+        None
+    };
+    let before_copied = before_exists
+        && metadata
+            .as_ref()
+            .is_some_and(|value| value.len() <= MAX_SNAPSHOT_BYTES)
+        && fs::copy(&resolved, &before_path).is_ok();
+    let within_workspace = root_kind == ToolRoot::Workspace;
+    let path = if within_workspace {
+        relative_path(root, &resolved)
+    } else {
+        resolved.to_string_lossy().replace('\\', "/")
+    };
+
+    Ok(Some(PendingChange {
+        snapshot_dir,
+        before_path,
+        resolved,
+        session_id: session_id.to_string(),
+        message_id: message_id.to_string(),
+        snapshot_id,
+        path,
+        root: root.canonicalize()?.to_string_lossy().into_owned(),
+        within_workspace,
+        operation,
+        before_exists,
+        before_hash,
+        before_copied,
+    }))
+}
+
+pub fn discard_change(pending: PendingChange) {
+    let _ = fs::remove_dir_all(pending.snapshot_dir);
+}
+
+/// Bounded pre-edit text for a snapshot; None when the image is too large or non-text.
+/// Used by the work panel to compare two recorded versions without reading
+/// the mutable workspace.
+pub fn snapshot_before_text(
+    data_dir: &Path,
+    session_id: &str,
+    snapshot_id: &str,
+) -> Result<Option<String>> {
+    let meta = read_meta(data_dir, session_id, snapshot_id)?;
+    if !meta.before_exists {
+        return Ok(Some(String::new()));
+    }
+    let path = before_path(&snapshot_dir(data_dir, session_id, snapshot_id)?);
+    let Ok(metadata) = fs::metadata(&path) else {
+        return Ok(None);
+    };
+    if !metadata.is_file() || metadata.len() > MAX_SNAPSHOT_BYTES {
+        return Ok(None);
+    }
+    let bytes = fs::read(&path)?;
+    if bytes.contains(&0) {
+        return Ok(None);
+    }
+    Ok(String::from_utf8(bytes).ok())
+}
+
+fn read_preview(path: Option<&Path>, exists: bool) -> Result<Option<Vec<u8>>> {
+    if !exists {
+        return Ok(Some(Vec::new()));
+    }
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let metadata = fs::metadata(path)?;
+    if !metadata.is_file() || metadata.len() > MAX_DIFF_BYTES {
+        return Ok(None);
+    }
+    let mut bytes = Vec::new();
+    fs::File::open(path)?
+        .take(MAX_DIFF_BYTES + 1)
+        .read_to_end(&mut bytes)?;
+    Ok((bytes.len() as u64 <= MAX_DIFF_BYTES).then_some(bytes))
+}
+
+fn diff_ops(before: &[String], after: &[String]) -> Option<Vec<DiffOp>> {
+    let prefix = before
+        .iter()
+        .zip(after)
+        .take_while(|(old, new)| old == new)
+        .count();
+    let suffix = before[prefix..]
+        .iter()
+        .rev()
+        .zip(after[prefix..].iter().rev())
+        .take_while(|(old, new)| old == new)
+        .count();
+    // Unchanged edges are linear work, not part of the quadratic LCS budget.
+    // Reattach them so hunk coordinates and finite context stay file-relative.
+    let middle = diff_middle(
+        &before[prefix..before.len() - suffix],
+        &after[prefix..after.len() - suffix],
+    )?;
+    let mut ops = Vec::with_capacity(prefix + middle.len() + suffix);
+    ops.extend(before[..prefix].iter().cloned().map(DiffOp::Equal));
+    ops.extend(middle);
+    ops.extend(
+        before[before.len() - suffix..]
+            .iter()
+            .cloned()
+            .map(DiffOp::Equal),
+    );
+    Some(ops)
+}
+
+fn diff_middle(before: &[String], after: &[String]) -> Option<Vec<DiffOp>> {
+    if (before.len() + 1).saturating_mul(after.len() + 1) > MAX_DIFF_CELLS {
+        return None;
+    }
+    let mut lcs = vec![vec![0_u32; after.len() + 1]; before.len() + 1];
+    for old in (0..before.len()).rev() {
+        for new in (0..after.len()).rev() {
+            lcs[old][new] = if before[old] == after[new] {
+                lcs[old + 1][new + 1] + 1
+            } else {
+                lcs[old + 1][new].max(lcs[old][new + 1])
+            };
+        }
+    }
+
+    let mut old = 0;
+    let mut new = 0;
+    let mut ops = Vec::with_capacity(before.len() + after.len());
+    while old < before.len() || new < after.len() {
+        if old < before.len() && new < after.len() && before[old] == after[new] {
+            ops.push(DiffOp::Equal(before[old].clone()));
+            old += 1;
+            new += 1;
+        } else if new == after.len()
+            || (old < before.len() && lcs[old + 1][new] >= lcs[old][new + 1])
+        {
+            ops.push(DiffOp::Del(before[old].clone()));
+            old += 1;
+        } else {
+            ops.push(DiffOp::Add(after[new].clone()));
+            new += 1;
+        }
+    }
+    Some(ops)
+}
+
+fn line_counts(ops: &[DiffOp]) -> (usize, usize) {
+    let mut additions = 0;
+    let mut deletions = 0;
+    for op in ops {
+        match op {
+            DiffOp::Add(_) => additions += 1,
+            DiffOp::Del(_) => deletions += 1,
+            DiffOp::Equal(_) => {}
+        }
+    }
+    (additions, deletions)
+}
+
+fn old_line_count(op: &DiffOp) -> usize {
+    matches!(op, DiffOp::Equal(_) | DiffOp::Del(_)) as usize
+}
+
+fn new_line_count(op: &DiffOp) -> usize {
+    matches!(op, DiffOp::Equal(_) | DiffOp::Add(_)) as usize
+}
+
+fn make_hunks(ops: &[DiffOp]) -> Vec<ReviewDiffHunk> {
+    make_hunks_with_context(ops, CONTEXT_LINES)
+}
+
+fn make_hunks_with_context(ops: &[DiffOp], context: usize) -> Vec<ReviewDiffHunk> {
+    let changed: Vec<usize> = ops
+        .iter()
+        .enumerate()
+        .filter_map(|(index, op)| (!matches!(op, DiffOp::Equal(_))).then_some(index))
+        .collect();
+    if changed.is_empty() {
+        return Vec::new();
+    }
+
+    let mut ranges: Vec<(usize, usize)> = Vec::new();
+    for index in changed {
+        let start = index.saturating_sub(context);
+        let end = index
+            .saturating_add(context)
+            .saturating_add(1)
+            .min(ops.len());
+        if let Some((_, previous_end)) = ranges.last_mut() {
+            if start <= *previous_end {
+                *previous_end = (*previous_end).max(end);
+                continue;
+            }
+        }
+        ranges.push((start, end));
+    }
+
+    let mut hunks = Vec::with_capacity(ranges.len());
+    for (start, end) in ranges {
+        let old_before = ops[..start].iter().map(old_line_count).sum::<usize>();
+        let new_before = ops[..start].iter().map(new_line_count).sum::<usize>();
+        let old_len = ops[start..end].iter().map(old_line_count).sum::<usize>();
+        let new_len = ops[start..end].iter().map(new_line_count).sum::<usize>();
+        let old_start = old_before + 1;
+        let new_start = new_before + 1;
+        let lines = ops[start..end]
+            .iter()
+            .map(|op| match op {
+                DiffOp::Equal(text) => ReviewDiffLine {
+                    line_type: "context".into(),
+                    text: text.clone(),
+                },
+                DiffOp::Add(text) => ReviewDiffLine {
+                    line_type: "add".into(),
+                    text: text.clone(),
+                },
+                DiffOp::Del(text) => ReviewDiffLine {
+                    line_type: "del".into(),
+                    text: text.clone(),
+                },
+            })
+            .collect();
+        hunks.push(ReviewDiffHunk {
+            header: format!("@@ -{old_start},{old_len} +{new_start},{new_len} @@"),
+            lines,
+        });
+    }
+    hunks
+}
+
+fn make_preview(
+    before_path: Option<&Path>,
+    before_exists: bool,
+    after_path: Option<&Path>,
+    after_exists: bool,
+) -> (bool, bool, usize, usize, Vec<ReviewDiffHunk>) {
+    let Ok(Some(before)) = read_preview(before_path, before_exists) else {
+        return (false, true, 0, 0, Vec::new());
+    };
+    let Ok(Some(after)) = read_preview(after_path, after_exists) else {
+        return (false, true, 0, 0, Vec::new());
+    };
+    if before.contains(&0) || after.contains(&0) {
+        return (true, false, 0, 0, Vec::new());
+    }
+    let Ok(before) = String::from_utf8(before) else {
+        return (true, false, 0, 0, Vec::new());
+    };
+    let Ok(after) = String::from_utf8(after) else {
+        return (true, false, 0, 0, Vec::new());
+    };
+    let before_lines: Vec<String> = before.lines().map(str::to_string).collect();
+    let after_lines: Vec<String> = after.lines().map(str::to_string).collect();
+    if before_lines.len() > MAX_DIFF_LINES || after_lines.len() > MAX_DIFF_LINES {
+        return (false, true, 0, 0, Vec::new());
+    }
+    let Some(ops) = diff_ops(&before_lines, &after_lines) else {
+        return (false, true, 0, 0, Vec::new());
+    };
+    let (additions, deletions) = line_counts(&ops);
+    let hunks = make_hunks(&ops);
+    (false, false, additions, deletions, hunks)
+}
+
+pub fn finalize_change(pending: &PendingChange) -> Result<ReviewChange> {
+    let after_exists = pending.resolved.is_file();
+    // Read a bounded after image only while capturing the finite context hunks.
+    let after = read_preview(Some(&pending.resolved), after_exists)?;
+    let after_hash = if after_exists {
+        Some(match &after {
+            Some(bytes) => hex::encode(Sha256::digest(bytes)),
+            None => hash_file(&pending.resolved)?,
+        })
+    } else {
+        None
+    };
+    let context_unavailable = context::save(pending, after.as_deref())?;
+    let (binary, truncated, additions, deletions, hunks) = make_preview(
+        pending
+            .before_copied
+            .then_some(pending.before_path.as_path()),
+        pending.before_exists,
+        Some(pending.resolved.as_path()),
+        after_exists,
+    );
+    let status = match (pending.before_exists, after_exists) {
+        (false, true) => ReviewChangeStatus::Added,
+        (true, false) => ReviewChangeStatus::Deleted,
+        _ => ReviewChangeStatus::Modified,
+    };
+    // Existing files remain reversible even when the tool deleted them; new
+    // files need to exist after the tool so rollback can remove them.
+    // Capture is not a persistent grant to write outside the current workspace.
+    let reversible = pending.within_workspace
+        && if pending.before_exists {
+            pending.before_copied
+        } else {
+            after_exists
+        };
+    let meta = SnapshotMeta {
+        version: 1,
+        session_id: pending.session_id.clone(),
+        message_id: pending.message_id.clone(),
+        path: pending.path.clone(),
+        root: Some(pending.root.clone()),
+        context_saved: context_unavailable.is_none(),
+        context_unavailable,
+        operation: pending.operation,
+        before_exists: pending.before_exists,
+        before_hash: pending.before_hash.clone(),
+        after_exists,
+        after_hash,
+        reversible,
+        state: ReviewChangeState::Active,
+    };
+    write_meta(&metadata_path(&pending.snapshot_dir), &meta)?;
+    Ok(ReviewChange {
+        version: 1,
+        snapshot_id: pending.snapshot_id.clone(),
+        message_id: pending.message_id.clone(),
+        path: pending.path.clone(),
+        root: Some(pending.root.clone()),
+        operation: pending.operation,
+        status,
+        state: ReviewChangeState::Active,
+        additions,
+        deletions,
+        hunks,
+        binary,
+        truncated,
+        reversible,
+    })
+}
+
+fn restore_before(target: &Path, before: &Path) -> Result<()> {
+    let bytes = fs::read(before).context("read review rollback snapshot")?;
+    if bytes.len() as u64 > MAX_SNAPSHOT_BYTES {
+        return Err(anyhow!("review rollback snapshot exceeds the size limit"));
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(target, bytes).context("restore review rollback snapshot")?;
+    Ok(())
+}
+
+pub fn rollback_change(
+    data_dir: &Path,
+    session_id: &str,
+    snapshot_id: &str,
+    workspace_root: Option<&Path>,
+) -> Result<RollbackOutcome> {
+    let dir = snapshot_dir(data_dir, session_id, snapshot_id)?;
+    let mut meta = read_meta(data_dir, session_id, snapshot_id)?;
+    let unavailable = || RollbackOutcome {
+        status: "unavailable",
+        snapshot_id: snapshot_id.to_string(),
+        message_id: meta.message_id.clone(),
+        path: meta.path.clone(),
+    };
+    if meta.state == ReviewChangeState::RolledBack {
+        return Ok(RollbackOutcome {
+            status: "alreadyRolledBack",
+            snapshot_id: snapshot_id.to_string(),
+            message_id: meta.message_id.clone(),
+            path: meta.path.clone(),
+        });
+    }
+    if !meta.reversible {
+        return Ok(unavailable());
+    }
+    let Some(root) = workspace_root else {
+        return Ok(unavailable());
+    };
+    // Snapshot roots are evidence, never an authorization to access a path.
+    // Delegate worktrees must not be rolled back into the session checkout.
+    if meta
+        .root
+        .as_deref()
+        .is_some_and(|captured| root.canonicalize().ok().as_deref() != Some(Path::new(captured)))
+    {
+        return Ok(unavailable());
+    }
+    let Ok(target) = workspace::resolve_in_workspace(root, &meta.path) else {
+        return Ok(unavailable());
+    };
+    let current_exists = target.is_file();
+    let current_hash = if current_exists {
+        hash_file(&target).ok()
+    } else {
+        None
+    };
+    let unchanged = match (&meta.after_hash, current_exists) {
+        (Some(expected), true) => current_hash.as_deref() == Some(expected.as_str()),
+        (None, false) => true,
+        _ => false,
+    };
+    if !unchanged {
+        return Ok(RollbackOutcome {
+            status: "conflict",
+            snapshot_id: snapshot_id.to_string(),
+            message_id: meta.message_id,
+            path: meta.path,
+        });
+    }
+    if meta.before_exists {
+        restore_before(&target, &before_path(&dir))?;
+    } else if target.exists() {
+        if !target.is_file() {
+            return Ok(unavailable());
+        }
+        fs::remove_file(&target).context("remove created file during rollback")?;
+    }
+    meta.state = ReviewChangeState::RolledBack;
+    write_meta(&metadata_path(&dir), &meta)?;
+    Ok(RollbackOutcome {
+        status: "rolledBack",
+        snapshot_id: snapshot_id.to_string(),
+        message_id: meta.message_id,
+        path: meta.path,
+    })
+}
+
+pub fn remove_session(data_dir: &Path, session_id: &str) {
+    if let Ok(dir) = session_review_dir(data_dir, session_id) {
+        let _ = fs::remove_dir_all(dir);
+    }
+}
+
+pub fn sweep(data_dir: &Path, live_session_ids: &std::collections::HashSet<String>) {
+    let base = data_dir.join(REVIEW_DIR);
+    let Ok(entries) = fs::read_dir(base) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let id = entry.file_name().to_string_lossy().to_string();
+        if !live_session_ids.contains(&id) {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use tempfile::tempdir;
+
+    fn prepare(
+        data: &Path,
+        workspace_root: &Path,
+        session: &str,
+        message: &str,
+        path: &str,
+    ) -> PendingChange {
+        prepare_change(
+            data,
+            session,
+            message,
+            Some(workspace_root),
+            &ContainedRoots::new(),
+            "Edit",
+            &json!({ "path": path }),
+            false,
+        )
+        .unwrap()
+        .unwrap()
+    }
+
+    #[test]
+    fn outside_capture_requires_approval_and_skips_sensitive_paths() {
+        let data = tempdir().unwrap();
+        let workspace = tempdir().unwrap();
+        let outside = tempdir().unwrap();
+        let target = outside.path().join("file.txt");
+        fs::write(&target, "fixture before\n").unwrap();
+        let args = json!({"path": target.to_string_lossy()});
+        assert!(prepare_change(
+            data.path(),
+            "s",
+            "m",
+            Some(workspace.path()),
+            &ContainedRoots::new(),
+            "Write",
+            &args,
+            false
+        )
+        .unwrap()
+        .is_none());
+        assert!(!data.path().join(REVIEW_DIR).exists());
+        let pending = prepare_change(
+            data.path(),
+            "s",
+            "m",
+            Some(workspace.path()),
+            &ContainedRoots::new(),
+            "Write",
+            &args,
+            true,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(&pending.before_path).unwrap(),
+            "fixture before\n"
+        );
+        discard_change(pending);
+        let sensitive = outside.path().join(".env");
+        fs::write(&sensitive, "NON_SECRET_TEST_FIXTURE=1\n").unwrap();
+        assert!(prepare_change(
+            data.path(),
+            "s",
+            "sensitive",
+            Some(workspace.path()),
+            &ContainedRoots::new(),
+            "Write",
+            &json!({"path": sensitive.to_string_lossy()}),
+            true
+        )
+        .unwrap()
+        .is_none());
+        assert_eq!(
+            fs::read_dir(data.path().join(REVIEW_DIR).join("s"))
+                .unwrap()
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn records_line_changes_and_rolls_back_without_git() {
+        let data = tempdir().unwrap();
+        let workspace = tempdir().unwrap();
+        let target = workspace.path().join("src.txt");
+        fs::write(&target, "one\ntwo\n").unwrap();
+        let pending = prepare(data.path(), workspace.path(), "s1", "m1", "src.txt");
+        fs::write(&target, "one\nthree\n").unwrap();
+        let change = finalize_change(&pending).unwrap();
+        assert_eq!(change.status, ReviewChangeStatus::Modified);
+        assert_eq!(change.additions, 1);
+        assert_eq!(change.deletions, 1);
+        assert!(change.reversible);
+        assert!(!change.hunks.is_empty());
+
+        let result = rollback_change(
+            data.path(),
+            "s1",
+            &change.snapshot_id,
+            Some(workspace.path()),
+        )
+        .unwrap();
+        assert_eq!(result.status, "rolledBack");
+        assert_eq!(fs::read_to_string(&target).unwrap(), "one\ntwo\n");
+        let repeated = rollback_change(
+            data.path(),
+            "s1",
+            &change.snapshot_id,
+            Some(workspace.path()),
+        )
+        .unwrap();
+        assert_eq!(repeated.status, "alreadyRolledBack");
+    }
+
+    #[test]
+    fn refuses_to_overwrite_a_later_edit() {
+        let data = tempdir().unwrap();
+        let workspace = tempdir().unwrap();
+        let target = workspace.path().join("src.txt");
+        fs::write(&target, "before\n").unwrap();
+        let pending = prepare(data.path(), workspace.path(), "s1", "m1", "src.txt");
+        fs::write(&target, "after\n").unwrap();
+        let change = finalize_change(&pending).unwrap();
+        fs::write(&target, "later\n").unwrap();
+        let result = rollback_change(
+            data.path(),
+            "s1",
+            &change.snapshot_id,
+            Some(workspace.path()),
+        )
+        .unwrap();
+        assert_eq!(result.status, "conflict");
+        assert_eq!(fs::read_to_string(&target).unwrap(), "later\n");
+    }
+
+    #[test]
+    fn added_file_rollback_removes_the_file() {
+        let data = tempdir().unwrap();
+        let workspace = tempdir().unwrap();
+        let pending = prepare(data.path(), workspace.path(), "s1", "m1", "new.txt");
+        fs::write(workspace.path().join("new.txt"), "new\n").unwrap();
+        let change = finalize_change(&pending).unwrap();
+        assert_eq!(change.status, ReviewChangeStatus::Added);
+        let result = rollback_change(
+            data.path(),
+            "s1",
+            &change.snapshot_id,
+            Some(workspace.path()),
+        )
+        .unwrap();
+        assert_eq!(result.status, "rolledBack");
+        assert!(!workspace.path().join("new.txt").exists());
+    }
+
+    #[test]
+    fn deleted_file_rollback_restores_previous_bytes() {
+        let data = tempdir().unwrap();
+        let workspace = tempdir().unwrap();
+        let target = workspace.path().join("removed.txt");
+        fs::write(&target, "keep me\n").unwrap();
+        let pending = prepare(data.path(), workspace.path(), "s1", "m1", "removed.txt");
+        fs::remove_file(&target).unwrap();
+        let change = finalize_change(&pending).unwrap();
+        assert_eq!(change.status, ReviewChangeStatus::Deleted);
+        assert_eq!(change.additions, 0);
+        assert_eq!(change.deletions, 1);
+
+        let result = rollback_change(
+            data.path(),
+            "s1",
+            &change.snapshot_id,
+            Some(workspace.path()),
+        )
+        .unwrap();
+        assert_eq!(result.status, "rolledBack");
+        assert_eq!(fs::read_to_string(&target).unwrap(), "keep me\n");
+    }
+}
+
+#[cfg(test)]
+mod snapshot_content_tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn write_snapshot(dir: &Path, session: &str, snapshot: &str, before: Option<&str>) {
+        let sd = snapshot_dir(dir, session, snapshot).unwrap();
+        fs::create_dir_all(&sd).unwrap();
+        let meta = SnapshotMeta {
+            version: 1,
+            session_id: session.to_string(),
+            message_id: "m1".into(),
+            path: "src/demo.ts".into(),
+            root: None,
+            context_saved: false,
+            context_unavailable: None,
+            operation: ReviewChangeOperation::Edit,
+            before_exists: before.is_some(),
+            before_hash: None,
+            after_exists: true,
+            after_hash: None,
+            reversible: true,
+            state: ReviewChangeState::Active,
+        };
+        write_meta(&metadata_path(&sd), &meta).unwrap();
+        if let Some(text) = before {
+            fs::write(before_path(&sd), text).unwrap();
+        }
+    }
+
+    #[test]
+    fn reads_pre_edit_text_and_handles_missing_or_binary() {
+        let dir = tempdir().unwrap();
+        write_snapshot(dir.path(), "s1", "snap1", Some("const value = 1;\n"));
+        assert_eq!(
+            snapshot_before_text(dir.path(), "s1", "snap1").unwrap(),
+            Some("const value = 1;\n".into())
+        );
+
+        write_snapshot(dir.path(), "s1", "snap2", None);
+        assert_eq!(
+            snapshot_before_text(dir.path(), "s1", "snap2").unwrap(),
+            Some(String::new())
+        );
+
+        write_snapshot(dir.path(), "s1", "snap3", Some("a\u{0}b"));
+        assert_eq!(
+            snapshot_before_text(dir.path(), "s1", "snap3").unwrap(),
+            None
+        );
+    }
+}

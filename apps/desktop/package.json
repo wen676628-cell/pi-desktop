@@ -1,0 +1,321 @@
+{
+  "name": "@pi-desktop/desktop",
+  "version": "0.21.0",
+  "desktopName": "pi-desktop.desktop",
+  "private": true,
+  "description": "PI-Desktop Electron application",
+  "homepage": "https://github.com/vastsa/PI-Desktop",
+  "author": {
+    "name": "vastsa",
+    "email": "hhxk666@gmail.com"
+  },
+  "main": "./out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "build:deps": "pnpm --filter '@pi-desktop/desktop^...' build",
+    "predev": "pnpm run build:deps && cargo build --manifest-path ../../Cargo.toml -p host-core",
+    "dev": "node ../../scripts/dev-electron.mjs",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "postinstall": "electron-builder install-app-deps",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "lint": "node ../../scripts/check-style-tokens.mjs",
+    "clean": "node -e \"fs.rmSync('out',{recursive:true,force:true});fs.rmSync('dist',{recursive:true,force:true})\"",
+    "build:host-release": "cargo build --release --manifest-path ../../Cargo.toml -p host-core",
+    "bundle:runtime": "pnpm -C ../../packages/agent-runtime bundle",
+    "pack": "pnpm run build:deps && pnpm run build:host-release && pnpm run bundle:runtime && electron-vite build && electron-builder --dir",
+    "dist": "pnpm run build:deps && pnpm run build:host-release && pnpm run bundle:runtime && electron-vite build && node ../../scripts/build-desktop-release.mjs",
+    "dist:mac": "pnpm run build:deps && pnpm run build:host-release && pnpm run bundle:runtime && electron-vite build && electron-builder --mac --publish never",
+    "dist:win": "pnpm run build:deps && pnpm run build:host-release && pnpm run bundle:runtime && electron-vite build && node ../../scripts/build-desktop-release.mjs win",
+    "dist:linux": "pnpm run build:deps && pnpm run build:host-release && pnpm run bundle:runtime && electron-vite build && electron-builder --linux --publish never"
+  },
+  "dependencies": {
+    "@picovoice/pvrecorder-node": "1.2.9",
+    "transcribe-cpp": "0.2.2",
+    "electron-updater": "^6.8.9"
+  },
+  "optionalDependencies": {
+    "@koromix/koffi-darwin-arm64": "3.3.1",
+    "@koromix/koffi-darwin-x64": "3.3.1",
+    "@koromix/koffi-linux-arm": "3.3.1",
+    "@koromix/koffi-linux-arm64": "3.3.1",
+    "@koromix/koffi-linux-ia32": "3.3.1",
+    "@koromix/koffi-linux-x64": "3.3.1",
+    "@koromix/koffi-win32-arm64": "3.3.1",
+    "@koromix/koffi-win32-ia32": "3.3.1",
+    "@koromix/koffi-win32-x64": "3.3.1",
+    "@transcribe-cpp/darwin-arm64-metal": "0.2.2",
+    "@transcribe-cpp/darwin-x64-cpu": "0.2.2",
+    "@transcribe-cpp/linux-arm64-cpu-vulkan": "0.2.2",
+    "@transcribe-cpp/linux-x64-cpu-vulkan": "0.2.2",
+    "@transcribe-cpp/win32-x64-cpu-vulkan": "0.2.2"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-mcp": "1.5.0",
+    "@pi-desktop/agent-host": "workspace:*",
+    "@pi-desktop/computer-use": "workspace:*",
+    "@pi-desktop/agent-runtime": "workspace:*",
+    "@pi-desktop/host-runtime": "workspace:*",
+    "@pi-desktop/i18n": "workspace:*",
+    "@pi-desktop/plugin-devkit": "workspace:*",
+    "@pi-desktop/plugin-sdk": "workspace:*",
+    "@pi-desktop/racp": "workspace:*",
+    "@pi-desktop/shared": "workspace:*",
+    "@pi-desktop/voice-runtime": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.6.0",
+    "dompurify": "^3.4.17",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^4.0.0",
+    "i18next": "^26.3.6",
+    "katex": "^0.16.47",
+    "lucide-react": "^1.31.0",
+    "mermaid": "^11.16.1",
+    "pinyin-pro": "3.29.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-i18next": "^15.6.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "shiki": "^4.4.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "unified": "^11.0.5",
+    "vite": "^7.3.6",
+    "ws": "8.21.1",
+    "zustand": "^5.0.15"
+  },
+  "build": {
+    "appId": "net.aiuo.pi-desktop",
+    "productName": "PI-Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "vastsa",
+        "repo": "PI-Desktop"
+      }
+    ],
+    "extraMetadata": {
+      "piDistribution": "installed"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/*/{test,tests,__tests__,powered-test,example,examples}/**",
+      "!**/node_modules/**/*.{test,spec}.{js,cjs,mjs}",
+      "!**/node_modules/node-addon-api/tools/**",
+      "!**/node_modules/node-addon-api/*.{c,gyp,gypi,h,js,json}",
+      "!**/node_modules/node-addon-api/README.md"
+    ],
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh_CN",
+      "zh-TW",
+      "zh_TW",
+      "tr",
+      "de",
+      "es",
+      "fr",
+      "ko",
+      "pt-BR",
+      "pt_BR"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "tray-icon.png"
+      },
+      {
+        "from": "../../packages/agent-runtime/dist-bundle",
+        "to": "agent-runtime"
+      },
+      {
+        "from": "resources/skills",
+        "to": "skills"
+      },
+      {
+        "from": "resources/gen-ui",
+        "to": "gen-ui"
+      },
+      {
+        "from": "resources/plugins",
+        "to": "plugins"
+      },
+      {
+        "from": "resources/models.dev",
+        "to": "models.dev"
+      }
+    ],
+    "mac": {
+      "artifactName": "PI-Desktop-${version}-${arch}-mac.${ext}",
+      "target": [
+        {
+          "target": "dmg"
+        },
+        {
+          "target": "zip"
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "PI-Desktop needs local network access so agents can reach OpenAI-compatible providers, Ollama, and other AI endpoints running on your LAN. / PI-Desktop 需要本地网络访问权限，以便助手请求同一局域网中的 OpenAI 兼容服务、Ollama 等本地 AI 端点。",
+        "NSMicrophoneUsageDescription": "PI-Desktop uses the microphone for Live voice calls and authorized plugin audio access. / PI-Desktop 使用麦克风进行实时语音通话，以及你已授权的插件音频访问。",
+        "NSBonjourServices": [
+          "_http._tcp",
+          "_https._tcp"
+        ]
+      },
+      "extraResources": [
+        {
+          "from": "../../target/release/pi-desktop-host-core",
+          "to": "bin/pi-desktop-host-core"
+        },
+        {
+          "from": "build/tray-icon-mac.png",
+          "to": "tray-icon-mac.png"
+        }
+      ]
+    },
+    "dmg": {
+      "artifactName": "PI-Desktop-${version}-${arch}.${ext}",
+      "background": "build/dmg-background.png",
+      "icon": "build/icon.icns",
+      "window": {
+        "width": 720,
+        "height": 440
+      },
+      "iconSize": 128,
+      "iconTextSize": 12,
+      "contents": [
+        {
+          "x": 180,
+          "y": 196
+        },
+        {
+          "x": 540,
+          "y": 196,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "executableName": "PI-Desktop",
+      "artifactName": "PI-Desktop-Portable-${version}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "extraResources": [
+        {
+          "from": "resources/app-update.yml",
+          "to": "app-update.yml"
+        },
+        {
+          "from": "../../target/release/pi-desktop-host-core.exe",
+          "to": "bin/pi-desktop-host-core.exe"
+        },
+        {
+          "from": "build/icon.ico",
+          "to": "app-icon.ico"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "PI-Desktop",
+      "artifactName": "PI-Desktop-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PI-Desktop-Portable-${version}.${ext}"
+    },
+    "deb": {
+      "packageName": "pi-desktop",
+      "artifactName": "pi-desktop_${version}_${arch}.${ext}"
+    },
+    "rpm": {
+      "packageName": "pi-desktop",
+      "artifactName": "pi-desktop-${version}-${arch}.${ext}",
+      "fpm": [
+        "--rpm-rpmbuild-define",
+        "_build_id_links none"
+      ]
+    },
+    "linux": {
+      "executableName": "pi-desktop",
+      "syncDesktopName": true,
+      "artifactName": "PI-Desktop-${version}-linux-${arch}.${ext}",
+      "target": [
+        {
+          "target": "AppImage"
+        },
+        {
+          "target": "deb"
+        },
+        {
+          "target": "rpm"
+        }
+      ],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "extraResources": [
+        {
+          "from": "../../target/release/pi-desktop-host-core",
+          "to": "bin/pi-desktop-host-core"
+        }
+      ]
+    },
+    "asarUnpack": [
+      "node_modules/transcribe-cpp/**/*.node",
+      "node_modules/transcribe-cpp/**/bin/**",
+      "node_modules/@picovoice/pvrecorder-node/**/*.node",
+      "node_modules/@picovoice/pvrecorder-node/**/lib/**",
+      "node_modules/@koromix/**/*.node",
+      "node_modules/@transcribe-cpp/**/*.dll",
+      "node_modules/@transcribe-cpp/**/*.dylib",
+      "node_modules/@transcribe-cpp/**/*.so*"
+    ],
+    "asar": {
+      "smartUnpack": false
+    }
+  }
+}

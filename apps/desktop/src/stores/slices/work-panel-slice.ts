@@ -1,0 +1,513 @@
+import { api } from "../../lib/api";
+import { isRemoteSession } from "../../lib/remote-session-safety";
+import {
+  activateWorkPanelTabState,
+  browserPluginTab,
+  browserTabLabel,
+  closeAllWorkPanelTabsState,
+  closeOtherWorkPanelTabsState,
+  closeWorkPanelTabState,
+  createWorkPanelFileRequest,
+  emptyWorkPanelContext,
+  fileWorkPanelTab,
+  newWorkPanelTab,
+  openWorkPanelTabState,
+  reorderWorkPanelTabsState,
+  replaceWorkPanelTabState,
+  sanitizeWorkPanelTabsState,
+  subagentWorkPanelTab,
+  switchWorkPanelContextState,
+  type WorkPanelContext,
+  type WorkPanelTab,
+} from "../../lib/work-panel-tabs";
+import {
+  WORK_PANEL_COMPACT_MIN_WIDTH,
+  WORK_PANEL_DEFAULT_WIDTH,
+  WORK_PANEL_MIN_WIDTH,
+} from "../../lib/work-panel-resize";
+import type { AppState } from "../app-state";
+import type { StoreAccess } from "./types";
+
+const WORK_PANEL_STORAGE_KEY = "pi.desktop.workPanel";
+
+// Plan §4.2: a fresh profile opens the work panel at ~45% of the space
+// beside the sidebar. Tests and non-DOM callers keep the fixed default.
+function initialWorkPanelWidth(): number {
+  try {
+    const viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth;
+    if (!viewportWidth) return WORK_PANEL_DEFAULT_WIDTH;
+    const available = Math.max(0, viewportWidth - 232);
+    return Math.max(WORK_PANEL_MIN_WIDTH, Math.round(available * 0.45));
+  } catch {
+    return WORK_PANEL_DEFAULT_WIDTH;
+  }
+}
+
+export function loadWorkPanelWidth(): number {
+  try {
+    const raw = localStorage.getItem(WORK_PANEL_STORAGE_KEY);
+    if (!raw) return initialWorkPanelWidth();
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const width = Number(parsed.width);
+    // Only the former sidebar-reopen path stored widths below the regular
+    // minimum; that width was lent to the sidebar, not chosen by the user.
+    return Number.isFinite(width)
+      ? Math.max(WORK_PANEL_MIN_WIDTH, Math.round(width))
+      : initialWorkPanelWidth();
+  } catch {
+    return initialWorkPanelWidth();
+  }
+}
+
+function saveWorkPanelWidth(width: number): void {
+  try {
+    localStorage.setItem(WORK_PANEL_STORAGE_KEY, JSON.stringify({ width }));
+  } catch {
+    // best-effort persistence
+  }
+}
+
+export function currentWorkPanelContext(state: AppState): WorkPanelContext {
+  const tabs = sanitizeWorkPanelTabsState({
+    tabs: state.workPanelTabs,
+    activeTabId: state.activeWorkPanelTabId,
+  });
+  return {
+    open: state.workPanelOpen,
+    tabs: tabs.tabs,
+    activeTabId: tabs.activeTabId,
+    fileRequest: state.workPanelFileRequest,
+  };
+}
+
+export function switchWorkPanelSession(
+  state: AppState,
+  nextSessionId?: string,
+): Pick<
+  AppState,
+  | "workPanelContexts"
+  | "workPanelOpen"
+  | "workPanelTabs"
+  | "activeWorkPanelTabId"
+  | "workPanelFileRequest"
+> {
+  const switched = switchWorkPanelContextState(
+    state.workPanelContexts,
+    state.activeSessionId,
+    currentWorkPanelContext(state),
+    nextSessionId,
+  );
+  return {
+    workPanelContexts: switched.contexts,
+    workPanelOpen: switched.visible.open,
+    workPanelTabs: switched.visible.tabs,
+    activeWorkPanelTabId: switched.visible.activeTabId,
+    workPanelFileRequest: switched.visible.fileRequest,
+  };
+}
+
+export type WorkPanelSliceDependencies = StoreAccess & {
+  isSessionSelectionPending: (sessionId: string) => boolean;
+};
+
+export function createWorkPanelSlice({
+  get,
+  set,
+  isSessionSelectionPending,
+}: WorkPanelSliceDependencies): Pick<
+  AppState,
+  "openSubagentTab"
+  | "openWorkPanel"
+  | "toggleWorkPanel"
+  | "openWorkPanelTab"
+  | "openNewWorkPanelTab"
+  | "replaceWorkPanelTab"
+  | "openWorkPanelTabForSession"
+  | "activateWorkPanelTab"
+  | "reorderWorkPanelTabs"
+  | "closeWorkPanelTab"
+  | "closeOtherWorkPanelTabs"
+  | "closeAllWorkPanelTabs"
+  | "collapseWorkPanel"
+  | "resetWorkPanelContext"
+  | "setWorkPanelWidth"
+  | "setWorkPanelYieldedWidth"
+  | "openFileInWorkPanel"
+  | "openUrlInWorkPanel"
+  | "updateBrowserWorkPanelTab"
+  | "restoreBrowserWorkPanelTabs"
+> {
+  let workPanelFileRequestSeq = 0;
+  const nextFileRequest = (tab?: WorkPanelTab): WorkPanelContext["fileRequest"] => {
+    if (!tab || tab.kind !== "file" || !tab.resource) return null;
+    return createWorkPanelFileRequest(tab, ++workPanelFileRequestSeq);
+  };
+  const closeBrowserWorkPanelTab = (sessionId: string, tabId: string) => {
+    void api.pluginViewClose("pi.browser", "browser", { sessionId, tabId })
+      .catch((error) => get().showToast(String(error), { variant: "error" }));
+  };
+
+  return {
+  openSubagentTab: (delegationId, agentName) => {
+    const id = delegationId.trim();
+    if (!id) return;
+    get().openWorkPanelTab(subagentWorkPanelTab(id, agentName || undefined));
+  },
+
+  openWorkPanel: () => {
+    const state = get();
+    const sessionId = state.activeSessionId;
+    if (!sessionId) return;
+    const context = currentWorkPanelContext(state);
+    set({
+      workPanelOpen: true,
+      workPanelContexts: {
+        ...state.workPanelContexts,
+        [sessionId]: { ...context, open: true },
+      },
+    });
+  },
+
+  toggleWorkPanel: () => {
+    const state = get();
+    if (state.workPanelOpen) {
+      state.collapseWorkPanel();
+      return;
+    }
+    state.openWorkPanel();
+  },
+
+  openWorkPanelTabForSession: (sessionId, tab) => {
+    if (!sessionId) return;
+    if (isRemoteSession(get().sessions.find((session) => session.id === sessionId)) || sessionId.startsWith("remote:")) return;
+    set((state) => {
+      const affectsVisibleSession =
+        state.activeSessionId === sessionId &&
+        (!isSessionSelectionPending(sessionId));
+      const context = affectsVisibleSession
+        ? currentWorkPanelContext(state)
+        : state.workPanelContexts[sessionId] ?? emptyWorkPanelContext();
+      const next = openWorkPanelTabState(
+        {
+          tabs: context.tabs,
+          activeTabId: context.activeTabId,
+        },
+        tab,
+      );
+      const fileRequest = nextFileRequest(tab) ?? context.fileRequest;
+      const nextContext: WorkPanelContext = {
+        open: true,
+        tabs: next.tabs,
+        activeTabId: next.activeTabId,
+        fileRequest,
+      };
+      return {
+        workPanelContexts: {
+          ...state.workPanelContexts,
+          [sessionId]: nextContext,
+        },
+        ...(affectsVisibleSession
+          ? {
+              workPanelOpen: true,
+              workPanelTabs: next.tabs,
+              activeWorkPanelTabId: next.activeTabId,
+              workPanelFileRequest: fileRequest,
+            }
+          : {}),
+      };
+    });
+  },
+  openWorkPanelTab: (tab) => {
+    const sessionId = get().activeSessionId;
+    if (!sessionId) return;
+    get().openWorkPanelTabForSession(sessionId, tab);
+  },
+  openNewWorkPanelTab: () => {
+    const sessionId = get().activeSessionId;
+    if (!sessionId) return;
+    get().openWorkPanelTabForSession(sessionId, newWorkPanelTab());
+  },
+  replaceWorkPanelTab: (sourceTabId, tab) => {
+    set((state) => {
+      const sessionId = state.activeSessionId;
+      if (!sessionId) return {};
+      if (isRemoteSession(state.sessions.find((session) => session.id === sessionId)) || sessionId.startsWith("remote:")) return {};
+      const next = replaceWorkPanelTabState(
+        {
+          tabs: state.workPanelTabs,
+          activeTabId: state.activeWorkPanelTabId,
+        },
+        sourceTabId,
+        tab,
+      );
+      const activeTab = next.tabs.find((item) => item.id === next.activeTabId);
+      const fileRequest = nextFileRequest(activeTab) ?? state.workPanelFileRequest;
+      const nextContext: WorkPanelContext = {
+        open: true,
+        tabs: next.tabs,
+        activeTabId: next.activeTabId,
+        fileRequest,
+      };
+      return {
+        workPanelOpen: true,
+        workPanelTabs: next.tabs,
+        activeWorkPanelTabId: next.activeTabId,
+        workPanelFileRequest: fileRequest,
+        workPanelContexts: {
+          ...state.workPanelContexts,
+          [sessionId]: nextContext,
+        },
+      };
+    });
+  },
+  activateWorkPanelTab: (tabId) => {
+    set((state) => {
+      const sessionId = state.activeSessionId;
+      if (!sessionId) return {};
+      const next = activateWorkPanelTabState(
+        {
+          tabs: state.workPanelTabs,
+          activeTabId: state.activeWorkPanelTabId,
+        },
+        tabId,
+      );
+      const activeTab = next.tabs.find((tab) => tab.id === next.activeTabId);
+      const fileRequest = nextFileRequest(activeTab) ?? state.workPanelFileRequest;
+      const nextContext: WorkPanelContext = {
+        open: state.workPanelOpen,
+        tabs: next.tabs,
+        activeTabId: next.activeTabId,
+        fileRequest,
+      };
+      return {
+        activeWorkPanelTabId: next.activeTabId,
+        workPanelFileRequest: fileRequest,
+        workPanelContexts: {
+          ...state.workPanelContexts,
+          [sessionId]: nextContext,
+        },
+      };
+    });
+  },
+  reorderWorkPanelTabs: (sourceTabId, targetTabId, insertAfter) => {
+    set((state) => {
+      const sessionId = state.activeSessionId;
+      if (!sessionId) return {};
+      const next = reorderWorkPanelTabsState(
+        {
+          tabs: state.workPanelTabs,
+          activeTabId: state.activeWorkPanelTabId,
+        },
+        sourceTabId,
+        targetTabId,
+        insertAfter,
+      );
+      if (next.tabs === state.workPanelTabs) return {};
+      const nextContext: WorkPanelContext = {
+        open: state.workPanelOpen,
+        tabs: next.tabs,
+        activeTabId: next.activeTabId,
+        fileRequest: state.workPanelFileRequest,
+      };
+      return {
+        workPanelTabs: next.tabs,
+        activeWorkPanelTabId: next.activeTabId,
+        workPanelContexts: {
+          ...state.workPanelContexts,
+          [sessionId]: nextContext,
+        },
+      };
+    });
+  },
+  closeWorkPanelTab: (tabId) => {
+    const current = get();
+    const browserTab = current.workPanelTabs.find(
+      (tab) => tab.id === tabId && tab.resource === "pi.browser/browser",
+    );
+    if (current.activeSessionId && browserTab) {
+      closeBrowserWorkPanelTab(current.activeSessionId, browserTab.id);
+    }
+    set((state) => {
+      const sessionId = state.activeSessionId;
+      if (!sessionId) return {};
+      const next = closeWorkPanelTabState(
+        {
+          tabs: state.workPanelTabs,
+          activeTabId: state.activeWorkPanelTabId,
+        },
+        tabId,
+      );
+      const activeTab = next.tabs.find((tab) => tab.id === next.activeTabId);
+      const fileRequest = nextFileRequest(activeTab) ?? state.workPanelFileRequest;
+      const nextContext: WorkPanelContext = {
+        // Closing the final tab leaves the panel open so the user can choose
+        // another tool from the new-tab launcher instead of losing the dock.
+        open: state.workPanelOpen,
+        tabs: next.tabs,
+        activeTabId: next.activeTabId,
+        fileRequest,
+      };
+      return {
+        workPanelTabs: next.tabs,
+        activeWorkPanelTabId: next.activeTabId,
+        workPanelOpen: state.workPanelOpen,
+        workPanelFileRequest: fileRequest,
+        workPanelContexts: {
+          ...state.workPanelContexts,
+          [sessionId]: nextContext,
+        },
+      };
+    });
+  },
+  closeOtherWorkPanelTabs: (tabId) => {
+    const current = get();
+    const sessionId = current.activeSessionId;
+    if (!sessionId) return;
+    const state = {
+      tabs: current.workPanelTabs,
+      activeTabId: current.activeWorkPanelTabId,
+    };
+    const next = closeOtherWorkPanelTabsState(state, tabId);
+    if (next === state) return;
+    for (const tab of state.tabs) {
+      if (tab.id !== tabId && tab.resource === "pi.browser/browser") {
+        closeBrowserWorkPanelTab(sessionId, tab.id);
+      }
+    }
+    const activeTab = next.tabs.find((tab) => tab.id === next.activeTabId);
+    const fileRequest = nextFileRequest(activeTab) ?? current.workPanelFileRequest;
+    const nextContext: WorkPanelContext = {
+      open: current.workPanelOpen,
+      tabs: next.tabs,
+      activeTabId: next.activeTabId,
+      fileRequest,
+    };
+    set({
+      workPanelTabs: next.tabs,
+      activeWorkPanelTabId: next.activeTabId,
+      workPanelFileRequest: fileRequest,
+      workPanelContexts: {
+        ...current.workPanelContexts,
+        [sessionId]: nextContext,
+      },
+    });
+  },
+  closeAllWorkPanelTabs: () => {
+    const current = get();
+    const sessionId = current.activeSessionId;
+    if (!sessionId) return;
+    const state = {
+      tabs: current.workPanelTabs,
+      activeTabId: current.activeWorkPanelTabId,
+    };
+    const next = closeAllWorkPanelTabsState(state);
+    if (next === state) return;
+    for (const tab of state.tabs) {
+      if (tab.resource === "pi.browser/browser") {
+        closeBrowserWorkPanelTab(sessionId, tab.id);
+      }
+    }
+    const nextContext: WorkPanelContext = {
+      open: current.workPanelOpen,
+      tabs: next.tabs,
+      activeTabId: next.activeTabId,
+      fileRequest: null,
+    };
+    set({
+      workPanelTabs: next.tabs,
+      activeWorkPanelTabId: next.activeTabId,
+      workPanelFileRequest: null,
+      workPanelContexts: {
+        ...current.workPanelContexts,
+        [sessionId]: nextContext,
+      },
+    });
+  },
+  collapseWorkPanel: () => {
+    const state = get();
+    const sessionId = state.activeSessionId;
+    if (!sessionId || !state.workPanelOpen) return;
+    set({
+      workPanelOpen: false,
+      workPanelContexts: {
+        ...state.workPanelContexts,
+        [sessionId]: { ...currentWorkPanelContext(state), open: false },
+      },
+    });
+  },
+  resetWorkPanelContext: () => {
+    set((state) => switchWorkPanelSession(state));
+  },
+  setWorkPanelWidth: (width) => {
+    const committedWidth = Math.round(width);
+    set({
+      workPanelWidth: Math.max(WORK_PANEL_MIN_WIDTH, committedWidth),
+      // An explicit resize replaces any width lent to a reopened sidebar.
+      workPanelYieldedWidth: null,
+    });
+    saveWorkPanelWidth(get().workPanelWidth);
+  },
+  setWorkPanelYieldedWidth: (width) => {
+    const next =
+      width === null
+        ? null
+        : Math.max(WORK_PANEL_COMPACT_MIN_WIDTH, Math.round(width));
+    if (get().workPanelYieldedWidth === next) return;
+    set({ workPanelYieldedWidth: next });
+  },
+
+  openFileInWorkPanel: (path, mimeType, position) => {
+    get().openWorkPanelTab(fileWorkPanelTab(path, mimeType, position));
+  },
+  updateBrowserWorkPanelTab: (event) => {
+    const sessionId = event.sessionId;
+    if (!sessionId || !event.tabId || !event.url) return;
+    set((state) => {
+      const visible = state.activeSessionId === sessionId && !isSessionSelectionPending(sessionId);
+      const context = visible ? currentWorkPanelContext(state) : state.workPanelContexts[sessionId];
+      if (!context || !context.tabs.some((tab) => tab.id === event.tabId && tab.resource === "pi.browser/browser")) return {};
+      const tabs = context.tabs.map((tab) => tab.id === event.tabId
+        ? { ...tab, location: event.url, label: !event.isLoading && !event.loadError && event.title ? event.title : browserTabLabel(event.url) }
+        : tab);
+      return { ...(visible ? { workPanelTabs: tabs } : {}),
+        workPanelContexts: { ...state.workPanelContexts, [sessionId]: { ...context, tabs } } };
+    });
+  },
+  restoreBrowserWorkPanelTabs: (sessionId, pages) => {
+    if (!sessionId || isRemoteSession(get().sessions.find((session) => session.id === sessionId)) || sessionId.startsWith("remote:")) return;
+    set((state) => {
+      const visible = state.activeSessionId === sessionId && !isSessionSelectionPending(sessionId);
+      const context = visible ? currentWorkPanelContext(state) : state.workPanelContexts[sessionId] ?? emptyWorkPanelContext();
+      const retained = pages.flatMap((page): WorkPanelTab[] => {
+        const tabId = page.tabId;
+        if (page.sessionId !== sessionId || !tabId || context.tabs.some((tab) => tab.id === tabId)) return [];
+        return [{ ...browserPluginTab(), id: tabId, location: page.url, label: page.title || browserTabLabel(page.url) }];
+      });
+      const last = retained.at(-1);
+      if (!last) return {};
+      const next = { ...context, tabs: [...context.tabs, ...retained], activeTabId: context.activeTabId ?? last.id };
+      return {
+        workPanelContexts: { ...state.workPanelContexts, [sessionId]: next },
+        ...(visible ? { workPanelTabs: next.tabs, activeWorkPanelTabId: next.activeTabId } : {}),
+      };
+    });
+  },
+  openUrlInWorkPanel: (url) => {
+    if (isRemoteSession(get().sessions.find((session) => session.id === get().activeSessionId))) return;
+    const hasBrowser = get().pluginViews.some(
+      (view) => view.pluginId === "pi.browser" && view.viewId === "browser",
+    );
+    if (!hasBrowser) {
+      if (/^https?:\/\//i.test(url.trim())) {
+        // `shell.openExternal` rejects when the OS has no handler or a policy
+        // blocks the URL; without this the click looked like a no-op.
+        void api
+          .browserOpenExternal(url.trim())
+          .catch((error) => get().showToast(String(error), { variant: "error" }));
+      }
+      return;
+    }
+    get().openWorkPanelTab(browserPluginTab(url));
+  },
+  };
+}

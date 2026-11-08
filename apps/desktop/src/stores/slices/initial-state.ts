@@ -1,0 +1,96 @@
+import { loadRecentModels } from "../../lib/recent-models";
+import { DEFAULT_SETTINGS_TAB } from "../../lib/settings-search";
+import type { AppState, AppStateData } from "../app-state";
+import { projectWorkspaceFromPath } from "../../lib/sidebar-preferences";
+import { loadSidebarPreferences } from "../../lib/sidebar-preferences";
+import { loadWorkPanelWidth } from "./work-panel-slice";
+
+export const initialSidebarPreferences = loadSidebarPreferences();
+export const initialWorkPanelWidth = loadWorkPanelWidth();
+
+function withProjectDisplayName(
+  workspace: NonNullable<AppState["workspace"]>,
+  projectMeta: AppState["projectMeta"],
+): NonNullable<AppState["workspace"]> {
+  const name = projectMeta[workspace.path]?.name;
+  return name ? { ...workspace, name } : workspace;
+}
+
+/** Values that are stable before the first host bootstrap response arrives. */
+export function createInitialState(): AppStateData {
+  return {
+    ready: false,
+    recentModels: loadRecentModels(),
+    healthOk: false,
+    sessions: [],
+    sessionMeta: initialSidebarPreferences.sessionMeta,
+    sessionView: {
+      ...initialSidebarPreferences.sessionView,
+      sortBy: initialSidebarPreferences.sessionView.sort,
+      showArchived: initialSidebarPreferences.sessionView.archived,
+    },
+    openProjects: initialSidebarPreferences.openProjectPaths.map((path) =>
+      withProjectDisplayName(
+        projectWorkspaceFromPath(path),
+        initialSidebarPreferences.projectMeta,
+      ),
+    ),
+    openProjectPaths: initialSidebarPreferences.openProjectPaths,
+    createProjectDialogOpen: false,
+    createProjectDialogRemoteHostKey: undefined,
+    activeProjectPath: undefined,
+    projectMeta: initialSidebarPreferences.projectMeta,
+    projectCollapsed: Object.fromEntries(
+      Object.entries(initialSidebarPreferences.projectMeta)
+        .filter(([, meta]) => meta.collapsed === true)
+        .map(([path]) => [path, true]),
+    ),
+    workPanelOpen: false,
+    workPanelTabs: [],
+    activeWorkPanelTabId: null,
+    workPanelContexts: {},
+    workPanelWidth: initialWorkPanelWidth,
+    workPanelYieldedWidth: null,
+    workPanelFileRequest: null,
+    projectSort: initialSidebarPreferences.projectSort,
+    messages: [],
+    retainedSessionIds: [],
+    dismissedAssistantErrorMessages: {},
+    retainedTranscripts: {},
+    transcriptViews: {},
+    sessionHistory: {},
+    draftConfiguration: null,
+    isRunning: false,
+    runningSessions: {},
+    agentStatuses: {},
+    latestTurnResults: {},
+    sessionOutcomes: {},
+    sessionCompactions: {},
+    providers: [],
+    providerModels: {},
+    plugins: [],
+    pluginThemes: [],
+    pluginViews: [],
+    pendingPermissions: {},
+    pendingAsks: {},
+    askDrafts: {},
+    queuedPrompts: {},
+    planningStates: {},
+    pendingPlans: {},
+    planCheckpoints: {},
+    sessionTodos: {},
+    page: "chat",
+    settingsTab: DEFAULT_SETTINGS_TAB,
+    settingsAnchor: null,
+    settingsTabNonce: 0,
+    navStack: [{ page: "chat" }],
+    navIndex: 0,
+    toasts: [],
+    notifications: [],
+    unreadNotificationCount: 0,
+    composerPrefill: null,
+    error: null,
+    errorCode: null,
+    errorRetriable: null,
+  };
+}

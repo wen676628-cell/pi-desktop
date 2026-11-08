@@ -1,0 +1,149 @@
+import type { TFunction } from "i18next";
+import type { ReactNode } from "react";
+import { ComposerModelList } from "./ComposerModelList";
+import { AnchoredMenu } from "../../../components/settings/AnchoredMenu";
+import { IconBot, IconChevronDown, IconZap } from "../../../components/icons";
+import { TooltipButton } from "../../../components/ui";
+import type { useComposerModelMenu } from "./hooks/useComposerModelMenu";
+import { ThinkingLevelSlider } from "./ThinkingLevelSlider";
+
+type ModelMenuController = ReturnType<typeof useComposerModelMenu>;
+
+export type ComposerModelPickerProps = {
+  t: TFunction;
+  controller: ModelMenuController;
+  modelLabel: string;
+  thinkingLabel: string;
+  thinkingLevel: string;
+  /** The selected model asks for OpenAI's priority tier (ADR 0334). */
+  fastMode?: boolean;
+  selectedProviderId?: string;
+  selectedModelId?: string;
+  controlsBlocked: boolean;
+  onCloseOtherMenus: () => void;
+  rootActions?: ReactNode;
+  /** Opens the Models settings destination; omitted where Settings is the host. */
+  onOpenModelSettings?: () => void;
+};
+
+/** Model/reasoning picker with its keyboard and focus contract intact. */
+export function ComposerModelPicker({
+  t,
+  controller,
+  modelLabel,
+  thinkingLabel,
+  thinkingLevel,
+  fastMode = false,
+  selectedProviderId,
+  selectedModelId,
+  controlsBlocked,
+  onCloseOtherMenus,
+  rootActions,
+  onOpenModelSettings,
+}: ComposerModelPickerProps) {
+  const {
+    open,
+    setOpen,
+    sections,
+    activeSection,
+    sectionStep,
+    selectSection,
+    showSectionRail,
+    paneRows,
+    searching,
+    query,
+    setQuery,
+    modelHighlight,
+    setModelHighlight,
+    modelSearchRef,
+    modelListRef,
+    modelGroups,
+    recentEntries,
+    thinkingMenuLevels,
+    selectModel,
+    commitThinkingLevel,
+    onMenuKeyDown,
+  } = controller;
+  const fastSuffix = fastMode ? ` · ${t("chat.fastModeBadge")}` : "";
+
+  return (
+    <AnchoredMenu
+      className="composer-model-thinking"
+      open={open}
+      onClose={() => setOpen(false)}
+      menuClassName={`composer-model-menu composer-model-thinking-menu ${showSectionRail ? "has-rail" : ""}`}
+      label={`${t("chat.model")} ${t("chat.reasoningLevel")}`}
+      role="menu"
+      align="end"
+      side="top"
+      initialFocus="input"
+      onMenuKeyDown={onMenuKeyDown}
+      trigger={(ref) => (
+        <TooltipButton
+          ref={ref}
+          type="button"
+          className={`icon-btn composer-model-thinking-chip ${open ? "active" : ""}`}
+          tooltip={`${modelLabel} · ${t("chat.reasoningLevel")}: ${thinkingLabel}${fastSuffix}`}
+          ariaLabel={`${t("chat.model")}: ${modelLabel}. ${t("chat.reasoningLevel")}: ${thinkingLabel}${fastSuffix}`}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          disabled={controlsBlocked}
+          onClick={() => {
+            onCloseOtherMenus();
+            if (!open) {
+              setQuery("");
+              setModelHighlight(-1);
+            }
+            setOpen((current) => !current);
+          }}
+        >
+          <span className="composer-model-thinking-icon" aria-hidden="true">
+            <IconBot size={14} />
+          </span>
+          <span className="composer-model-thinking-model">{modelLabel}</span>
+          {thinkingLevel !== "off" ? (
+            <span className="composer-model-thinking-level">{thinkingLabel}</span>
+          ) : null}
+          {fastMode ? (
+            <span className="composer-model-thinking-fast" aria-hidden="true">
+              <IconZap size={12} />
+            </span>
+          ) : null}
+          <IconChevronDown size={12} aria-hidden="true" className="composer-model-thinking-chevron" />
+        </TooltipButton>
+      )}
+    >
+      <div className="composer-menu-root" onMouseMove={() => setModelHighlight(-1)} onMouseLeave={() => setModelHighlight(-1)}>
+        {rootActions}
+        <ComposerModelList
+          t={t} query={query} setQuery={setQuery}
+          modelSearchRef={modelSearchRef} modelListRef={modelListRef}
+          modelGroups={modelGroups} modelHighlight={modelHighlight}
+          recentEntries={recentEntries} sections={sections}
+          activeSection={activeSection} sectionStep={sectionStep} selectSection={selectSection}
+          showSectionRail={showSectionRail} searching={searching} paneRows={paneRows}
+          setModelHighlight={setModelHighlight} selectModel={selectModel}
+          selectedProviderId={selectedProviderId} selectedModelId={selectedModelId}
+          onOpenModelSettings={onOpenModelSettings ? () => {
+            setOpen(false);
+            onOpenModelSettings();
+          } : undefined}
+        />
+        {thinkingMenuLevels.length > 1 ? (
+          <div className="composer-model-reasoning">
+            <span className="composer-model-reasoning-label" aria-hidden="true">
+              {t("chat.reasoningShort")}
+            </span>
+            <ThinkingLevelSlider
+              key={`${selectedProviderId}:${selectedModelId}:${thinkingMenuLevels.join("|")}`}
+              levels={thinkingMenuLevels}
+              level={thinkingLevel}
+              label={t("chat.reasoningLevel")}
+              commit={commitThinkingLevel}
+            />
+          </div>
+        ) : null}
+      </div>
+    </AnchoredMenu>
+  );
+}

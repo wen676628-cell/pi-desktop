@@ -1,0 +1,402 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { IPC, type PluginScenicThemesDestinationMeta, type PluginViewMeta } from "@pi-desktop/shared";
+import { normalizeThemeAssetPath, pluginThemeId, resolvePluginLocalizedString, themeAssetUrl } from "@pi-desktop/plugin-sdk";
+import type { BrowserHost } from "../browser-host";
+import { BROWSER_PLUGIN_ID, BROWSER_VIEW_ID } from "../browser-host";
+import type { PluginRuntime } from "../plugin-runtime";
+import { resolveInsidePlugin as resolveInsidePluginRoot } from "../plugin-runtime";
+import { PluginViewHost, pluginViewKey } from "../plugin-view-host";
+import { PluginPanelHost } from "../plugin-panel-host";
+import type { PluginPanelTheme } from "../../shared/plugin-panel-chrome";
+import type { IpcRegistrar } from "./types";
+import { normalizeLauncherLaunch } from "./plugin-launcher-ipc";
+import { pluginProviderCatalogEntries } from "../plugin-provider-catalog";
+import { createSessionPushGate } from "../plugin-session-push-gate";
+import {
+  PLUGIN_COMPOSER_SUGGESTION_REFUSALS,
+  type PluginComposerSuggestionRefusal,
+} from "@pi-desktop/plugin-sdk";
+import type { ComposerSuggestionAnswer } from "../services/composer-suggestion";
+
+export type PluginUiIpcDependencies = {
+  registrar: IpcRegistrar;
+  plugins: PluginRuntime;
+  browserHost: BrowserHost;
+  pluginViews: PluginViewHost;
+  pluginPanels: PluginPanelHost;
+  pluginActiveInProject: (pluginId: string, projectPath: string | null | undefined) => boolean;
+  currentWorkspacePath: () => string | null;
+  getUpdaterLocale: () => string;
+  getPluginPanelTheme: () => PluginPanelTheme;
+  /** The shell's selected session, reported on to the plugin surfaces. */
+  setActivePluginSession: (
+    next: { sessionId: string; projectPath: string | null } | null,
+  ) => void;
+  /**
+   * The shell's answer to one composer suggestion (`pi.composer.suggest`): the
+   * main process is waiting on it, because only the renderer knows whether the
+   * draft could take the line.
+   */
+  settleComposerSuggestion: (answer: ComposerSuggestionAnswer) => boolean;
+};
+
+/** Register plugin panels, work-panel views, themes and services. */
+export function registerPluginUiIpc({
+  registrar,
+  plugins,
+  browserHost,
+  pluginViews,
+  pluginPanels,
+  pluginActiveInProject,
+  currentWorkspacePath,
+  getUpdaterLocale,
+  getPluginPanelTheme,
+  setActivePluginSession,
+  settleComposerSuggestion,
+}: PluginUiIpcDependencies): void {
+  const handle = (channel: string, fn: (...args: any[]) => Promise<any>) => {
+    registrar.handle(channel, fn);
+  };
+  /**
+   * The newest selection the shell reported, so a slower invoke that lands
+   * after a newer one cannot restore a session the user already left.
+   */
+  const sessionPushGate = createSessionPushGate();
+  /**
+   * The session on screen, as the shell sees it.
+   *
+   * The renderer owns the selection and the project path; the main process owns
+   * turn identity, so this only records the half it does not already know and
+   * the snapshot is assembled from both (spec 07-plugins/03 §session).
+   *
+   * `seq` is the renderer's own counter: two switches can be in flight at once,
+   * and the one that was produced first must never win.
+   */
+  handle(
+    IPC.invoke.pluginSessionActive,
+    async (
+      payload:
+        | { sessionId?: string | null; projectPath?: string | null; seq?: number | null; bootId?: string | null }
+        | null,
+    ) => {
+      const seq = typeof payload?.seq === "number" ? payload.seq : 0;
+      const bootId = typeof payload?.bootId === "string" ? payload.bootId : null;
+      if (sessionPushGate({ seq, bootId }).ignored) {
+        return { ok: true, ignored: true };
+      }
+      const sessionId = typeof payload?.sessionId === "string" ? payload.sessionId.trim() : "";
+      if (!sessionId) {
+        setActivePluginSession(null);
+        return { ok: true };
+      }
+      if (sessionId.length > 128) {
+        throw new Error("INVALID_ARGUMENT: sessionId must be at most 128 characters");
+      }
+      const projectPath =
+        typeof payload?.projectPath === "string" ? payload.projectPath.trim() : "";
+      setActivePluginSession({ sessionId, projectPath: projectPath || null });
+      return { ok: true };
+    },
+  );
+  /**
+   * The shell's answer to one composer suggestion (`pi.composer.suggest`).
+   *
+   * Nothing is refused here: the offer it answers may already have been
+   * replaced, dropped, or timed out, and a late answer to a forgotten offer is
+   * simply not applied. `ok` therefore says the message was well formed, not
+   * that a suggestion is on screen.
+   */
+  handle(
+    IPC.invoke.pluginComposerSuggestionResult,
+    async (
+      payload:
+        | { requestId?: string | null; shown?: boolean | null; reason?: string | null }
+        | null,
+    ) => {
+      const requestId = typeof payload?.requestId === "string" ? payload.requestId.trim() : "";
+      if (!requestId) throw new Error("INVALID_ARGUMENT: requestId is required");
+      const reason =
+        typeof payload?.reason === "string" &&
+        (PLUGIN_COMPOSER_SUGGESTION_REFUSALS as readonly string[]).includes(payload.reason)
+          ? (payload.reason as PluginComposerSuggestionRefusal)
+          : undefined;
+      settleComposerSuggestion({
+        requestId,
+        shown: payload?.shown === true,
+        ...(reason ? { reason } : {}),
+      });
+      return { ok: true };
+    },
+  );
+  /**
+   * Open a plugin panel.
+   *
+   * The launcher passes an object so it can hand the plugin the input that
+   * summoned it; every other caller still passes the bare id, so the old shape
+   * keeps working unchanged (issue #2085).
+   */
+  handle(
+    IPC.invoke.pluginOpenPanel,
+    async (
+      request: string | { pluginId?: unknown; triggerId?: unknown; payload?: unknown },
+    ) => {
+      const pluginId =
+        typeof request === "string" ? request : String(request?.pluginId ?? "");
+      const loaded = plugins.getLoaded(pluginId);
+      if (!loaded) throw new Error("plugin not loaded");
+      const manifest = loaded.manifest;
+      if (!manifest.ui?.panel) throw new Error("plugin has no panel");
+      if (!(loaded.permissions.has("ui.panel"))) {
+        throw new Error("PERMISSION_DENIED: ui.panel");
+      }
+      const htmlPath = resolveInsidePluginRoot(loaded.path, manifest.ui.panel);
+      if (!htmlPath) throw new Error("plugin panel must stay inside the plugin");
+      const launch =
+        typeof request === "object" && request !== null
+          ? normalizeLauncherLaunch(request)
+          : undefined;
+      await pluginPanels.open({
+        pluginId,
+        title: resolvePluginLocalizedString(
+          manifest.ui.title,
+          getUpdaterLocale(),
+          manifest.name,
+        ),
+        locale: getUpdaterLocale(),
+        theme: getPluginPanelTheme(),
+        shape: manifest.ui.shape,
+        alwaysOnTop: manifest.ui.alwaysOnTop,
+        resizable: manifest.ui.resizable,
+        width: manifest.ui.width ?? 480,
+        height: manifest.ui.height ?? 360,
+        htmlPath,
+        ...(launch ? { launch } : {}),
+      });
+      return { ok: true };
+    },
+  );
+
+  /**
+   * Work panel views a plugin contributes (ADR 0104).
+   *
+   * Unlike `pluginThemes`, this list *is* filtered by activation scope: a theme
+   * is one global app setting, but a view is something the plugin does inside a
+   * project, so a project-scoped plugin must not offer its view elsewhere.
+   */
+  handle(IPC.invoke.pluginViews, async () => {
+    const workspacePath = currentWorkspacePath();
+    const views: PluginViewMeta[] = [];
+    for (const loaded of plugins.listLoaded()) {
+      const pluginId = loaded.manifest.id;
+      if (!loaded.permissions.has("ui.view")) continue;
+      if (!pluginActiveInProject(pluginId, workspacePath)) continue;
+      const contributed = loaded.manifest.contributes?.views ?? [];
+      contributed.forEach((view, index) => {
+        if (!view?.id || !view.entry) return;
+        // The manifest is validated at install, but a development plugin's
+        // files change under us; a missing entry must not become a blank pane.
+        if (!existsSync(join(loaded.path, view.entry))) return;
+        views.push({
+          pluginId,
+          viewId: view.id,
+          ref: pluginViewKey(pluginId, view.id),
+          title: resolvePluginLocalizedString(view.title, getUpdaterLocale(), view.id),
+          pluginName: loaded.manifest.name,
+          icon: view.icon,
+          order: Number.isFinite(view.order) ? Number(view.order) : index,
+        });
+      });
+    }
+    // Stable order across refreshes: declared order first, then plugin name, so
+    // the menu never reshuffles under the pointer when an unrelated plugin
+    // loads.
+    return views.sort(
+      (a, b) =>
+        a.order - b.order ||
+        a.pluginName.localeCompare(b.pluginName) ||
+        a.viewId.localeCompare(b.viewId),
+    );
+  });
+
+  handle(IPC.invoke.pluginScenicThemesDestinations, async () => {
+    const destinations: PluginScenicThemesDestinationMeta[] = [];
+    for (const loaded of plugins.listLoaded()) {
+      if (!loaded.permissions.has("ui.settings") || !loaded.permissions.has("ui.theme")) continue;
+      const scenicThemes = loaded.manifest.contributes?.scenicThemes;
+      if (!scenicThemes) continue;
+      const pluginId = loaded.manifest.id;
+      const cards: PluginScenicThemesDestinationMeta["themes"] = [];
+      let valid = true;
+      for (const card of scenicThemes.themes) {
+        const contribution = (loaded.manifest.contributes?.themes ?? []).find((theme) => theme.id === card.themeId);
+        const namespacedThemeId = pluginThemeId(pluginId, card.themeId);
+        const theme = plugins.getThemes().find((candidate) => candidate.id === namespacedThemeId);
+        const previewAsset = normalizeThemeAssetPath(card.previewAsset);
+        const ownsTheme = theme?.pluginId === pluginId;
+        const ownsPreview = !!contribution && !!previewAsset && (contribution.assets ?? []).some((asset) => normalizeThemeAssetPath(asset) === previewAsset);
+        const blur = contribution?.variables?.find((variable) => variable.name === "--nexus-backdrop-blur");
+        const validBlur = blur?.type === "length" && blur.unit === "px" && blur.min === 0 && blur.max === 20 && Number.isInteger(blur.default);
+        if (!ownsTheme || !ownsPreview || !validBlur) {
+          valid = false;
+          break;
+        }
+        const stored = plugins.getThemeVariableValue(pluginId, namespacedThemeId, "--nexus-backdrop-blur");
+        const currentBlur = typeof stored === "number" && Number.isInteger(stored) && stored >= 0 && stored <= 20 ? stored : blur.default;
+        cards.push({
+          themeId: namespacedThemeId,
+          label: resolvePluginLocalizedString(card.label, getUpdaterLocale(), card.themeId),
+          description: resolvePluginLocalizedString(card.description, getUpdaterLocale(), ""),
+          previewUrl: themeAssetUrl(pluginId, previewAsset),
+          blur: currentBlur,
+          blurDefault: blur.default,
+        });
+      }
+      if (!valid || !cards.length) continue;
+      destinations.push({
+        pluginId,
+        destinationId: scenicThemes.id,
+        ref: pluginViewKey(pluginId, scenicThemes.id),
+        label: resolvePluginLocalizedString(scenicThemes.label, getUpdaterLocale(), scenicThemes.id),
+        description: resolvePluginLocalizedString(scenicThemes.description, getUpdaterLocale(), ""),
+        pluginName: loaded.manifest.name,
+        icon: "palette",
+        keywords: (scenicThemes.keywords ?? []).map((keyword) => resolvePluginLocalizedString(keyword, getUpdaterLocale(), "")),
+        themes: cards,
+      });
+    }
+    return destinations.sort((a, b) => a.pluginName.localeCompare(b.pluginName) || a.destinationId.localeCompare(b.destinationId));
+  });
+
+  handle(IPC.invoke.pluginScenicThemesSetBlur, async (payload: { pluginId?: string; themeId?: string; blur?: unknown }) => {
+    const pluginId = String(payload?.pluginId ?? "");
+    const themeId = String(payload?.themeId ?? "");
+    const blur = payload?.blur;
+    if (!Number.isInteger(blur) || (blur as number) < 0 || (blur as number) > 20) {
+      throw new Error("INVALID_ARGUMENT: blur must be an integer from 0 to 20");
+    }
+    const loaded = plugins.getLoaded(pluginId);
+    const destination = loaded?.manifest.contributes?.scenicThemes;
+    if (!loaded || !destination || !loaded.permissions.has("ui.settings") || !loaded.permissions.has("ui.theme")) {
+      throw new Error("PERMISSION_DENIED: scenic theme controls unavailable");
+    }
+    const owned = destination.themes.some((card) => pluginThemeId(pluginId, card.themeId) === themeId);
+    if (!owned) throw new Error("NOT_FOUND: scenic theme not found");
+    await plugins.setScenicThemeBlur(pluginId, themeId, blur as number);
+    return { ok: true };
+  });
+
+
+  handle(
+    IPC.invoke.pluginViewOpen,
+    async (payload: {
+      pluginId?: string;
+      viewId?: string;
+      sessionId?: string;
+      location?: string;
+      tabId?: string;
+    }) => {
+      const pluginId = String(payload?.pluginId ?? "");
+      const viewId = String(payload?.viewId ?? "");
+      const sessionId = String(payload?.sessionId ?? "").trim();
+      const location = String(payload?.location ?? "").trim();
+      const isBrowserView = pluginId === BROWSER_PLUGIN_ID && viewId === BROWSER_VIEW_ID;
+      const loaded = plugins.getLoaded(pluginId);
+      if (!loaded) throw new Error("plugin not loaded");
+      if (!loaded.permissions.has("ui.view")) {
+        throw new Error("PERMISSION_DENIED: ui.view");
+      }
+      if (!pluginActiveInProject(pluginId, currentWorkspacePath())) {
+        throw new Error("plugin is not active in this project");
+      }
+      const view = (loaded.manifest.contributes?.views ?? []).find(
+        (candidate) => candidate?.id === viewId,
+      );
+      if (!view) throw new Error("plugin has no such view");
+      const htmlPath = join(loaded.path, view.entry);
+      if (!existsSync(htmlPath)) throw new Error("view entry missing");
+      if (isBrowserView && sessionId) {
+        browserHost.setChromeSession(sessionId, typeof payload.tabId === "string" ? payload.tabId : undefined, location);
+      }
+      pluginViews.open({
+        pluginId,
+        viewId,
+        locale: getUpdaterLocale(),
+        theme: getPluginPanelTheme(),
+        htmlPath,
+        netDomains: loaded.manifest.net?.domains?.map((domain) => String(domain)),
+        netAnyHost: loaded.permissions.has("net.anyHost"),
+        // The browser view owns an address bar and its own history, so its
+        // location keeps going through `browserHost`; every other contributed
+        // view receives the opener's subject untouched (D320 follow-up).
+        ...(isBrowserView || !location ? {} : { location }),
+      });
+      return { ok: true };
+    },
+  );
+
+  handle(
+    IPC.invoke.pluginViewClose,
+    async (payload: { pluginId?: string; viewId?: string; sessionId?: string; tabId?: string }) => {
+      if (payload.pluginId === BROWSER_PLUGIN_ID && payload.viewId === BROWSER_VIEW_ID && typeof payload.sessionId === "string") {
+        if (typeof payload.tabId === "string") browserHost.closeTab(payload.sessionId, payload.tabId);
+        else browserHost.closeSession(payload.sessionId);
+        return { ok: true };
+      }
+      pluginViews.close(String(payload?.pluginId ?? ""), String(payload?.viewId ?? ""));
+      return { ok: true };
+    },
+  );
+
+  handle(
+    IPC.invoke.pluginViewSetBounds,
+    async (payload: { x: number; y: number; width: number; height: number }) => {
+      pluginViews.setBounds(payload ?? { x: 0, y: 0, width: 0, height: 0 });
+      return { ok: true };
+    },
+  );
+
+  handle(
+    IPC.invoke.pluginViewSetVisible,
+    async (payload: {
+      pluginId?: string;
+      viewId?: string;
+      visible?: boolean;
+      sessionId?: string;
+    }) => {
+      const pluginId = String(payload?.pluginId ?? "");
+      const viewId = String(payload?.viewId ?? "");
+      const sessionId = String(payload?.sessionId ?? "").trim();
+      if (
+        payload?.visible === true &&
+        sessionId &&
+        pluginId === BROWSER_PLUGIN_ID &&
+        viewId === BROWSER_VIEW_ID
+      ) {
+        browserHost.setChromeSession(sessionId);
+      }
+      pluginViews.setVisible(pluginId, viewId, payload?.visible === true);
+      return { ok: true };
+    },
+  );
+
+  // Plugin themes: the renderer needs the sanitized CSS itself, so this
+  // channel returns the payload rather than only the catalog.
+  //
+  // Deliberately *not* scope-filtered. The selected theme is one global app
+  // setting, so filtering here would make the whole window repaint when the
+  // user opened a different folder, and strand them on a theme that no longer
+  // resolves. Project scope governs what a plugin may *do* in a project, not
+  // how the app looks.
+  handle(IPC.invoke.pluginThemes, async () => plugins.getThemes());
+
+  // Add Service offers only API-key rows that are declared by a loaded plugin
+  // with the existing provider.register grant. The credential is still entered
+  // and stored by the Host's provider path.
+  handle(IPC.invoke.pluginProviderCatalog, async () =>
+    pluginProviderCatalogEntries(plugins.listLoaded(), getUpdaterLocale()),
+  );
+
+  // Resident service supervision state; refreshed on the pluginChanged event.
+  handle(IPC.invoke.pluginServices, async () => plugins.getServiceStates());
+}

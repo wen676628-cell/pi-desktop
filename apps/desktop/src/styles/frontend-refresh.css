@@ -1,0 +1,212 @@
+/*
+  Frontend refresh — modern agent-workbench hierarchy.
+
+  This layer deliberately changes presentation only. Existing React state,
+  transcript semantics, shortcuts, panel geometry and capture hooks stay intact.
+  Colour and typography values resolve through tokens.css; responsive rules stay
+  last in globals.css so narrow windows retain their established behaviour.
+*/
+
+/* Shell: a quiet sidebar, a clean reading pane, and a translucent top band. */
+.sidebar-surface,
+.sidebar-rail {
+  background-color: var(--ds-front-sidebar);
+}
+
+.sidebar {
+  box-shadow: inset -1px 0 0 var(--ds-border-subtle);
+}
+
+.main-pane,
+.conversation-topbar {
+  background: var(--ds-front-main);
+}
+
+.conversation-topbar {
+  background: var(--ds-front-topbar);
+  border-bottom: 1px solid var(--ds-border-subtle);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.conversation-topbar .ct-title {
+  font-size: var(--text-base-plus);
+  font-weight: var(--font-weight-semibold);
+}
+
+.conversation-topbar .ct-project {
+  color: var(--ds-text-muted);
+}
+
+.conversation-topbar .ct-actions {
+  background: var(--ds-front-accent-faint);
+}
+
+.brand {
+  font-weight: var(--font-weight-strong);
+}
+
+.sidebar-list-label {
+  color: var(--ds-text-secondary);
+  font-size: var(--text-xs-plus);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--ds-border-subtle);
+  padding-top: 8px;
+}
+
+/* Current work is visible without turning the whole navigation column green. */
+.thread-item {
+  border-radius: var(--radius-md);
+}
+
+.thread-item:hover {
+  background: var(--ds-front-accent-faint);
+}
+
+.thread-item.active {
+  background: var(--ds-front-accent-soft);
+  color: var(--ds-front-accent);
+  box-shadow: inset 2px 0 0 var(--ds-front-accent);
+}
+
+.thread-item.active .thread-item-title {
+  color: var(--ds-front-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+.thread-item.active .thread-item-status.selected::before {
+  border-color: var(--ds-front-accent);
+  background: var(--ds-front-accent);
+  box-shadow: 0 0 0 3px var(--ds-front-accent-soft);
+}
+
+/* Empty home: hero and composer form one centred task-creation cluster. */
+.home-scroll {
+  flex: 0 1 auto;
+  margin-top: auto;
+}
+
+.home-stack-inner {
+  gap: 20px;
+  padding-top: 24px;
+  padding-bottom: 20px;
+}
+
+.home-composer-wrap {
+  margin-bottom: auto;
+  padding-top: 0;
+  padding-bottom: 24px;
+}
+
+.empty-hero {
+  gap: 16px;
+}
+
+.empty-hero h1 {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Transcript: slightly calmer spacing and a distinct but soft user turn. */
+.thread-content {
+  padding-top: 28px;
+}
+
+.message-row {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.message-row.user .message-bubble {
+  padding: 11px 16px;
+  border: 1px solid var(--ds-front-accent-soft);
+  background: var(--ds-front-user-bg);
+}
+
+.message-row.assistant .prose-chat {
+  color: var(--ds-text-primary);
+  line-height: var(--leading-prose);
+}
+
+/* A turn's execution summary reads as one compact, clickable surface. */
+.turn-process > .tool-activity-header {
+  min-height: 34px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--ds-front-process-bg);
+}
+
+.turn-process > .tool-activity-header:hover {
+  background: var(--ds-front-process-hover);
+}
+
+.turn-process.open > .tool-activity-header {
+  border-color: var(--ds-front-composer-border);
+}
+
+.turn-process > .tool-activity-header .tool-activity-icon {
+  color: var(--ds-front-accent);
+}
+
+.turn-process > .tool-activity-header .tool-activity-label {
+  color: var(--ds-text-primary);
+}
+
+/* Composer: one obvious primary field, with a visible keyboard-focus state. */
+:root[data-theme] .composer-shell {
+  border: 1px solid var(--ds-front-composer-border);
+  border-radius: var(--ds-composer-radius-lg);
+  box-shadow: var(--ds-front-composer-shadow);
+}
+
+:root[data-theme] .composer-shell:focus-within {
+  border-color: var(--ds-front-accent);
+  box-shadow: var(--ds-front-composer-shadow), 0 0 0 3px var(--ds-front-accent-soft);
+}
+
+.composer-input-wrap {
+  min-height: 52px;
+  padding: 14px 14px 0;
+}
+
+.composer-toolbar {
+  padding: 6px 10px 10px;
+}
+
+.composer-toolbar .mode-chip:hover,
+.composer-toolbar .icon-btn:hover {
+  background: var(--ds-front-accent-faint);
+  color: var(--ds-front-accent);
+}
+
+.send-btn:not(:disabled) {
+  background: var(--ds-front-accent);
+  color: var(--ds-front-accent-ink);
+}
+
+.send-btn:hover:not(:disabled) {
+  background: var(--ds-front-accent-hover);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* Keep short desktop windows usable: the grouped home degrades to top scroll. */
+@media (max-height: 640px) {
+  .home-scroll {
+    margin-top: 0;
+  }
+
+  .home-composer-wrap {
+    margin-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .send-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}
