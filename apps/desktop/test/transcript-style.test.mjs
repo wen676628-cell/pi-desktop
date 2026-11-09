@@ -20,23 +20,23 @@ const minimapSource = await readFile(
   "utf8",
 );
 
-test("user turns keep a compact right-aligned plate", () => {
-  const userBubbleStyles = stylesSource.match(
-    /\.message-row\.user \.message-bubble \{([^}]*)\}/,
-  )?.[1];
-  assert.ok(userBubbleStyles);
-  assert.match(stylesSource, /\.message-row\.user \{\s*justify-content:\s*flex-end;/);
+test("user turns keep a compact left-aligned plate", () => {
+  assert.match(stylesSource, /\.message-row\.user \{\s*justify-content:\s*flex-start;/);
   assert.match(
     stylesSource,
-    /\.message-row\.user \.message-col \{[\s\S]*?width:\s*min\(max-content,\s*82%,\s*600px\);[\s\S]*?max-width:\s*min\(82%,\s*600px\);[\s\S]*?align-items:\s*flex-end;/,
+    /\.message-row\.user \.message-col \{[\s\S]*?width:\s*min\(max-content,\s*82%,\s*600px\);[\s\S]*?max-width:\s*min\(82%,\s*600px\);[\s\S]*?align-items:\s*flex-start;/,
   );
-  // The wrap constraint lives on the column; the bubble is max-content so a
-  // percentage chip cap cannot stretch it to the 82%/600px ceiling.
-  assert.match(
-    userBubbleStyles,
-    /width:\s*max-content;[\s\S]*?max-width:\s*100%;[\s\S]*?background:\s*color-mix\(in oklab,\s*var\(--ds-text-primary\) 8%,\s*transparent\);/,
-  );
-  assert.doesNotMatch(userBubbleStyles, /var\(--ds-accent\)/);
+  // The refresh layer is inlined last (globals.css import order), so its rule
+  // is the effective treatment: a soft plate with an accent-tinted hairline.
+  const userBubbleRules = [
+    ...stylesSource.matchAll(/\.message-row\.user \.message-bubble \{([^}]*)\}/g),
+  ];
+  assert.ok(userBubbleRules.length > 0);
+  const effective = userBubbleRules.at(-1)?.[1] ?? "";
+  assert.match(effective, /padding:\s*11px 16px;/);
+  assert.match(effective, /border:\s*1px solid var\(--ds-front-accent-soft\);/);
+  assert.match(effective, /background:\s*var\(--ds-front-user-bg\);/);
+  assert.doesNotMatch(effective, /var\(--ds-accent\)/);
 });
 
 test("fork tools use the branch icon", () => {

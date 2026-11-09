@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { posix, win32 } from "node:path";
 import test from "node:test";
-import { isWithinRoot } from "../../../packages/agent-runtime/src/project-instructions.ts";
+// Imported from the leaf module: project-instructions pulls agent-dir.js, which
+// only exists in the compiled output and cannot be resolved by type stripping.
+import { isWithinRoot } from "../../../packages/agent-runtime/src/path-containment.ts";
 import { resolveWithinRoot } from "../../../packages/host-runtime/src/workspace-files.ts";
 
 // Windows drive and UNC roots already end in a separator. Containment must
