@@ -20,6 +20,7 @@
 - [03-repo-structure.md](02-architecture/03-repo-structure.md)
 - [05-remote-agent-control.md](02-architecture/05-remote-agent-control.md)
 - [06-pi-runtime-dependency-boundary.md](02-architecture/06-pi-runtime-dependency-boundary.md)
+- [07-shared-pi-home.md](02-architecture/07-shared-pi-home.md)
 
 ## 3. Runtime
 - [README.md](03-runtime/README.md)
