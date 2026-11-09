@@ -23,10 +23,10 @@
 }
 
 .conversation-topbar {
+  /* No backdrop blur here: the motion budget forbids it (a live blur re-runs
+     every scrolled frame), and the 92% token already reads as a soft band. */
   background: var(--ds-front-topbar);
   border-bottom: 1px solid var(--ds-border-subtle);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
 }
 
 .conversation-topbar .ct-title {
@@ -109,14 +109,12 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Transcript: slightly calmer spacing and a distinct but soft user turn. */
+/* Transcript: a distinct but soft user turn. Row padding stays at the
+   released 12px (messages.css): the runtime-status probe measures the gap
+   from the user bubble to the waiting label as 52px, and 14px pushed it to
+   54px, failing `initial wait retains the user action row`. */
 .thread-content {
   padding-top: 28px;
-}
-
-.message-row {
-  padding-top: 14px;
-  padding-bottom: 14px;
 }
 
 .message-row.user .message-bubble {
@@ -130,31 +128,9 @@
   line-height: var(--leading-prose);
 }
 
-/* A turn's execution summary reads as one compact, clickable surface. */
-.turn-process > .tool-activity-header {
-  min-height: 34px;
-  margin: 0;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--ds-front-process-bg);
-}
-
-.turn-process > .tool-activity-header:hover {
-  background: var(--ds-front-process-hover);
-}
-
-.turn-process.open > .tool-activity-header {
-  border-color: var(--ds-front-composer-border);
-}
-
-.turn-process > .tool-activity-header .tool-activity-icon {
-  color: var(--ds-front-accent);
-}
-
-.turn-process > .tool-activity-header .tool-activity-label {
-  color: var(--ds-text-primary);
-}
+/* The turn process header keeps the released hairline geometry from
+   messages.css. Turning it into a padded card pushed its icon 11px right of
+   the group and run rows; the transcript probe measures that shared edge. */
 
 /* Composer: one obvious primary field, with a visible keyboard-focus state. */
 :root[data-theme] .composer-shell {

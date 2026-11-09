@@ -276,6 +276,12 @@ test("packaging keeps voice native payloads unpacked and excludes removed PTY pa
     "node_modules/transcribe-cpp/**/bin/**",
     "node_modules/@picovoice/pvrecorder-node/**/*.node",
     "node_modules/@picovoice/pvrecorder-node/**/lib/**",
+    // koffi and the platform transcribe binaries came in with the pi 1.5
+    // runtime; they are native payloads and must stay outside the archive.
+    "node_modules/@koromix/**/*.node",
+    "node_modules/@transcribe-cpp/**/*.dll",
+    "node_modules/@transcribe-cpp/**/*.dylib",
+    "node_modules/@transcribe-cpp/**/*.so*",
   ]);
   assert.doesNotMatch(JSON.stringify(packageJson.build.files), /node-pty/);
   assert.doesNotMatch(JSON.stringify(packageJson.build.extraResources), /node-pty/);
