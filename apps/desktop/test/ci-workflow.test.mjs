@@ -265,17 +265,27 @@ test("macOS release signing is required on tag pushes", () => {
     releaseWorkflowSource,
     /workflow_dispatch:\s+inputs:\s+sign_macos:[\s\S]*?default:\s*true[\s\S]*?type:\s*boolean/,
   );
-  assert.ok(
-    releaseWorkflowSource.includes(
-      "MACOS_SIGN_RELEASE: ${{ github.event_name != 'workflow_dispatch' || inputs.sign_macos == true }}",
-    ),
-  );
+  // The signing decision is resolved once per macOS row: a tag push asks for
+  // signing, workflow_dispatch may opt out, and every signed step gates on the
+  // recorded output instead of a job-wide env constant.
+  const signingBlock = releaseWorkflowSource.match(
+    /- name: Resolve macOS signing mode[\s\S]*?(?=\n      - name:)/,
+  )?.[0];
+  assert.ok(signingBlock, "the macOS signing decision step is missing");
+  assert.match(signingBlock, /id: signing/);
+  assert.match(signingBlock, /inputs\.sign_macos/);
+  assert.match(signingBlock, /CSC_LINK: \$\{\{ secrets\.CSC_LINK \}\}/);
+  assert.match(signingBlock, /echo "sign=true" >> "\$GITHUB_OUTPUT"/);
+  assert.match(signingBlock, /echo "sign=false" >> "\$GITHUB_OUTPUT"/);
+  // A tag build on the upstream repository still fails without the certificate;
+  // only a fork falls through to the unsigned lane.
+  assert.match(signingBlock, /github\.repository \}\}" == "vastsa\/PI-Desktop"/);
 
   const unsignedBlock = releaseWorkflowSource.match(
     /- name: Package unsigned macOS installer[\s\S]*?(?=\n      - name:)/,
   )?.[0];
   assert.ok(unsignedBlock, "unsigned macOS debug package step is missing");
-  assert.match(unsignedBlock, /env\.MACOS_SIGN_RELEASE != 'true'/);
+  assert.match(unsignedBlock, /steps\.signing\.outputs\.sign != 'true'/);
   assert.match(unsignedBlock, /CSC_IDENTITY_AUTO_DISCOVERY:\s*'false'/);
   assert.doesNotMatch(unsignedBlock, /CSC_LINK:|CSC_KEY_PASSWORD:|APPLE_/);
   assert.doesNotMatch(unsignedBlock, /forceCodeSigning|notarize/);
@@ -290,7 +300,7 @@ test("macOS release signing is required on tag pushes", () => {
     /- name: Package signed and notarized macOS installer[\s\S]*?(?=\n      - name:)/,
   )?.[0];
   assert.ok(signedBlock, "signed macOS package step is missing");
-  assert.match(signedBlock, /env\.MACOS_SIGN_RELEASE == 'true'/);
+  assert.match(signedBlock, /steps\.signing\.outputs\.sign == 'true'/);
   for (const secret of [
     "CSC_LINK",
     "CSC_KEY_PASSWORD",
@@ -333,7 +343,7 @@ test("macOS release signing is required on tag pushes", () => {
     /- name: Notarize and staple the macOS DMG[\s\S]*?(?=\n      - name:)/,
   )?.[0];
   assert.ok(dmgBlock, "DMG notarization step is missing");
-  assert.match(dmgBlock, /env\.MACOS_SIGN_RELEASE == 'true'/);
+  assert.match(dmgBlock, /steps\.signing\.outputs\.sign == 'true'/);
   for (const secret of [
     "APPLE_ID",
     "APPLE_APP_SPECIFIC_PASSWORD",
@@ -357,7 +367,7 @@ test("macOS release signing is required on tag pushes", () => {
   );
   assert.match(
     releaseWorkflowSource,
-    /Notarize and staple the macOS DMG[\s\S]*?if: matrix\.platform == 'macos' && env\.MACOS_SIGN_RELEASE == 'true'[\s\S]*?Verify signed and notarized macOS installer/,
+    /Notarize and staple the macOS DMG[\s\S]*?if: matrix\.platform == 'macos' && steps\.signing\.outputs\.sign == 'true'[\s\S]*?Verify signed and notarized macOS installer/,
   );
   assert.doesNotMatch(releaseWorkflowSource, /scripts\/staple-macos-release-dmg\.sh/);
 });
@@ -473,9 +483,11 @@ test("GitHub releases trigger the CNB mirror pipeline with a JSON payload", () =
     mirrorToCnbWorkflowSource,
     /Missing repository secret CNB_MIRROR_TOKEN/,
   );
+  // The CNB slug is configurable so a fork can point at its own mirror; the
+  // upstream slug stays the default when the variable is unset.
   assert.match(
     mirrorToCnbWorkflowSource,
-    /https:\/\/api\.cnb\.cool\/aixk\/Pi-Desktop\/-\/build\/start/,
+    /https:\/\/api\.cnb\.cool\/\$\{\{ vars\.CNB_MIRROR_REPO \|\| 'aixk\/Pi-Desktop' \}\}\/-\/build\/start/,
   );
   assert.match(mirrorToCnbWorkflowSource, /event: "api_trigger_mirror"/);
   assert.match(mirrorToCnbWorkflowSource, /env: \{ MIRROR_TAGS: \$tag \}/);

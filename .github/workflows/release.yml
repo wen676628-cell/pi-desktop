@@ -158,9 +158,19 @@ jobs:
           if [[ "${requested}" == "true" && -n "${CSC_LINK}" && -n "${CSC_KEY_PASSWORD}" \
                 && -n "${APPLE_ID}" && -n "${APPLE_APP_SPECIFIC_PASSWORD}" && -n "${APPLE_TEAM_ID}" ]]; then
             echo "sign=true" >> "$GITHUB_OUTPUT"
-          else
+          elif [[ "${requested}" == "true" ]]; then
+            # Upstream must never publish an unsigned macOS build from a tag.
+            # A fork has no certificate, so it falls through to the unsigned
+            # lane instead of failing the whole release.
+            if [[ "${{ github.repository }}" == "vastsa/PI-Desktop" ]]; then
+              echo "::error::Missing GitHub Actions secrets for macOS signing/notarization: CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID."
+              echo "::error::Add them under Settings → Secrets and variables → Actions. See docs/spec/06-delivery/06-release-runbook.md."
+              exit 1
+            fi
             echo "sign=false" >> "$GITHUB_OUTPUT"
             echo "::notice::macOS signing secrets are not configured; packaging an unsigned installer."
+          else
+            echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Verify native runner architecture
