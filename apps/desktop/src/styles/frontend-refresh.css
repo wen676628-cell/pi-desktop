@@ -130,31 +130,9 @@
   line-height: var(--leading-prose);
 }
 
-/* A turn's execution summary reads as one compact, clickable surface. */
-.turn-process > .tool-activity-header {
-  min-height: 34px;
-  margin: 0;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--ds-front-process-bg);
-}
-
-.turn-process > .tool-activity-header:hover {
-  background: var(--ds-front-process-hover);
-}
-
-.turn-process.open > .tool-activity-header {
-  border-color: var(--ds-front-composer-border);
-}
-
-.turn-process > .tool-activity-header .tool-activity-icon {
-  color: var(--ds-front-accent);
-}
-
-.turn-process > .tool-activity-header .tool-activity-label {
-  color: var(--ds-text-primary);
-}
+/* The turn process header keeps the released hairline geometry from
+   messages.css. Turning it into a padded card pushed its icon 11px right of
+   the group and run rows; the transcript probe measures that shared edge. */
 
 /* Composer: one obvious primary field, with a visible keyboard-focus state. */
 :root[data-theme] .composer-shell {
