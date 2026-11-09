@@ -20,6 +20,10 @@ const dataDir = join(directory, "data");
 app.setPath("userData", join(directory, "profile"));
 app.commandLine.appendSwitch("disable-background-networking");
 protocol.registerSchemesAsPrivileged([GEN_UI_SCHEME_PRIVILEGES]);
+// Destroying the fixture window at the end must not let Electron's default
+// quit race the stdout handshake: the probe reports through "GENUI_E2E ..."
+// and the runner treats a silent exit 0 as "No GenUI result".
+app.on("window-all-closed", () => {});
 let nativeHost;
 process.once("exit", () => nativeHost?.child?.kill());
 
