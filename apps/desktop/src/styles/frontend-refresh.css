@@ -23,10 +23,10 @@
 }
 
 .conversation-topbar {
+  /* No backdrop blur here: the motion budget forbids it (a live blur re-runs
+     every scrolled frame), and the 92% token already reads as a soft band. */
   background: var(--ds-front-topbar);
   border-bottom: 1px solid var(--ds-border-subtle);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
 }
 
 .conversation-topbar .ct-title {
