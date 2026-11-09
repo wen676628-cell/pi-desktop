@@ -109,14 +109,12 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Transcript: slightly calmer spacing and a distinct but soft user turn. */
+/* Transcript: a distinct but soft user turn. Row padding stays at the
+   released 12px (messages.css): the runtime-status probe measures the gap
+   from the user bubble to the waiting label as 52px, and 14px pushed it to
+   54px, failing `initial wait retains the user action row`. */
 .thread-content {
   padding-top: 28px;
-}
-
-.message-row {
-  padding-top: 14px;
-  padding-bottom: 14px;
 }
 
 .message-row.user .message-bubble {
