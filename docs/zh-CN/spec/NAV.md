@@ -23,6 +23,7 @@
 - [03-repo-structure.md](/zh-CN/spec/02-architecture/03-repo-structure)
 - [05-remote-agent-control.md](/zh-CN/spec/02-architecture/05-remote-agent-control)
 - [06-pi-runtime-dependency-boundary.md](/zh-CN/spec/02-architecture/06-pi-runtime-dependency-boundary)
+- [07-shared-pi-home.md](/zh-CN/spec/02-architecture/07-shared-pi-home)
 
 ## 3. 运行时
 - [README.md](/zh-CN/spec/03-runtime/README)
