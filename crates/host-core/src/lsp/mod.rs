@@ -1,11 +1,12 @@
 //! Language-server integration for the desktop host.
 //!
 //! Configuration (built-in servers + `lsp.json` overrides), the LSP framing
-//! codec, server selection, a one-shot client that collects diagnostics, and
-//! the post-write attachment used by Edit/Write.
+//! codec, server selection, a per-workspace server pool, and the post-write
+//! attachment used by Edit/Write.
 
 mod client;
 mod config;
+mod pool;
 // The client consumes the codec; keep the module compiled without dead-code
 // noise while more of the protocol surface lands.
 #[allow(dead_code)]
@@ -21,6 +22,8 @@ pub use client::{collect_diagnostics, language_id_for_path, Diagnostic, LspClien
 #[allow(unused_imports)]
 pub use config::{load_servers, LspConfigError, ServerConfig};
 #[allow(unused_imports)]
+pub use pool::shutdown_all;
+#[allow(unused_imports)]
 pub use protocol::{encode_message, FrameError, FrameReader};
 #[allow(unused_imports)]
 pub use selection::{command_available, servers_for_file};
@@ -33,6 +36,21 @@ const WRITE_DIAGNOSTICS_TIMEOUT: Duration = Duration::from_millis(1_500);
 pub struct WriteDiagnostics {
     pub server: String,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+/// Diagnostics for one file, through the pooled server for this workspace.
+///
+/// The language id comes from the file extension. Returns `None` when the
+/// server cannot answer inside `timeout`.
+pub async fn diagnostics_with_timeout(
+    server: &ServerConfig,
+    workspace: &Path,
+    file: &Path,
+    text: &str,
+    timeout: Duration,
+) -> Option<Vec<Diagnostic>> {
+    let language_id = language_id_for_path(file);
+    pool::diagnostics(server, workspace, file, language_id, text, timeout).await
 }
 
 /// Diagnostics for a file that was just written.
@@ -52,17 +70,8 @@ pub async fn diagnostics_for_write(
     if !command_available(&server.command) {
         return None;
     }
-    let language_id = language_id_for_path(file);
-    let diagnostics = collect_diagnostics(
-        server,
-        workspace,
-        file,
-        language_id,
-        text,
-        WRITE_DIAGNOSTICS_TIMEOUT,
-    )
-    .await
-    .ok()?;
+    let diagnostics =
+        diagnostics_with_timeout(server, workspace, file, text, WRITE_DIAGNOSTICS_TIMEOUT).await?;
     Some(WriteDiagnostics {
         server: server.name.clone(),
         diagnostics,

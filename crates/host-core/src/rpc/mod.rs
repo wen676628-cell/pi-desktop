@@ -4251,17 +4251,21 @@ async fn handle_request(
                     rpc_err(-32602, format!("path: {error}"), "INVALID_ARGUMENT")
                 })?,
             };
-            let language_id = crate::lsp::language_id_for_path(&target);
-            let diagnostics = crate::lsp::collect_diagnostics(
+            let diagnostics = crate::lsp::diagnostics_with_timeout(
                 server,
                 &root,
                 &target,
-                language_id,
                 &text,
                 std::time::Duration::from_millis(timeout_ms),
             )
             .await
-            .map_err(|error| rpc_err(-32000, error.to_string(), "LSP_UNAVAILABLE"))?;
+            .ok_or_else(|| {
+                rpc_err(
+                    -32000,
+                    "language server did not answer in time",
+                    "LSP_UNAVAILABLE",
+                )
+            })?;
             Ok(json!({
                 "server": server.name,
                 "available": true,

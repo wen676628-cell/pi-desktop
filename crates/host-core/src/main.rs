@@ -115,5 +115,9 @@ async fn main() -> anyhow::Result<()> {
         state.clone(),
         session_worktrees::git::GitRunner::default(),
     ));
-    rpc::serve(state).await
+    let served = rpc::serve(state).await;
+    // Language servers are child processes of this host; do not leave them
+    // running after the RPC loop ends.
+    lsp::shutdown_all().await;
+    served
 }

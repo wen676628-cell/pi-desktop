@@ -52,13 +52,19 @@ lowercase header names, drains malformed headers and reports
 `MissingContentLength` / `InvalidContentLength` / `TooLarge` instead of stalling,
 and caps a body at 16 MiB.
 
-## One-shot diagnostics
+## Pooled diagnostics
 
-`collect_diagnostics` spawns the selected server with an argv list (never a
-shell), sends `initialize` + `initialized` + `textDocument/didOpen`, and returns
-the first `publishDiagnostics` for the opened URI. The whole exchange is bounded
-by a timeout; the child is killed afterwards either way, so a wedged server can
-delay one call but cannot linger.
+`lsp.pool` keeps one server per `(workspace, command, args)` alive. The first
+request for a key starts the server (`initialize` + `initialized` +
+`textDocument/didOpen`, bounded to 3 s); later requests reuse it and send
+`textDocument/didChange` with an incremented version. Requests for the same key
+serialize on the session, so two edits can never interleave frames. A server
+that dies, times out, or fails the handshake is shut down and dropped; the next
+request starts a fresh one. Servers idle for 300 s are reaped by a background
+task, and `shutdown_all` runs when the host's RPC loop ends.
+
+`collect_diagnostics` remains as the stateless one-shot path for callers that
+must not share a process.
 
 ## Write-time attachment
 
@@ -93,5 +99,7 @@ returns `available: false` instead of an error.
 
 ## Next slices
 
-1. Surface diagnostics in the Edit/Write tool result and in the renderer.
-2. Cache servers per workspace root and shut them down on session end.
+1. Surface diagnostics in a file view with per-line markers, not only on the
+   tool row.
+2. Warm the pool after a session opens so the first write does not pay the
+   handshake.
