@@ -2,8 +2,8 @@
 
 Read-only scan of configuration other coding agents already keep on disk,
 modelled on oh-my-pi's discovery providers. Nothing is migrated, copied, or
-rewritten — the report tells the user (and the settings surface, next step)
-what exists and where.
+rewritten — the report tells the user what exists and where, both in the
+terminal and in Settings → Instructions.
 
 ## Sources
 

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentInstructionFile, AppSettings, UpdatePreference } from "@pi-desktop/shared";
-import { api } from "../../lib/api";
+import { api, type DiscoveredConfigEntry } from "../../lib/api";
 import { useAppStore } from "../../stores/app-store";
 import { useUpdateState } from "../../hooks/use-update-state";
 import { Button } from "../../components/ui";
@@ -25,6 +25,7 @@ export function AgentInstructionsSection() {
   const { t } = useTranslation();
   const [global, setGlobal] = useState<AgentInstructionFile | null>(null);
   const [globalDraft, setGlobalDraft] = useState("");
+  const [discovered, setDiscovered] = useState<DiscoveredConfigEntry[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function AgentInstructionsSection() {
       if (cancelled) return;
       setGlobal(result.global);
       setGlobalDraft(result.global.content);
+      setDiscovered(result.discovered ?? []);
     }).catch(() => undefined);
     return () => {
       cancelled = true;
@@ -79,6 +81,29 @@ export function AgentInstructionsSection() {
             {saving ? t("settings.saving") : t("settings.instructionsSave")}
           </Button>
         </div>
+      </SettingsCard>
+
+      <SettingsCard
+        title={t("settings.discoveredTitle")}
+        description={t("settings.discoveredDesc")}
+      >
+        {discovered.length === 0 ? (
+          <div className="settings-row-detail">{t("settings.discoveredEmpty")}</div>
+        ) : (
+          discovered.map((entry) => (
+            <div className="settings-row" key={`${entry.scope}:${entry.path}`}>
+              <div className="settings-row-copy">
+                <div className="settings-row-title">
+                  {entry.provider} · {entry.kind}
+                </div>
+                <div className="settings-instruction-path">{entry.path}</div>
+              </div>
+              <div className="settings-row-detail">
+                {entry.entries === undefined ? entry.scope : `${entry.scope} · ${entry.entries}`}
+              </div>
+            </div>
+          ))
+        )}
       </SettingsCard>
     </div>
   );

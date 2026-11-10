@@ -3,6 +3,14 @@ type ClipboardDirectoryPaste = {
   items: Array<{ kind: "directory"; path: string; name: string } | { kind: "file"; name: string }>;
   token: string | null;
 };
+/** Read-only report of configuration other coding agents keep on disk. */
+export type DiscoveredConfigEntry = {
+  provider: string;
+  kind: "commands" | "instructions" | "mcp" | "rules" | "skills";
+  scope: "user" | "project";
+  path: string;
+  entries?: number;
+};
 import { projectPlanHistory } from "./plan-history";
 import { guardRemoteInvocation } from "./remote-ipc-safety";
 import { isRemoteSession, safeSessionSummary } from "./remote-session-safety";
@@ -1244,7 +1252,11 @@ export const api = {
   getStatus: (sessionId: string) =>
     invoke<{ status: AgentStatus }>(IPC.invoke.agentGetStatus, sessionId),
   getAgentInstructions: (projectPath?: string) =>
-    invoke<{ global: AgentInstructionFile; project?: AgentInstructionFile }>(
+    invoke<{
+      global: AgentInstructionFile;
+      project?: AgentInstructionFile;
+      discovered?: DiscoveredConfigEntry[];
+    }>(
       IPC.invoke.agentInstructionsGet,
       projectPath === undefined ? {} : { projectPath },
     ),
