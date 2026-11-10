@@ -52,15 +52,29 @@ lowercase header names, drains malformed headers and reports
 `MissingContentLength` / `InvalidContentLength` / `TooLarge` instead of stalling,
 and caps a body at 16 MiB.
 
+## One-shot diagnostics
+
+`collect_diagnostics` spawns the selected server with an argv list (never a
+shell), sends `initialize` + `initialized` + `textDocument/didOpen`, and returns
+the first `publishDiagnostics` for the opened URI. The whole exchange is bounded
+by a timeout; the child is killed afterwards either way, so a wedged server can
+delay one call but cannot linger.
+
 ## RPC
 
 `lsp.status` returns the merged server list plus an `available` flag per server;
 with `workspaceRoot` and `path` it also returns `selected`, the names of the
 servers that claim that file. Read-only: no process is spawned.
 
+`lsp.diagnostics` takes `workspaceRoot`, `path`, an optional `text` (defaults to
+the file on disk) and an optional `timeoutMs` (200–10000, default 3000). The path
+must canonicalize inside the workspace. It returns the server name and a
+diagnostic list (`line`, `character`, `endLine`, `endCharacter`, `severity`,
+`message`, optional `source`); when no server claims the file it returns
+`{"server": null, "diagnostics": []}`, and a server whose binary is missing
+returns `available: false` instead of an error.
+
 ## Next slices
 
-1. Spawn a selected server, `initialize`, `textDocument/didOpen`, and collect
-   `publishDiagnostics` with a bounded wait.
-2. Surface diagnostics in the Edit/Write tool result and in the renderer.
-3. Cache servers per workspace root and shut them down on session end.
+1. Surface diagnostics in the Edit/Write tool result and in the renderer.
+2. Cache servers per workspace root and shut them down on session end.

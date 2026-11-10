@@ -1,18 +1,18 @@
 //! Language-server integration for the desktop host.
 //!
-//! First slice: configuration (built-in servers + `lsp.json` overrides), the
-//! LSP framing codec, and server selection for a file. Spawning a server and
-//! collecting diagnostics build on this without changing the shapes here.
+//! Configuration (built-in servers + `lsp.json` overrides), the LSP framing
+//! codec, server selection, and a one-shot client that collects diagnostics.
 
+mod client;
 mod config;
-// The client that consumes framing lands next; the codec stays compiled and
-// tested until then without dead-code noise.
+// The client consumes the codec; keep the module compiled without dead-code
+// noise while more of the protocol surface lands.
 #[allow(dead_code)]
 mod protocol;
 mod selection;
 
-// The client slice consumes the type and codec re-exports below; keep them
-// public now so the next increment does not churn this surface.
+#[allow(unused_imports)]
+pub use client::{collect_diagnostics, language_id_for_path, Diagnostic, LspClientError};
 #[allow(unused_imports)]
 pub use config::{load_servers, LspConfigError, ServerConfig};
 #[allow(unused_imports)]
