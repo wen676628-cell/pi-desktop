@@ -14,6 +14,7 @@
     "pack": "pnpm --filter @pi-desktop/desktop run pack",
     "dist": "pnpm --filter @pi-desktop/desktop run dist",
     "pi-plugin": "pi-plugin",
+    "discover:config": "node scripts/discover-agent-config.mjs",
     "build": "pnpm -r --if-present build && cargo build --release -p host-core",
     "build:js": "pnpm -r --if-present build",
     "build:host": "cargo build --release -p host-core",

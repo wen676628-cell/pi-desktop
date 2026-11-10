@@ -32,6 +32,7 @@ export {
 export type { ProjectInstruction, ProjectInstructions } from "./project-instructions.js";
 export * from "./project-instructions-prompt.js";
 export * from "./project-memory-prompt.js";
+export * from "./discover-config.js";
 export * from "./subagent.js";
 export { classifySidecarCrash, sidecarCrashErrorCode } from "./sidecar-crash.js";
 export type { SidecarCrash, SidecarCrashKind } from "./sidecar-crash.js";
