@@ -151,6 +151,7 @@ their existing classifications.
 | `EDIT_DISABLED_IN_PLAN` | no | contract-mode hard-deny for Edit |
 | `PLUGIN_DISABLED_IN_PLAN` | no | contract-mode hard-deny for every plugin tool |
 | `TOOL_DISABLED_IN_PLAN` | no | contract-mode hard-deny for an unknown/unlisted tool |
+| `LSP_UNAVAILABLE` | no | language server missing, not configured for the file, or did not answer in time |
 | `PLAN_NOT_ACTIVE` | no | a submit tool ran while no contract was being negotiated |
 | `PLAN_KIND_MISMATCH` | no | `SubmitPlan` in Goal mode, or `SubmitGoal` in Plan mode |
 | `PLAN_APPROVAL_REQUIRED` | no | SubmitPlan/SubmitGoal is waiting for a separate approval |
