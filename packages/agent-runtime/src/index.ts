@@ -23,8 +23,11 @@ export * from "./prompt-templates.js";
 export * from "./provider-headers.js";
 export {
   globalInstructionPath,
+  globalRulePath,
   loadInstructionChain,
   loadProjectInstructions,
+  loadStickyRules,
+  projectRulePath,
 } from "./project-instructions.js";
 export type { ProjectInstruction, ProjectInstructions } from "./project-instructions.js";
 export * from "./project-instructions-prompt.js";
