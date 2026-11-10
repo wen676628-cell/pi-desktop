@@ -212,6 +212,8 @@ export const ErrorCodes = {
   EDIT_DISABLED_IN_PLAN: "EDIT_DISABLED_IN_PLAN",
   PLUGIN_DISABLED_IN_PLAN: "PLUGIN_DISABLED_IN_PLAN",
   TOOL_DISABLED_IN_PLAN: "TOOL_DISABLED_IN_PLAN",
+  /** A language server is not installed, not configured for the file, or did not answer. */
+  LSP_UNAVAILABLE: "LSP_UNAVAILABLE",
   PLAN_NOT_ACTIVE: "PLAN_NOT_ACTIVE",
   /** SubmitPlan in Goal mode, or SubmitGoal in Plan mode (D198). */
   PLAN_KIND_MISMATCH: "PLAN_KIND_MISMATCH",
