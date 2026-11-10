@@ -30,11 +30,14 @@ concurrency:
 jobs:
   trigger:
     name: Trigger CNB mirror pipeline
-    if: github.repository == 'vastsa/PI-Desktop'
+    # Upstream runs this unconditionally. A fork opts in by setting the
+    # repository variable CNB_MIRROR_REPO (for example aixk/Pi-Desktop) next to
+    # its CNB_MIRROR_TOKEN secret; without the variable the job is skipped.
+    if: github.repository == 'vastsa/PI-Desktop' || vars.CNB_MIRROR_REPO != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      CNB_BUILD_URL: https://api.cnb.cool/aixk/Pi-Desktop/-/build/start
+      CNB_BUILD_URL: https://api.cnb.cool/${{ vars.CNB_MIRROR_REPO || 'aixk/Pi-Desktop' }}/-/build/start
     steps:
       - name: Resolve release tag
         id: tag
