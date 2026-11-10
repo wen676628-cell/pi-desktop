@@ -583,6 +583,8 @@ export const en = {
     toolFailed: "Failed",
     toolDenied: "Denied",
     toolCompleted: "Done",
+    diagnosticsLabel: "Diagnostics",
+    diagnosticsMore: "+{{count}} more",
     toolCall: "Tool",
     toolInput: "Input",
     toolOutput: "Output",

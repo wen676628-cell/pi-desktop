@@ -580,6 +580,8 @@ export const ko = {
     toolFailed: "실패",
     toolDenied: "거부됨",
     toolCompleted: "완료",
+    diagnosticsLabel: "진단",
+    diagnosticsMore: "+{{count}}개 더",
     toolCall: "도구",
     toolInput: "입력",
     toolOutput: "출력",

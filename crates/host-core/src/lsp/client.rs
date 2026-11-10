@@ -24,6 +24,7 @@ use tokio::process::{ChildStdin, ChildStdout};
 type ProcessCommand = std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Diagnostic {
     pub line: u32,
     pub character: u32,

@@ -573,6 +573,8 @@ export const zhTW = {
     toolFailed: "失敗",
     toolDenied: "已拒絕",
     toolCompleted: "已完成",
+    diagnosticsLabel: "診斷",
+    diagnosticsMore: "還有 {{count}} 條",
     toolCall: "工具",
     toolInput: "輸入",
     toolOutput: "輸出",

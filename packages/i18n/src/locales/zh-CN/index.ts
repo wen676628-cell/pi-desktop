@@ -573,6 +573,8 @@ export const zhCN = {
     toolFailed: "失败",
     toolDenied: "已拒绝",
     toolCompleted: "已完成",
+    diagnosticsLabel: "诊断",
+    diagnosticsMore: "还有 {{count}} 条",
     toolCall: "工具",
     toolInput: "输入",
     toolOutput: "输出",

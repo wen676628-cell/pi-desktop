@@ -228,6 +228,53 @@ export function registerAppIpc({
     },
   );
 
+  handle(
+    IPC.invoke.lspStatus,
+    async (input: { workspaceRoot?: unknown; path?: unknown } = {}) => {
+      const host = getHost();
+      if (!host) throw new Error("host unavailable");
+      return host.call("lsp.status", {
+        ...(typeof input.workspaceRoot === "string" && input.workspaceRoot.trim()
+          ? { workspaceRoot: input.workspaceRoot }
+          : {}),
+        ...(typeof input.path === "string" && input.path.trim()
+          ? { path: input.path }
+          : {}),
+      });
+    },
+  );
+
+  handle(
+    IPC.invoke.lspDiagnostics,
+    async (input: {
+      workspaceRoot?: unknown;
+      path?: unknown;
+      text?: unknown;
+      timeoutMs?: unknown;
+    } = {}) => {
+      const host = getHost();
+      if (!host) throw new Error("host unavailable");
+      if (typeof input.workspaceRoot !== "string" || !input.workspaceRoot.trim()) {
+        throw Object.assign(new Error("workspaceRoot required"), {
+          errorCode: ErrorCodes.INVALID_ARGUMENT,
+        });
+      }
+      if (typeof input.path !== "string" || !input.path.trim()) {
+        throw Object.assign(new Error("path required"), {
+          errorCode: ErrorCodes.INVALID_ARGUMENT,
+        });
+      }
+      return host.call("lsp.diagnostics", {
+        workspaceRoot: input.workspaceRoot,
+        path: input.path,
+        ...(typeof input.text === "string" ? { text: input.text } : {}),
+        ...(typeof input.timeoutMs === "number"
+          ? { timeoutMs: input.timeoutMs }
+          : {}),
+      });
+    },
+  );
+
   handle(IPC.invoke.updatesGetState, async () => updater.getState());
   handle(IPC.invoke.updatesCheck, async () => updater.check({ manual: true }));
   handle(IPC.invoke.updatesDownload, async () => updater.download());

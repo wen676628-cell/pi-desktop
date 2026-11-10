@@ -157,6 +157,8 @@ export const IPC = {
     agentGetStatus: "pi-desktop/agent/getStatus",
     agentInstructionsGet: "pi-desktop/agent/instructions/get",
     agentInstructionsSave: "pi-desktop/agent/instructions/save",
+    lspStatus: "pi-desktop/lsp/status",
+    lspDiagnostics: "pi-desktop/lsp/diagnostics",
     sessionList: "pi-desktop/session/list",
     sessionCreate: "pi-desktop/session/create",
     sessionFork: "pi-desktop/session/fork",

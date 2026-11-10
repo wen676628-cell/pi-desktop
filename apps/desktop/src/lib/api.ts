@@ -11,6 +11,26 @@ export type DiscoveredConfigEntry = {
   path: string;
   entries?: number;
 };
+/** One language-server finding for a file; positions are zero-based. */
+export type LspDiagnostic = {
+  line: number;
+  character: number;
+  endLine: number;
+  endCharacter: number;
+  /** 1 = error, 2 = warning, 3 = information, 4 = hint. */
+  severity: number;
+  message: string;
+  source?: string;
+};
+export type LspServerStatus = {
+  name: string;
+  command: string;
+  args: string[];
+  extensions: string[];
+  rootMarkers: string[];
+  disabled: boolean;
+  available: boolean;
+};
 import { projectPlanHistory } from "./plan-history";
 import { guardRemoteInvocation } from "./remote-ipc-safety";
 import { isRemoteSession, safeSessionSummary } from "./remote-session-safety";
@@ -1260,6 +1280,22 @@ export const api = {
       IPC.invoke.agentInstructionsGet,
       projectPath === undefined ? {} : { projectPath },
     ),
+  lspStatus: (input: { workspaceRoot?: string; path?: string } = {}) =>
+    invoke<{ servers: LspServerStatus[]; selected: string[] }>(
+      IPC.invoke.lspStatus,
+      input,
+    ),
+  lspDiagnostics: (input: {
+    workspaceRoot: string;
+    path: string;
+    text?: string;
+    timeoutMs?: number;
+  }) =>
+    invoke<{
+      server: string | null;
+      available?: boolean;
+      diagnostics: LspDiagnostic[];
+    }>(IPC.invoke.lspDiagnostics, input),
   saveAgentInstructions: (
     scope: AgentInstructionFile["scope"],
     content: string,
