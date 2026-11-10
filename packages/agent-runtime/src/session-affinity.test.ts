@@ -559,7 +559,9 @@ describe("the pi-ai Responses adapter's proxy-safe session identity", () => {
     ).result();
 
     expect(sent).toHaveLength(1);
-    expect(sent[0].headers.get("session_id")).toBe("session-42");
+    // pi 1.5.1 renamed the Responses adapter's underscore header to a hyphen;
+    // the proxy-safe alias below is the one PI-Desktop adds for custom hosts.
+    expect(sent[0].headers.get("session-id")).toBe("session-42");
     expect(sent[0].headers.get("x-client-request-id")).toBe("session-42");
     expect(sent[0].headers.get("x-session-affinity")).toBe("session-42");
   });
