@@ -32,7 +32,7 @@ Three properties are enforced, in this order, before any byte is written:
 | Sections per call | exactly one (`path` in args) |
 | Named registers | session-scoped, survive across `Edit` calls |
 | Anonymous register | call-local |
-| Block ops | tree-sitter; decline when unresolvable, never approximate |
+| Block ops | syntax-light (brace depth, then indentation); decline when unresolvable, never approximate |
 | Stale tag | recover only when provably unique and safe; otherwise reject |
 | No-op apply | error |
 | Snapshot store | in-memory, per session, bounded, dropped with the session |
@@ -341,35 +341,32 @@ all positions are computed once; no op observes another op's effect.
 
 ### 8.2 Block resolution
 
-`block` edits carry no span at parse time. `resolve_blocks(text, path, line)`
-runs before validation and returns an inclusive `{start, end}` or `None`.
+`block` edits carry no span at parse time. The resolver runs before validation
+and returns an inclusive `{start, end}` or `None`.
 
 Resolution returns `None` — and the op is rejected with an actionable message —
 for any of:
 
-- an extension outside the supported grammar set;
 - a line number outside the file;
-- a line that opens no multi-line construct (a bare statement, a closing
-  delimiter, or the construct's last line);
-- a file that does not parse cleanly.
+- a line that opens no resolvable construct (a bare statement with no `{` and
+  no indented body);
+- an opening brace that never closes within the file.
 
-Supported grammars in the first implementation:
+Resolution is syntax-light and language-agnostic, in this order:
 
-`rust`, `typescript`, `tsx`, `javascript`, `jsx`, `json`, `markdown`, `css`,
-`python`, `toml`, `yaml`, `html`, `bash`.
-
-Additional grammars are additive and require no contract change. An unsupported
-language loses block ops only; every range and gap op still works, and the
-rejection message says so explicitly.
+1. **Brace span.** If the line opens `{`, the span runs to the line where brace
+   depth returns to zero. String literals and comments are skipped, so a brace
+   inside a literal cannot move the end.
+2. **Indentation span.** Otherwise, if the next non-blank line is indented
+   deeper, the span extends while lines stay deeper and ends before the first
+   same-or-shallower line; blank lines inside the block belong to it.
 
 Two resolution rules are contract, not implementation detail:
 
-- **Leading attached nodes are separate.** A decorator, attribute, or doc comment
-  above a declaration is its own node. Anchoring the declaration line orphans
-  them; anchoring the first decorator includes both. Standalone line comments are
-  never swept into a block.
-- **Markdown headings are block openers.** A block op on `##` covers that
-  section through deeper headings up to the next same-or-higher heading.
+- **No guessing.** A shape neither rule resolves is rejected; the tool never
+  widens to a neighbouring line.
+- **Block insertion is sibling-level.** `PUT >N*` inserts after the resolved
+  end, not inside the block.
 
 Every resolution is echoed in the tool result as
 `{anchorLine, start, end, op}` so a wrong-opener anchor is visible rather than

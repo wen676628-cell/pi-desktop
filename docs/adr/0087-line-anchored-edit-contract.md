@@ -1,6 +1,6 @@
 # ADR 0087: Replace textual Edit matching with a line-anchored, tag-verified contract
 
-- Status: Implemented (phases 1–2; block ops, drift recovery, and boundary repair remain phased)
+- Status: Implemented (phases 1–3; drift recovery and boundary repair remain phased)
 - Date: 2026-08-15
 - Deciders: PI-Desktop core
 - Amends: D186, ADR 0069 §2 (`Read` output shape), ADR 0043 §1 (review keying)

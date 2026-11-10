@@ -1,5 +1,6 @@
 //! Apply parsed ops against a tagged snapshot (spec 18 §8–§9, phase 2).
 
+use super::block::resolve_block;
 use super::parse::{
     parse_ops, Locator, ParseError, ParsedOp, ParsedOps, MAX_REGISTER_BYTES, MAX_REGISTER_LINES,
 };
@@ -73,11 +74,12 @@ struct Plan {
 const HEAD_ANCHOR: u32 = 0;
 const EOF_ANCHOR: u32 = u32::MAX;
 
-fn is_block(locator: &Locator) -> bool {
-    matches!(locator, Locator::Block { .. } | Locator::AfterBlock { .. })
-}
-
-fn lower(ops: &ParsedOps, line_count: usize) -> Result<Plan, ToolError> {
+/// Resolve block locators against the live file, then plan concrete positions.
+/// `lines` is the normalized snapshot the edit is applied to; block spans are
+/// resolved before any op is claimed so a later unresolved block still fails
+/// the whole call without touching the plan.
+fn lower(ops: &ParsedOps, lines: &[String]) -> Result<Plan, ToolError> {
+    let line_count = lines.len();
     let mut plan = Plan {
         inserts: BTreeMap::new(),
         deletes: BTreeSet::new(),
@@ -114,9 +116,6 @@ fn lower(ops: &ParsedOps, line_count: usize) -> Result<Plan, ToolError> {
                 body,
                 register,
             } => {
-                if is_block(locator) {
-                    return Err(block_unresolved(locator));
-                }
                 if register.is_some() && !body.is_empty() {
                     return Err(ToolError::new(
                         "EDIT_PARSE_FAILED",
@@ -125,7 +124,23 @@ fn lower(ops: &ParsedOps, line_count: usize) -> Result<Plan, ToolError> {
                 }
                 let text = body.clone();
                 ir_lines = bump_ir(ir_lines, text.len())?;
-                match locator {
+                // ADR 0087 phase 3: resolve `N*` / `>N*` against the live file
+                // before planning positions. An unresolvable block keeps the
+                // explicit failure instead of editing a neighbouring range.
+                let resolved = match locator {
+                    Locator::Block { line } => {
+                        let (start, end) =
+                            resolve_block(lines, *line).ok_or_else(|| block_unresolved(locator))?;
+                        Locator::Range { start, end }
+                    }
+                    Locator::AfterBlock { line } => {
+                        let (_, end) =
+                            resolve_block(lines, *line).ok_or_else(|| block_unresolved(locator))?;
+                        Locator::After { line: end }
+                    }
+                    other => other.clone(),
+                };
+                match &resolved {
                     Locator::Range { start, end } => {
                         claim_range(&mut occupied_deletes, *start, *end, line_count)?;
                         for line in *start..=*end {
@@ -160,10 +175,15 @@ fn lower(ops: &ParsedOps, line_count: usize) -> Result<Plan, ToolError> {
                 }
             }
             ParsedOp::Cut { locator, .. } => {
-                if is_block(locator) {
-                    return Err(block_unresolved(locator));
-                }
-                match locator {
+                let resolved = match locator {
+                    Locator::Block { line } => {
+                        let (start, end) =
+                            resolve_block(lines, *line).ok_or_else(|| block_unresolved(locator))?;
+                        Locator::Range { start, end }
+                    }
+                    other => other.clone(),
+                };
+                match &resolved {
                     Locator::Range { start, end } => {
                         claim_range(&mut occupied_deletes, *start, *end, line_count)?;
                         ir_lines = bump_ir(ir_lines, (*end - *start + 1) as usize)?;
@@ -507,7 +527,7 @@ pub fn apply_edit(
     let trailing_nl = live.text.ends_with('\n');
 
     expand_registers(&mut parsed, &live_lines, session_id, store)?;
-    let plan = lower(&parsed, live_lines.len())?;
+    let plan = lower(&parsed, &live_lines)?;
 
     let mut warnings = Vec::new();
     if live_tag != expected {
@@ -688,6 +708,36 @@ mod tests {
         let bytes = b"a\nb\nc\nd\n";
         let out = edit(bytes, "CUT 2.=3\n").unwrap();
         assert_eq!(out, "a\nd\n");
+    }
+
+    #[test]
+    fn replaces_a_resolved_brace_block() {
+        let bytes = b"fn outer() {\n    one();\n}\nfn next() {}\n";
+        let out = edit(bytes, "PUT 1*:\n+fn replaced() {}\n").unwrap();
+        assert_eq!(out, "fn replaced() {}\nfn next() {}\n");
+    }
+
+    #[test]
+    fn inserts_after_a_resolved_indent_block() {
+        let bytes = b"def run():\n    a()\n    b()\ndef next():\n    pass\n";
+        let out = edit(bytes, "PUT >1*:\n+\n+def added():\n+    pass\n").unwrap();
+        assert_eq!(
+            out,
+            "def run():\n    a()\n    b()\n\ndef added():\n    pass\ndef next():\n    pass\n"
+        );
+    }
+
+    #[test]
+    fn cuts_a_resolved_indent_block() {
+        let bytes = b"class A:\n    def m():\n        pass\n\nclass B:\n    pass\n";
+        let out = edit(bytes, "CUT 1*\n").unwrap();
+        assert_eq!(out, "\nclass B:\n    pass\n");
+    }
+
+    #[test]
+    fn keeps_the_unresolved_block_failure() {
+        let err = edit(b"let x = 1;\n", "PUT 1*:\n+let y = 2;\n").unwrap_err();
+        assert_eq!(err.code, "EDIT_BLOCK_UNRESOLVED");
     }
 
     #[test]
