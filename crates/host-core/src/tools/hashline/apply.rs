@@ -741,6 +741,20 @@ mod tests {
     }
 
     #[test]
+    fn replaces_a_markdown_section() {
+        let bytes = b"# A\nold\n## Sub\nold sub\n# B\nkeep\n";
+        let out = edit(bytes, "PUT 1*:\n+# A\n+new\n").unwrap();
+        assert_eq!(out, "# A\nnew\n# B\nkeep\n");
+    }
+
+    #[test]
+    fn inserts_after_a_markdown_section() {
+        let bytes = b"## A\nbody\n## B\nbody\n";
+        let out = edit(bytes, "PUT >1*:\n+tail\n").unwrap();
+        assert_eq!(out, "## A\nbody\ntail\n## B\nbody\n");
+    }
+
+    #[test]
     fn rejects_stale_tag_unless_head_or_tail() {
         let bytes = b"a\nb\n";
         let err = apply_edit(

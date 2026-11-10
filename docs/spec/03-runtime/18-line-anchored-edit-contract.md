@@ -354,17 +354,22 @@ for any of:
 
 Resolution is syntax-light and language-agnostic, in this order:
 
-1. **Brace span.** If the line opens `{`, the span runs to the line where brace
+1. **Markdown heading span.** A `#` heading (with a space or end of line after
+   the marker) opens a section that runs through deeper headings, up to the
+   next same-or-higher heading.
+2. **Brace span.** If the line opens `{`, the span runs to the line where brace
    depth returns to zero. String literals and comments are skipped, so a brace
    inside a literal cannot move the end.
-2. **Indentation span.** Otherwise, if the next non-blank line is indented
+3. **Indentation span.** Otherwise, if the next non-blank line is indented
    deeper, the span extends while lines stay deeper and ends before the first
    same-or-shallower line; blank lines inside the block belong to it.
 
-Two resolution rules are contract, not implementation detail:
+Three resolution rules are contract, not implementation detail:
 
-- **No guessing.** A shape neither rule resolves is rejected; the tool never
+- **No guessing.** A shape none of the rules resolve is rejected; the tool never
   widens to a neighbouring line.
+- **Headings own their sections.** A block op on a heading replaces or deletes
+  the whole section, not just the heading line.
 - **Block insertion is sibling-level.** `PUT >N*` inserts after the resolved
   end, not inside the block.
 
