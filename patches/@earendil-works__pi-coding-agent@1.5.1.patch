@@ -1,5 +1,5 @@
 diff --git a/dist/core/agent-session.js b/dist/core/agent-session.js
-index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43b72e380b 100644
+index d67feeb..de99581 100644
 --- a/dist/core/agent-session.js
 +++ b/dist/core/agent-session.js
 @@ -79,10 +79,10 @@ function withoutDeletedHeaders(headers) {
@@ -15,7 +15,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
      }
      return tokens;
  }
-@@ -431,7 +431,7 @@ export class AgentSession {
+@@ -473,7 +473,7 @@ export class AgentSession {
      _exceedsCompactionThreshold(model, projection) {
          if (model.contextWindow <= 0)
              return false;
@@ -24,7 +24,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
      }
      async _compactBeforeNextAssistantResponse(context) {
          const projection = this.sessionManager.buildSessionProjection();
-@@ -603,7 +603,7 @@ export class AgentSession {
+@@ -645,7 +645,7 @@ export class AgentSession {
                      entryId = manager.appendContextEdit(draft.targetId, draft.replacement);
                      break;
                  case "compaction": {
@@ -33,7 +33,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
                      entryId = manager.appendCompaction(draft.summary, draft.firstKeptEntryId, tokensBefore, draft.details, true, draft.usage);
                      break;
                  }
-@@ -2258,7 +2258,7 @@ export class AgentSession {
+@@ -2336,7 +2336,7 @@ export class AgentSession {
              }
              const settings = this.settingsManager.getCompactionSettings(model);
              const pathEntries = this.sessionManager.getBranch();
@@ -42,7 +42,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
              if (!preparation) {
                  // Check why we can't compact
                  const lastEntry = pathEntries[pathEntries.length - 1];
-@@ -2315,7 +2315,7 @@ export class AgentSession {
+@@ -2393,7 +2393,7 @@ export class AgentSession {
              this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details, fromExtension, usage);
              const newEntries = this.sessionManager.getEntries();
              this._refreshFinalizedContext();
@@ -51,7 +51,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
              // Get the saved compaction entry for the extension event
              const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary);
              if (this._extensionRunner && savedCompactionEntry) {
-@@ -2498,11 +2498,11 @@ export class AgentSession {
+@@ -2576,11 +2576,11 @@ export class AgentSession {
          const hasContextEdits = projection.entries.some((entry) => entry.sourceEntry.type === "context_edit");
          const directContextTokens = assistantMessage.usage ? calculateContextTokens(assistantMessage.usage) : 0;
          if (hasContextEdits) {
@@ -65,7 +65,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
              // Without provider usage, estimate.tokens is the pure message-size estimate.
              // Only usage-backed estimates need the stale pre-compaction check.
              if (estimate.lastUsageIndex !== null) {
-@@ -2548,7 +2548,7 @@ export class AgentSession {
+@@ -2626,7 +2626,7 @@ export class AgentSession {
                  return false;
              }
              const pathEntries = this.sessionManager.getBranch();
@@ -74,7 +74,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
              if (!preparation) {
                  return false;
              }
-@@ -2604,7 +2604,7 @@ export class AgentSession {
+@@ -2682,7 +2682,7 @@ export class AgentSession {
              this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details, fromExtension, usage);
              const newEntries = this.sessionManager.getEntries();
              this._refreshFinalizedContext();
@@ -83,7 +83,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
              // Get the saved compaction entry for the extension event
              const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary);
              if (this._extensionRunner && savedCompactionEntry) {
-@@ -3542,7 +3542,7 @@ export class AgentSession {
+@@ -3631,7 +3631,7 @@ export class AgentSession {
              if (!hasPostCompactionUsage)
                  return { tokens: null, contextWindow, percent: null };
          }
@@ -93,7 +93,7 @@ index ccbb5a96b093a95499f1caa4a30371c3ebd4102a..d423f0fd3348981f738b4229ad5c9f43
          return {
              tokens: estimate.tokens,
 diff --git a/dist/core/bug-report.js b/dist/core/bug-report.js
-index bc4af31b57f4a8696a68d4f2a529a26669955382..24a4f8e28624523112cac6c73464e93fb650f03a 100644
+index bc4af31..24a4f8e 100644
 --- a/dist/core/bug-report.js
 +++ b/dist/core/bug-report.js
 @@ -232,12 +232,12 @@ Numbered list, as specific as the transcript allows.
@@ -121,7 +121,7 @@ index bc4af31b57f4a8696a68d4f2a529a26669955382..24a4f8e28624523112cac6c73464e93f
      const prompt = [
          messages.length < options.messages.length
 diff --git a/dist/core/compaction/branch-summarization.d.ts b/dist/core/compaction/branch-summarization.d.ts
-index 4203f63b0f3d8d40421e6f6555e2ed2d6a189254..8d8a995ac0d112a28c69de407991b3215a951514 100644
+index 4203f63..8d8a995 100644
 --- a/dist/core/compaction/branch-summarization.d.ts
 +++ b/dist/core/compaction/branch-summarization.d.ts
 @@ -6,7 +6,7 @@
@@ -143,7 +143,7 @@ index 4203f63b0f3d8d40421e6f6555e2ed2d6a189254..8d8a995ac0d112a28c69de407991b321
   * Generate a summary of abandoned branch entries.
   *
 diff --git a/dist/core/compaction/branch-summarization.js b/dist/core/compaction/branch-summarization.js
-index 9952cf5caeebb5d26782b7f0368175ffa41ec31d..22b959b2fbb956fd91eecc38d9c1f8cfff9dabdc 100644
+index 9952cf5..22b959b 100644
 --- a/dist/core/compaction/branch-summarization.js
 +++ b/dist/core/compaction/branch-summarization.js
 @@ -98,7 +98,7 @@ function getMessageFromEntry(entry, edit) {
@@ -174,7 +174,7 @@ index 9952cf5caeebb5d26782b7f0368175ffa41ec31d..22b959b2fbb956fd91eecc38d9c1f8cf
          return { summary: "No content to summarize" };
      }
 diff --git a/dist/core/compaction/compaction.d.ts b/dist/core/compaction/compaction.d.ts
-index 4c2a2703b8573db5ea1975276fef5bdea5a4990a..ba84715c1565bb2145d7ee9b7616080310a76530 100644
+index 4c2a270..ba84715 100644
 --- a/dist/core/compaction/compaction.d.ts
 +++ b/dist/core/compaction/compaction.d.ts
 @@ -6,7 +6,7 @@
@@ -229,7 +229,7 @@ index 4c2a2703b8573db5ea1975276fef5bdea5a4990a..ba84715c1565bb2145d7ee9b76160803
   * Generate summaries for compaction using prepared data.
   * Returns CompactionResult - SessionManager adds uuid/parentUuid when saving.
 diff --git a/dist/core/compaction/compaction.js b/dist/core/compaction/compaction.js
-index 9b1a409d96b39413d8598c79f14fee72f4cd533c..95f9b8fb0f6e64f23e6923a7b87b02a518e7b1f9 100644
+index 9b1a409..95f9b8f 100644
 --- a/dist/core/compaction/compaction.js
 +++ b/dist/core/compaction/compaction.js
 @@ -4,8 +4,10 @@
@@ -424,7 +424,7 @@ index 9b1a409d96b39413d8598c79f14fee72f4cd533c..95f9b8fb0f6e64f23e6923a7b87b02a5
      if (!firstKeptEntry?.id)
          return undefined;
 diff --git a/dist/core/compaction/utils.js b/dist/core/compaction/utils.js
-index ff5292a31ab6a81a34c58c2eba0c49c5197f28fc..7f190eed0fe7df13fefec09ced8ab2fc5233b064 100644
+index 94da190..c265d5e 100644
 --- a/dist/core/compaction/utils.js
 +++ b/dist/core/compaction/utils.js
 @@ -2,6 +2,7 @@
@@ -432,10 +432,10 @@ index ff5292a31ab6a81a34c58c2eba0c49c5197f28fc..7f190eed0fe7df13fefec09ced8ab2fc
   */
  import { contentText } from "@earendil-works/pi-ai";
 +import { hostedSearchReplayProjection } from "@earendil-works/pi-ai/utils/hosted-search";
+ import { sliceHead } from "../tools/truncate.js";
  export function createFileOps() {
      return {
-         read: new Set(),
-@@ -114,6 +115,7 @@ export function serializeConversation(messages) {
+@@ -115,6 +116,7 @@ export function serializeConversation(messages) {
          }
          else if (msg.role === "assistant") {
              const toolCalls = [];
@@ -443,7 +443,7 @@ index ff5292a31ab6a81a34c58c2eba0c49c5197f28fc..7f190eed0fe7df13fefec09ced8ab2fc
              for (const block of msg.content) {
                  if (block.type === "toolCall") {
                      const args = block.arguments;
-@@ -122,6 +124,13 @@ export function serializeConversation(messages) {
+@@ -123,6 +125,13 @@ export function serializeConversation(messages) {
                          .join(", ");
                      toolCalls.push(`${block.name}(${argsStr})`);
                  }
@@ -457,7 +457,7 @@ index ff5292a31ab6a81a34c58c2eba0c49c5197f28fc..7f190eed0fe7df13fefec09ced8ab2fc
              }
              if (msg.content.some((block) => block.type === "text")) {
                  parts.push(`[Assistant]: ${contentText(msg.content)}`);
-@@ -129,6 +138,9 @@ export function serializeConversation(messages) {
+@@ -130,6 +139,9 @@ export function serializeConversation(messages) {
              if (toolCalls.length > 0) {
                  parts.push(`[Assistant tool calls]: ${toolCalls.join("; ")}`);
              }
@@ -468,7 +468,7 @@ index ff5292a31ab6a81a34c58c2eba0c49c5197f28fc..7f190eed0fe7df13fefec09ced8ab2fc
          else if (msg.role === "toolResult") {
              const content = contentText(msg.content, "");
 diff --git a/dist/utils/tool-result-images.js b/dist/utils/tool-result-images.js
-index 37d8a2474d425e6ac8648745c02d1a247244cbd3..b194f69e3d5073a4c5177a0dfb2b67104eec5814 100644
+index 37d8a24..b194f69 100644
 --- a/dist/utils/tool-result-images.js
 +++ b/dist/utils/tool-result-images.js
 @@ -27,10 +27,9 @@ export async function normalizeToolResultImages(content, options) {
