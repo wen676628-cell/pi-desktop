@@ -145,6 +145,7 @@ stdio 与 Tokio 的动态阻塞池隔离，因此后一种情况
 | `EDIT_DISABLED_IN_PLAN` | 不 | 编辑的契约模式硬拒绝 |
 | `PLUGIN_DISABLED_IN_PLAN` | 不 | 每个插件工具的契约模式硬拒绝 |
 | `TOOL_DISABLED_IN_PLAN` | 不 | unknown/unlisted 工具的契约模式硬拒绝 |
+| `LSP_UNAVAILABLE` | 不 | 语言服务缺失、未为该文件配置，或未在限定时间内响应 |
 | `PLAN_NOT_ACTIVE` | 不 | 在没有协商合同的情况下运行了提交工具 |
 | `PLAN_KIND_MISMATCH` | 不 | Goal 模式下的 `SubmitPlan`，或 Plan 模式下的 `SubmitGoal` |
 | `PLAN_APPROVAL_REQUIRED` | 不 | SubmitPlan/SubmitGoal 正在等待单独的批准 |

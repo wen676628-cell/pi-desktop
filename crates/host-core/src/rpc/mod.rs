@@ -4192,6 +4192,82 @@ async fn handle_request(
                 "selected": selected,
             }))
         }
+        "lsp.diagnostics" => {
+            let workspace = params
+                .get("workspaceRoot")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(std::path::PathBuf::from)
+                .ok_or_else(|| rpc_err(-32602, "workspaceRoot is required", "INVALID_ARGUMENT"))?;
+            let file = params
+                .get("path")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(std::path::PathBuf::from)
+                .ok_or_else(|| rpc_err(-32602, "path is required", "INVALID_ARGUMENT"))?;
+            let timeout_ms = params
+                .get("timeoutMs")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(3_000)
+                .clamp(200, 10_000);
+            // The server is started for a file inside the workspace only; the
+            // comparison runs on canonical paths so `..` cannot escape.
+            let root = workspace.canonicalize().map_err(|error| {
+                rpc_err(
+                    -32602,
+                    format!("workspaceRoot: {error}"),
+                    "INVALID_ARGUMENT",
+                )
+            })?;
+            let target = file
+                .canonicalize()
+                .map_err(|error| rpc_err(-32602, format!("path: {error}"), "INVALID_ARGUMENT"))?;
+            if target != root && !target.starts_with(&root) {
+                return Err(rpc_err(
+                    -32602,
+                    "path must stay inside workspaceRoot",
+                    "INVALID_ARGUMENT",
+                ));
+            }
+            let home = crate::config_backend::pi_home();
+            let servers = crate::lsp::load_servers(Some(&home), Some(&root))
+                .map_err(|error| rpc_err(-32602, error.to_string(), "INVALID_ARGUMENT"))?;
+            let selected = crate::lsp::servers_for_file(&servers, &root, &target);
+            let Some(server) = selected.first() else {
+                return Ok(json!({ "server": Value::Null, "diagnostics": [] }));
+            };
+            if !crate::lsp::command_available(&server.command) {
+                return Ok(json!({
+                    "server": server.name,
+                    "available": false,
+                    "diagnostics": [],
+                }));
+            }
+            let text = match params.get("text").and_then(|value| value.as_str()) {
+                Some(text) => text.to_string(),
+                None => std::fs::read_to_string(&target).map_err(|error| {
+                    rpc_err(-32602, format!("path: {error}"), "INVALID_ARGUMENT")
+                })?,
+            };
+            let language_id = crate::lsp::language_id_for_path(&target);
+            let diagnostics = crate::lsp::collect_diagnostics(
+                server,
+                &root,
+                &target,
+                language_id,
+                &text,
+                std::time::Duration::from_millis(timeout_ms),
+            )
+            .await
+            .map_err(|error| rpc_err(-32000, error.to_string(), "LSP_UNAVAILABLE"))?;
+            Ok(json!({
+                "server": server.name,
+                "available": true,
+                "diagnostics": diagnostics,
+            }))
+        }
         "backgroundTasks.list" => {
             let st = state.lock().await;
             Ok(json!({
