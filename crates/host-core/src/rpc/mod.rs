@@ -4151,6 +4151,47 @@ async fn handle_request(
             }
             Ok(json!({ "tools": definitions }))
         }
+        "lsp.status" => {
+            // Read-only configuration surface: the renderer can show which
+            // language servers exist before any of them is spawned.
+            let workspace = params
+                .get("workspaceRoot")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(std::path::PathBuf::from);
+            let target = params
+                .get("path")
+                .and_then(|value| value.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(std::path::PathBuf::from);
+            let home = crate::config_backend::pi_home();
+            let servers = crate::lsp::load_servers(Some(&home), workspace.as_deref())
+                .map_err(|error| rpc_err(-32602, error.to_string(), "INVALID_ARGUMENT"))?;
+            let selected: Vec<String> = match (workspace.as_deref(), target.as_deref()) {
+                (Some(root), Some(file)) => crate::lsp::servers_for_file(&servers, root, file)
+                    .into_iter()
+                    .map(|server| server.name.clone())
+                    .collect(),
+                _ => Vec::new(),
+            };
+            Ok(json!({
+                "servers": servers
+                    .iter()
+                    .map(|server| json!({
+                        "name": server.name,
+                        "command": server.command,
+                        "args": server.args,
+                        "extensions": server.extensions,
+                        "rootMarkers": server.root_markers,
+                        "disabled": server.disabled,
+                        "available": crate::lsp::command_available(&server.command),
+                    }))
+                    .collect::<Vec<_>>(),
+                "selected": selected,
+            }))
+        }
         "backgroundTasks.list" => {
             let st = state.lock().await;
             Ok(json!({

@@ -11,6 +11,7 @@ mod db;
 mod file_batches;
 mod file_resources;
 mod keyboard;
+mod lsp;
 mod mcp_servers;
 mod mode_runs;
 mod network_policy;
