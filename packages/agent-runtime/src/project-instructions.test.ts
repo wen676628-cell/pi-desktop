@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   loadInstructionChain,
   loadProjectInstructions,
+  loadStickyRules,
   type ProjectInstructions,
 } from "./project-instructions.js";
 import { projectInstructionsPrompt } from "./project-instructions-prompt.js";
@@ -208,6 +209,64 @@ describe("loadInstructionChain", () => {
           content: `${"a".repeat(32 * 1024)}\n\n[PI-Desktop truncated ~/.pi/agent/AGENTS.md: loaded the first 32768 of 65536 bytes; the rest of this file is not in context.]`,
         },
         { source: "AGENTS.md", content: "Use project conventions." },
+      ],
+    });
+  });
+});
+
+describe("loadStickyRules", () => {
+  it("loads user and project rules, project last", async () => {
+    root = await mkdtemp(join(tmpdir(), "pi-desktop-rules-"));
+    const globalRules = join(root, "global-RULES.md");
+    await writeFile(globalRules, "Never rewrite published history.");
+    await mkdir(join(root, ".pi"), { recursive: true });
+    await writeFile(join(root, ".pi", "RULES.md"), "Run pnpm check:pi-deps first.");
+
+    await expect(loadStickyRules(root, { globalPath: globalRules })).resolves.toEqual({
+      entries: [
+        { source: "~/.pi/agent/RULES.md", content: "Never rewrite published history." },
+        { source: ".pi/RULES.md", content: "Run pnpm check:pi-deps first." },
+      ],
+    });
+  });
+
+  it("returns undefined when neither rule file exists", async () => {
+    root = await mkdtemp(join(tmpdir(), "pi-desktop-rules-"));
+    await expect(
+      loadStickyRules(root, { globalPath: join(root, "missing-RULES.md") }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("truncates an oversized rule file and says so", async () => {
+    root = await mkdtemp(join(tmpdir(), "pi-desktop-rules-"));
+    const globalRules = join(root, "global-RULES.md");
+    await writeFile(globalRules, "0123456789".repeat(4));
+
+    const rules = await loadStickyRules(undefined, {
+      globalPath: globalRules,
+      maxGlobalBytes: 10,
+    });
+
+    expect(rules?.entries[0]?.content).toBe(
+      "0123456789\n\n[PI-Desktop truncated ~/.pi/agent/RULES.md: loaded the first 10 of 40 bytes; the rest of this file is not in context.]",
+    );
+  });
+
+  it("closes the instruction chain after project entries", async () => {
+    root = await mkdtemp(join(tmpdir(), "pi-desktop-rules-"));
+    const globalRules = join(root, "global-RULES.md");
+    await writeFile(globalRules, "Never touch main.");
+    await writeFile(join(root, "AGENTS.md"), "Use pnpm.");
+    await mkdir(join(root, ".pi"), { recursive: true });
+    await writeFile(join(root, ".pi", "RULES.md"), "Run the API tests.");
+
+    await expect(
+      loadInstructionChain(root, undefined, join(root, "missing-AGENTS.md"), globalRules),
+    ).resolves.toEqual({
+      entries: [
+        { source: "AGENTS.md", content: "Use pnpm." },
+        { source: "~/.pi/agent/RULES.md", content: "Never touch main." },
+        { source: ".pi/RULES.md", content: "Run the API tests." },
       ],
     });
   });

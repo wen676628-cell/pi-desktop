@@ -13,6 +13,11 @@ const INSTRUCTION_FILE_NAMES = [
 // oversized global file can never starve project instructions.
 const MAX_GLOBAL_INSTRUCTION_BYTES = 32 * 1024;
 const MAX_PROJECT_INSTRUCTION_BYTES = 32 * 1024;
+// Sticky rules are policy, not repository prose: they get their own budget so
+// a large AGENTS.md cannot evict them, and vice versa.
+const MAX_GLOBAL_RULE_BYTES = 16 * 1024;
+const MAX_PROJECT_RULE_BYTES = 16 * 1024;
+const STICKY_RULE_FILE_NAME = "RULES.md";
 
 export type ProjectInstruction = {
   source: string;
@@ -25,6 +30,73 @@ export type ProjectInstructions = {
 
 export function globalInstructionPath(): string {
   return join(resolveAgentDir(), "AGENTS.md");
+}
+
+/** User-level sticky rules live next to the global instructions. */
+export function globalRulePath(): string {
+  return join(resolveAgentDir(), STICKY_RULE_FILE_NAME);
+}
+
+/** Project-level sticky rules live in the same `.pi` directory as other state. */
+export function projectRulePath(workspaceRoot: string): string {
+  return join(resolve(workspaceRoot), ".pi", STICKY_RULE_FILE_NAME);
+}
+
+/**
+ * Load the always-apply rule files.
+ *
+ * Sticky rules are rebuilt into the system prompt on every turn, so unlike
+ * `AGENTS.md` entries they survive compaction instead of being summarized away.
+ * User rules come first, project rules last: the narrower scope wins a
+ * conflict, matching the project instruction chain.
+ */
+export async function loadStickyRules(
+  workspaceRoot?: string | null,
+  options: {
+    globalPath?: string;
+    maxGlobalBytes?: number;
+    maxProjectBytes?: number;
+  } = {},
+): Promise<ProjectInstructions | undefined> {
+  const entries: ProjectInstruction[] = [];
+  try {
+    const content = (await readFile(options.globalPath ?? globalRulePath(), "utf8")).trim();
+    if (content) {
+      entries.push(
+        limitInstruction("~/.pi/agent/RULES.md", content, options.maxGlobalBytes ?? MAX_GLOBAL_RULE_BYTES)
+          .entry,
+      );
+    }
+  } catch {
+    // A missing user rule file is the normal first-run state.
+  }
+
+  const root = workspaceRoot?.trim();
+  if (root) {
+    const resolvedRoot = resolve(root);
+    try {
+      const file = projectRulePath(resolvedRoot);
+      const canonicalRoot = await realpath(resolvedRoot);
+      const canonicalFile = await realpath(file);
+      // A rule file is never read through a symlink that leaves the project.
+      if (isWithinRoot(canonicalRoot, canonicalFile)) {
+        const content = (await readFile(file, "utf8")).trim();
+        if (content) {
+          entries.push(
+            limitInstruction(
+              normalizeStablePath(relative(resolvedRoot, file)) || STICKY_RULE_FILE_NAME,
+              content,
+              options.maxProjectBytes ?? MAX_PROJECT_RULE_BYTES,
+            ).entry,
+          );
+        }
+      }
+    } catch {
+      // No project rule file, or an unreadable/broken link: nothing to add.
+    }
+  }
+
+  return entries.length > 0 ? { entries } : undefined;
 }
 
 function normalizeStablePath(path: string): string {
@@ -139,13 +211,16 @@ export async function loadProjectInstructions(
 }
 
 /**
- * Build the complete chain: global defaults precede project instructions.
- * The global file and the project chain are capped independently.
+ * Build the complete chain: global defaults precede project instructions, and
+ * sticky rules close the chain so their always-apply policy survives
+ * compaction and wins conflicts against repository prose.
+ * Each source family is capped independently.
  */
 export async function loadInstructionChain(
   workspaceRoot: string | null | undefined,
   workspacePath?: string,
   globalPath?: string,
+  globalRulesPath?: string,
 ): Promise<ProjectInstructions | undefined> {
   const resolvedGlobalPath = globalPath ?? globalInstructionPath();
   const entries: ProjectInstruction[] = [];
@@ -161,7 +236,13 @@ export async function loadInstructionChain(
     // A missing global file is an expected first-run state.
   }
   const project = await loadProjectInstructions(workspaceRoot, workspacePath);
-  return entries.length || project?.entries.length
-    ? { entries: [...entries, ...(project?.entries ?? [])] }
+  // An overridden global instructions path implies its sibling rule file, so a
+  // caller that points the chain at a test or profile directory stays isolated
+  // from the machine's real PI_HOME.
+  const resolvedGlobalRulesPath =
+    globalRulesPath ?? (globalPath ? join(dirname(globalPath), STICKY_RULE_FILE_NAME) : undefined);
+  const rules = await loadStickyRules(workspaceRoot, { globalPath: resolvedGlobalRulesPath });
+  return entries.length || project?.entries.length || rules?.entries.length
+    ? { entries: [...entries, ...(project?.entries ?? []), ...(rules?.entries ?? [])] }
     : undefined;
 }
