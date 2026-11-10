@@ -52,8 +52,8 @@
     "@transcribe-cpp/win32-x64-cpu-vulkan": "0.2.2"
   },
   "devDependencies": {
-    "@earendil-works/pi-ai": "1.5.0",
-    "@earendil-works/pi-mcp": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.1",
+    "@earendil-works/pi-mcp": "1.5.1",
     "@pi-desktop/agent-host": "workspace:*",
     "@pi-desktop/computer-use": "workspace:*",
     "@pi-desktop/agent-runtime": "workspace:*",
