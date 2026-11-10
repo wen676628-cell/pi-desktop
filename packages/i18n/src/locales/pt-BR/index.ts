@@ -570,6 +570,8 @@ export const ptBR = {
     toolFailed: "Falhou",
     toolDenied: "Negada",
     toolCompleted: "Concluída",
+    diagnosticsLabel: "Diagnósticos",
+    diagnosticsMore: "+{{count}} mais",
     toolCall: "Ferramenta",
     toolInput: "Entrada",
     toolOutput: "Saída",

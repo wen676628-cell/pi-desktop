@@ -55,6 +55,7 @@ import { useAppStore } from "../../../stores/app-store";
 import { Markdown } from "../../../components/Markdown";
 import { ReviewChangeCard } from "../../../components/ReviewChangeCard";
 import { ToolChips, ToolDetailBlocks } from "../../../components/ToolDetails";
+import { toolWriteDiagnostics } from "../../../lib/tool-diagnostics";
 import {
   IconArrowDown,
   IconBot,
@@ -230,6 +231,9 @@ function HostToolRow({
   // own rows all live in the body.
   const hasDetails = hasToolDetails(message) || Boolean(delegate);
   const chips = toolResultChips(message);
+  // Edit/Write results may carry the language server's findings for the file.
+  const writeDiagnostics =
+    variant === "topology" ? undefined : toolWriteDiagnostics(toolResultPayload(message));
   // A lifecycle row (ADR 0089) is about subagents, so it is presented as one:
   // the agent names it reports on replace the bare delegation ids it was
   // called with, and its badge rolls up their statuses (D268).
@@ -588,6 +592,37 @@ function HostToolRow({
         <span className="sr-only" role="status" aria-live="polite">
           {statusLabel}
         </span>
+      ) : null}
+      {writeDiagnostics ? (
+        <div
+          className="tool-row-diagnostics"
+          role="list"
+          aria-label={t("chat.diagnosticsLabel")}
+          title={writeDiagnostics.server}
+        >
+          {writeDiagnostics.diagnostics.slice(0, 6).map((diagnostic) => (
+            <div
+              className={`tool-row-diagnostic severity-${diagnostic.severity}`}
+              role="listitem"
+              key={`${diagnostic.line}:${diagnostic.character}:${diagnostic.message}`}
+            >
+              <span className="tool-row-diagnostic-dot" aria-hidden />
+              <span className="tool-row-diagnostic-location">
+                {diagnostic.line + 1}:{diagnostic.character + 1}
+              </span>
+              <span className="tool-row-diagnostic-message">
+                {diagnostic.message}
+              </span>
+            </div>
+          ))}
+          {writeDiagnostics.diagnostics.length > 6 ? (
+            <div className="tool-row-diagnostic-more">
+              {t("chat.diagnosticsMore", {
+                count: writeDiagnostics.diagnostics.length - 6,
+              })}
+            </div>
+          ) : null}
+        </div>
       ) : null}
       {blocks && blocks.length > 0 ? (
         <div className="tool-row-body" id={detailsId} ref={disclosure.bodyRef} {...disclosure.bodyEvents}>

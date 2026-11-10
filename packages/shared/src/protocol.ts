@@ -157,6 +157,8 @@ export const IPC = {
     agentGetStatus: "pi-desktop/agent/getStatus",
     agentInstructionsGet: "pi-desktop/agent/instructions/get",
     agentInstructionsSave: "pi-desktop/agent/instructions/save",
+    lspStatus: "pi-desktop/lsp/status",
+    lspDiagnostics: "pi-desktop/lsp/diagnostics",
     sessionList: "pi-desktop/session/list",
     sessionCreate: "pi-desktop/session/create",
     sessionFork: "pi-desktop/session/fork",
@@ -259,15 +261,6 @@ export const IPC = {
     plansPending: "pi-desktop/plans/pending",
     pendingInteractive: "pi-desktop/agent/pendingInteractive",
     plansResolve: "pi-desktop/plans/resolve",
-    modesCatalog: "pi-desktop/modes/catalog",
-    modesRead: "pi-desktop/modes/read",
-    modesValidate: "pi-desktop/modes/validate",
-    modesWrite: "pi-desktop/modes/write",
-    modesDelete: "pi-desktop/modes/delete",
-    modesRunGet: "pi-desktop/modes/run/get",
-    modesRunControl: "pi-desktop/modes/run/control",
-    modesRunUpdate: "pi-desktop/modes/run/update",
-    modesRunResolve: "pi-desktop/modes/run/resolve",
     /**
      * List every paired remote `pi-host` this desktop knows, redacted so no
      * device token reaches the renderer. See ADR 0286 (R2b pairing UX).
@@ -548,8 +541,6 @@ export const IPC = {
     notificationActivated: "pi-desktop/notification/event/activated",
     notificationSound: "pi-desktop/notification/event/sound",
     plansChanged: "pi-desktop/plans/event/changed",
-    modesChanged: "pi-desktop/modes/event/changed",
-    modesCatalogChanged: "pi-desktop/modes/event/catalogChanged",
     todosChanged: "pi-desktop/todos/event/changed",
     providersOauth: "pi-desktop/providers/oauth/event",
     mcpOauth: "pi-desktop/mcp/oauth/event",

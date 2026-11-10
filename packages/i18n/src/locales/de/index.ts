@@ -571,6 +571,8 @@ export const de = {
     "toolFailed": "Fehlgeschlagen",
     "toolDenied": "Abgelehnt",
     "toolCompleted": "Fertig",
+    "diagnosticsLabel": "Diagnose",
+    "diagnosticsMore": "+{{count}} weitere",
     "toolCall": "Tool",
     "toolInput": "Eingabe",
     "toolOutput": "Ausgabe",

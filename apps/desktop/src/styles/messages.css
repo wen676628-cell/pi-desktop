@@ -3034,6 +3034,67 @@
   color: var(--ds-accent);
 }
 
+/* Post-write language-server findings. One line per diagnostic so the row
+   stays scannable; the message ellipsizes rather than wrapping the row. */
+.tool-row-diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 18px;
+}
+
+.tool-row-diagnostic {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ds-text-secondary);
+}
+
+.tool-row-diagnostic-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ds-text-muted);
+}
+
+.tool-row-diagnostic.severity-1 .tool-row-diagnostic-dot {
+  background: var(--ds-error);
+}
+
+.tool-row-diagnostic.severity-2 .tool-row-diagnostic-dot {
+  background: var(--ds-warning);
+}
+
+.tool-row-diagnostic.severity-3 .tool-row-diagnostic-dot {
+  background: var(--ds-info);
+}
+
+.tool-row-diagnostic.severity-4 .tool-row-diagnostic-dot {
+  background: var(--ds-text-faint);
+}
+
+.tool-row-diagnostic-location {
+  flex: none;
+  color: var(--ds-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-row-diagnostic-message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-row-diagnostic-more {
+  margin-left: 12px;
+  font-size: var(--text-sm);
+  color: var(--ds-text-muted);
+}
+
 .tool-row-caret {
   display: inline-flex;
   flex: none;

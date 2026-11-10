@@ -580,6 +580,8 @@ export const tr = {
     toolFailed: "Başarısız",
     toolDenied: "Reddedildi",
     toolCompleted: "Bitti",
+    diagnosticsLabel: "Tanılar",
+    diagnosticsMore: "+{{count}} daha",
     toolCall: "Araç",
     toolInput: "Girdi",
     toolOutput: "Çıktı",
