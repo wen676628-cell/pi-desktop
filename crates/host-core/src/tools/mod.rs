@@ -5203,6 +5203,8 @@ while True:
         assert!(edit.ok, "edit failed: {:?}", edit.content);
         assert_eq!(edit.content["server"], "fake");
         assert_eq!(edit.content["diagnostics"][0]["message"], "fake diagnostic");
+        // The pooled server is a real child process; end it with the test.
+        crate::lsp::shutdown_all().await;
     }
 
     #[cfg(unix)]

@@ -106,7 +106,7 @@ pub fn language_id_for_path(path: &Path) -> &'static str {
     }
 }
 
-fn parse_diagnostics(params: &Value) -> Vec<Diagnostic> {
+pub(super) fn parse_diagnostics(params: &Value) -> Vec<Diagnostic> {
     let Some(items) = params.get("diagnostics").and_then(Value::as_array) else {
         return Vec::new();
     };
@@ -136,7 +136,7 @@ fn parse_diagnostics(params: &Value) -> Vec<Diagnostic> {
         .collect()
 }
 
-async fn send(stdin: &mut ChildStdin, message: Value) -> Result<(), LspClientError> {
+pub(super) async fn send(stdin: &mut ChildStdin, message: Value) -> Result<(), LspClientError> {
     let body = serde_json::to_vec(&message)
         .map_err(|error| LspClientError::Protocol(error.to_string()))?;
     stdin
@@ -149,7 +149,7 @@ async fn send(stdin: &mut ChildStdin, message: Value) -> Result<(), LspClientErr
         .map_err(|error| LspClientError::Io(error.to_string()))
 }
 
-async fn read_message(
+pub(super) async fn read_message(
     stdout: &mut ChildStdout,
     reader: &mut FrameReader,
     buffer: &mut [u8],
@@ -249,7 +249,7 @@ async fn session(
     }
 }
 
-fn spawn_server(server: &ServerConfig) -> Result<tokio::process::Child, LspClientError> {
+pub(super) fn spawn_server(server: &ServerConfig) -> Result<tokio::process::Child, LspClientError> {
     let mut command = ProcessCommand::new(&server.command);
     command
         .args(&server.args)
@@ -271,8 +271,10 @@ fn spawn_server(server: &ServerConfig) -> Result<tokio::process::Child, LspClien
 
 /// Ask `server` about `file` and return the diagnostics it publishes.
 ///
-/// The whole exchange is bounded by `timeout`; on timeout the child is killed
-/// and `LspClientError::Timeout` is returned.
+/// Stateless one-shot path, kept for callers that must not share a process with
+/// the pool. The whole exchange is bounded by `timeout`; on timeout the child
+/// is killed and `LspClientError::Timeout` is returned.
+#[allow(dead_code)]
 pub async fn collect_diagnostics(
     server: &ServerConfig,
     workspace: &Path,
