@@ -11,7 +11,7 @@ import {
   assertFeedbackIssueUrl,
   buildBugReportUrl,
 } from "@pi-desktop/shared";
-import { globalInstructionPath } from "@pi-desktop/agent-runtime";
+import { discoverExternalConfig, globalInstructionPath } from "@pi-desktop/agent-runtime";
 import type { HostProcess } from "../host-process";
 import type { AppUpdaterController } from "../updater";
 import type { IpcRegistrar } from "./types";
@@ -196,6 +196,10 @@ export function registerAppIpc({
         ...(projectPath
           ? { project: await instructionFile("project", projectPath) }
           : {}),
+        // Advisory only: a scan failure must never hide the instruction editor.
+        discovered: await discoverExternalConfig({ workspaceRoot: projectPath }).catch(
+          () => [],
+        ),
       };
     },
   );
