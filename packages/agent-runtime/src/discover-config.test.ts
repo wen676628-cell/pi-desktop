@@ -92,12 +92,13 @@ describe("discoverExternalConfig", () => {
 
   it("deduplicates a path shared by several conventions", async () => {
     root = await mkdtemp(join(tmpdir(), "pi-desktop-discovery-"));
-    const home = join(root, "home");
+    const dir = root;
+    const home = join(dir, "home");
     await mkdir(home, { recursive: true });
-    await writeFile(join(root, "AGENTS.md"), "Shared convention.");
+    await writeFile(join(dir, "AGENTS.md"), "Shared convention.");
 
-    const found = await discoverExternalConfig({ workspaceRoot: root, home });
-    const agents = found.filter((entry) => entry.path === join(root, "AGENTS.md"));
+    const found = await discoverExternalConfig({ workspaceRoot: dir, home });
+    const agents = found.filter((entry) => entry.path === join(dir, "AGENTS.md"));
 
     expect(agents).toHaveLength(1);
   });
