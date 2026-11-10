@@ -60,6 +60,23 @@ the first `publishDiagnostics` for the opened URI. The whole exchange is bounded
 by a timeout; the child is killed afterwards either way, so a wedged server can
 delay one call but cannot linger.
 
+## Write-time attachment
+
+A successful `Edit` or `Write` on a project file also returns the diagnostics
+that the server claiming that file publishes:
+
+```json
+{ "path": "src/a.ts", "tag": "A1B2", "server": "typescript",
+  "diagnostics": [{ "line": 3, "character": 2, "endLine": 3, "endCharacter": 7,
+                    "severity": 1, "message": "Cannot find name 'foo'." }] }
+```
+
+The pass is best-effort and bounded to 1.5 s: when no configured server claims
+the file, its binary is missing, or it does not answer in time, the result is
+returned unchanged — no `server` or `diagnostics` key, and the edit never fails
+because of the language server. Scratch, visualization and external roots are
+skipped; only workspace files are part of a language workspace.
+
 ## RPC
 
 `lsp.status` returns the merged server list plus an `available` flag per server;

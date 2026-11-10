@@ -1686,6 +1686,29 @@ fn tool_read(
     Ok(out)
 }
 
+/// Attach post-write language-server diagnostics to a successful tool result.
+///
+/// Only project files are eligible: scratch, visualization and external roots
+/// are not part of a language workspace. The pass is best-effort and bounded —
+/// a missing server, an unavailable binary, or a slow answer leaves the result
+/// exactly as it was.
+fn attach_write_diagnostics(
+    body: &mut Value,
+    workspace: &Path,
+    root_kind: ToolRoot,
+    file: &Path,
+    text: &str,
+) {
+    if root_kind != ToolRoot::Workspace {
+        return;
+    }
+    let Some(found) = crate::lsp::blocking_diagnostics_for_write(workspace, file, text) else {
+        return;
+    };
+    body["server"] = json!(found.server);
+    body["diagnostics"] = json!(found.diagnostics);
+}
+
 fn tool_write(
     workspace: Option<&Path>,
     roots: &ContainedRoots,
@@ -1729,13 +1752,15 @@ fn tool_write(
     let tag = hashline::tag_of_lf_text(&file.text);
     let display = display_tool_path(root_kind, root, &resolved);
     hashline::record_write(hashline, &hashline::canonical_key(&resolved), &file, &tag);
-    Ok(json!({
+    let mut body = json!({
         "path": display,
         "root": root_label(root_kind),
         "bytes": content.len(),
         "tag": tag,
         "header": hashline::section_header(&display, &tag),
-    }))
+    });
+    attach_write_diagnostics(&mut body, root, root_kind, &resolved, &file.text);
+    Ok(body)
 }
 
 /// Lower a legacy `old_string`/`new_string` replacement to one line-anchored op.
@@ -1931,7 +1956,7 @@ fn tool_edit(
             &dest_file,
             &success.tag,
         );
-        return Ok(json!({
+        let mut body = json!({
             "path": dest_display,
             "root": root_label(dest_root),
             "tag": success.tag,
@@ -1939,7 +1964,9 @@ fn tool_edit(
             "movedFrom": display,
             "ops": success.ops_echo,
             "warnings": success.warnings,
-        }));
+        });
+        attach_write_diagnostics(&mut body, root, dest_root, &dest_resolved, &dest_file.text);
+        return Ok(body);
     }
 
     ensure_visualization_fragment(roots, root_kind, &resolved)
@@ -1947,14 +1974,16 @@ fn tool_edit(
     std::fs::write(&resolved, &bytes)
         .map_err(|e| hashline::ToolError::new("TOOL_FAILED", format!("write failed: {e}")))?;
     hashline::record_write(hashline, &canonical, &file, &success.tag);
-    Ok(json!({
+    let mut body = json!({
         "path": display,
         "root": root_label(root_kind),
         "tag": success.tag,
         "header": hashline::section_header(&display, &success.tag),
         "ops": success.ops_echo,
         "warnings": success.warnings,
-    }))
+    });
+    attach_write_diagnostics(&mut body, root, root_kind, &resolved, &file.text);
+    Ok(body)
 }
 
 fn build_glob_set(pattern: &str) -> Result<globset::GlobSet, (String, String)> {
@@ -5037,6 +5066,143 @@ mod tests {
         .await;
         assert!(ok.ok, "live-tag edit failed: {:?}", ok.content);
         assert_eq!(std::fs::read_to_string(&target).unwrap(), "BEFORE\nafter\n");
+    }
+
+    #[tokio::test]
+    async fn edit_and_write_omit_diagnostics_without_a_claimed_server() {
+        let ws = tempfile::tempdir().unwrap();
+        let target = ws.path().join("note.txt");
+        std::fs::write(&target, "before\n").unwrap();
+
+        let read = execute_tool(
+            Some(ws.path()),
+            None,
+            "Read",
+            &serde_json::json!({ "path": "note.txt" }),
+            5_000,
+        )
+        .await;
+        let tag = read.content["tag"].as_str().unwrap();
+        let edit = execute_tool(
+            Some(ws.path()),
+            None,
+            "Edit",
+            &serde_json::json!({
+                "path": "note.txt",
+                "tag": tag,
+                "ops": "PUT 1.=1:\n+after\n"
+            }),
+            5_000,
+        )
+        .await;
+        assert!(edit.ok, "edit failed: {:?}", edit.content);
+        assert!(edit.content.get("diagnostics").is_none());
+        assert!(edit.content.get("server").is_none());
+
+        let write = execute_tool(
+            Some(ws.path()),
+            None,
+            "Write",
+            &serde_json::json!({ "path": "other.txt", "content": "hello\n" }),
+            5_000,
+        )
+        .await;
+        assert!(write.ok, "write failed: {:?}", write.content);
+        assert!(write.content.get("diagnostics").is_none());
+    }
+
+    #[cfg(unix)]
+    const FAKE_LSP_SERVER: &str = r#"import json
+import sys
+
+def read_message():
+    headers = {}
+    line = sys.stdin.buffer.readline()
+    while line and line not in (b"\r\n", b"\n"):
+        name, _, value = line.decode("utf-8").partition(":")
+        headers[name.strip().lower()] = value.strip()
+        line = sys.stdin.buffer.readline()
+    if not line:
+        return None
+    length = int(headers.get("content-length", "0"))
+    return json.loads(sys.stdin.buffer.read(length))
+
+def send(payload):
+    body = json.dumps(payload).encode("utf-8")
+    sys.stdout.buffer.write(b"Content-Length: %d\r\n\r\n" % len(body))
+    sys.stdout.buffer.write(body)
+    sys.stdout.buffer.flush()
+
+while True:
+    message = read_message()
+    if message is None:
+        break
+    method = message.get("method")
+    if method == "initialize":
+        send({"jsonrpc": "2.0", "id": message["id"], "result": {"capabilities": {}}})
+    elif method == "textDocument/didOpen":
+        uri = message["params"]["textDocument"]["uri"]
+        send({"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics",
+              "params": {"uri": uri, "diagnostics": [{
+                  "range": {"start": {"line": 0, "character": 0},
+                            "end": {"line": 0, "character": 1}},
+                  "severity": 1, "message": "fake diagnostic"}]}})
+    elif method == "shutdown":
+        send({"jsonrpc": "2.0", "id": message["id"], "result": None})
+    elif method == "exit":
+        break
+"#;
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn edit_attaches_diagnostics_from_the_claimed_server() {
+        let ws = tempfile::tempdir().unwrap();
+        std::fs::write(ws.path().join("tsconfig.json"), "{}").unwrap();
+        std::fs::write(ws.path().join("a.ts"), "const x = 1;\n").unwrap();
+        let server_path = ws.path().join("fake_lsp.py");
+        std::fs::write(&server_path, FAKE_LSP_SERVER).unwrap();
+        std::fs::create_dir_all(ws.path().join(".pi")).unwrap();
+        std::fs::write(
+            ws.path().join(".pi").join("lsp.json"),
+            serde_json::to_string(&serde_json::json!({
+                "servers": {
+                    "fake": {
+                        "command": "python3",
+                        "args": [server_path.to_string_lossy()],
+                        "extensions": [".ts"],
+                        "rootMarkers": ["tsconfig.json"],
+                    }
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let read = execute_tool(
+            Some(ws.path()),
+            None,
+            "Read",
+            &serde_json::json!({ "path": "a.ts" }),
+            5_000,
+        )
+        .await;
+        let tag = read.content["tag"].as_str().unwrap().to_string();
+        let edit = execute_tool(
+            Some(ws.path()),
+            None,
+            "Edit",
+            &serde_json::json!({
+                "path": "a.ts",
+                "tag": tag,
+                "ops": "PUT 1.=1:\n+const x = 2;\n"
+            }),
+            10_000,
+        )
+        .await;
+
+        assert!(edit.ok, "edit failed: {:?}", edit.content);
+        assert_eq!(edit.content["server"], "fake");
+        assert_eq!(edit.content["diagnostics"][0]["message"], "fake diagnostic");
     }
 
     #[cfg(unix)]
