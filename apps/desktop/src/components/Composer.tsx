@@ -154,6 +154,7 @@ export function Composer({
       : EMPTY_QUEUED_PROMPTS,
   );
 
+  const [plusOpen, setPlusOpen] = useState(false);
   const [permissionOpen, setPermissionOpen] = useState(false);
   const composerTransformInvalidateRef = useRef<() => void>(() => {});
   const composerShellRef = useRef<HTMLDivElement>(null);
@@ -418,6 +419,7 @@ export function Composer({
   useEffect(() => {
     if (!controlsBlocked) return;
     setPermissionOpen(false);
+    setPlusOpen(false);
   }, [controlsBlocked]);
 
   const composerTransformController = useComposerTransforms({
@@ -469,17 +471,15 @@ export function Composer({
     return submit(steering);
   };
 
-  // The toolbar's plus opens the same slash list the user reaches by typing
-  // "/", without discarding an existing draft. Shift-click keeps the former
-  // file-attachment action reachable from the same control.
-  const slashOpenedByPlusRef = useRef(false);
-  const openSlashCommands = () => {
+  // The add menu inserts the selected slash command into the draft instead of
+  // sending it; the user can still add arguments before Enter.
+  const insertCommand = (name: string) => {
     if (inputBlocked) return;
     inputHistory.exitBrowsing();
-    slashOpenedByPlusRef.current = true;
-    const hasText = value.trim().length > 0;
-    const next = hasText ? `${value}${/\s$/.test(value) ? "" : " "}/` : "/";
-    applyEditorDraft(next, fileReferencesRef.current, next.length);
+    const joined = value.trim().length > 0
+      ? `${value}${/\s$/.test(value) ? "" : " "}/${name} `
+      : `/${name} `;
+    applyEditorDraft(joined, fileReferencesRef.current, joined.length);
     requestAnimationFrame(() => ref.current?.focus());
   };
 
@@ -509,16 +509,6 @@ export function Composer({
     handleInput,
     invalidateComposerTransforms,
   });
-
-  // Cancelling the list the plus opened must not leave the synthetic "/" in
-  // the draft; choosing a command writes "/name " and is left alone.
-  useEffect(() => {
-    if (completions.ac.open || !slashOpenedByPlusRef.current) return;
-    slashOpenedByPlusRef.current = false;
-    if (value === "/") {
-      applyEditorDraft("", fileReferencesRef.current, 0);
-    }
-  }, [completions.ac.open, value, applyEditorDraft]);
 
   // Plugin draft and attachment actions reach this composer while it takes input.
   usePluginComposerBridge({ ...draft, inputBlocked, enabled: localToolsAllowed });
@@ -655,7 +645,9 @@ export function Composer({
             stopAllowed={sessionAllows(capabilitySession, "canStop")}
             pasting={pasting}
             pickAndAttach={pickAndAttach}
-            onOpenCommands={openSlashCommands}
+            plusOpen={plusOpen}
+            setPlusOpen={setPlusOpen}
+            onPickCommand={insertCommand}
             configureActiveSession={configureActiveSession}
             showToast={showToast}
             modelMenu={modelMenu}

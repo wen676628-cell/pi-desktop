@@ -136,17 +136,13 @@ test("picker attachments materialize a session before importing paths", () => {
   );
 });
 
-test("the plus button opens slash commands and Shift-click keeps the file picker", () => {
-  const leftStart = composer.indexOf('<div className="composer-left">');
-  const plusIndex = composer.indexOf('tooltip={t("chat.slashMenu")}', leftStart);
-  assert.ok(leftStart >= 0 && plusIndex > leftStart);
+test("the plus menu keeps attachments and lists commands", () => {
+  assert.match(composer, /<ComposerPlusMenu/);
+  assert.match(composer, /onAttach=\{\(\) => void pickAndAttach\(\)\}/);
+  assert.match(composer, /onPickCommand=/);
   assert.doesNotMatch(composer, /<ComposerModePicker/);
-  assert.match(composer, /event\.shiftKey && attachmentsAllowed/);
-  assert.match(composer, /void pickAndAttach\(\);/);
-  assert.match(composer, /onOpenCommands\(\);/);
-  assert.match(composer, /const openSlashCommands = \(\) => \{/);
   assert.match(composer, /const result = await api\.pickFiles\(\);/);
-  assert.doesNotMatch(composer, /plusOpen|plusRef|composer-plus-menu|pickAndAttach\("photos"\)/);
+  assert.doesNotMatch(composer, /pickAndAttach\("photos"\)/);
 });
 
 test("composer ignores repeated picker clicks while selection is in flight", () => {

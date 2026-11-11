@@ -1002,3 +1002,68 @@
   flex: 0 0 auto;
   margin-left: auto;
 }
+
+/* Add menu: attachments plus the slash-command groups (ZCode-style panel). */
+.composer-add {
+  position: relative;
+}
+
+.composer-mode-menu.composer-add-menu {
+  width: min(340px, calc(100vw - 24px));
+}
+
+.composer-add-group {
+  padding: 6px 8px 3px;
+  color: var(--ds-text-faint);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.composer-plus-item.composer-add-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.composer-add-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--ds-text-muted);
+}
+
+.composer-add-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-sm);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+}
+
+.composer-add-detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ds-text-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-add-hints {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-faint);
+  font-size: var(--text-xs);
+}
+
+.composer-add-hints kbd {
+  padding: 0 3px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--radius-3xs);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}

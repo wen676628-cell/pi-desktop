@@ -38,8 +38,10 @@ test("the mode picker is not mounted by the toolbar", async () => {
   assert.doesNotMatch(toolbar, /<ComposerModePicker/);
 });
 
-test("the plus button opens the slash list", () => {
-  assert.match(toolbar, /tooltip=\{t\("chat\.slashMenu"\)\}/);
-  assert.match(toolbar, /onOpenCommands\(\)/);
-  assert.match(toolbar, /event\.shiftKey && attachmentsAllowed/);
+test("the plus menu lists the slash commands", async () => {
+  const menu = await read("../src/features/chat/composer/ComposerPlusMenu.tsx");
+  assert.match(toolbar, /<ComposerPlusMenu/);
+  assert.match(menu, /command\.kind === "builtin"/);
+  assert.match(menu, /onPickCommand\(command\.name\)/);
+  assert.match(menu, /t\("chat\.addFiles"\)/);
 });

@@ -45,7 +45,7 @@ test("remote toolbar preserves send and stop while disabling local controls and 
   });
   const html = render();
   assert.doesNotMatch(html, /LOCAL PLUGIN/);
-  assert.match(html, /aria-label="chat.slashMenu"[^>]*disabled/);
+  assert.match(html, /aria-label="Add files"[^>]*disabled/);
   assert.match(html, /aria-label="chat.send"/);
   const stop = await composerToolbar(t, ssr, {
     localToolsAllowed: false, controlsBlocked: true, runActive: true, hasDraftContent: false,

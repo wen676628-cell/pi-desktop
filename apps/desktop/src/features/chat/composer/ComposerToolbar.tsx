@@ -11,12 +11,12 @@ import {
 import { type AppState, useAppStore } from "../../../stores/app-store";
 import { modeErrorMessage } from "../../modes/mode-run-model";
 import { ComposerPermissionPicker } from "./ComposerPermissionPicker";
+import { ComposerPlusMenu } from "./ComposerPlusMenu";
 import { ContextUsageInspector } from "../../../components/ContextUsageInspector";
 import { ComposerControlSlots } from "./ComposerControlSlots";
 import { TooltipButton } from "../../../components/ui";
 import {
   IconArrowUp,
-  IconPlus,
   IconSparkles,
   IconStop,
   IconUndo2,
@@ -45,8 +45,10 @@ export type ComposerToolbarProps = {
   stopAllowed?: boolean;
   pasting: boolean;
   pickAndAttach: () => Promise<void>;
-  /** Opens the draft's slash-command menu; Shift-click still attaches files. */
-  onOpenCommands: () => void;
+  plusOpen: boolean;
+  setPlusOpen: Dispatch<SetStateAction<boolean>>;
+  /** Inserts `/name ` into the draft from the add menu. */
+  onPickCommand: (name: string) => void;
   configureActiveSession: AppState["configureActiveSession"];
   showToast: AppState["showToast"];
   modelMenu: ModelMenuController;
@@ -88,7 +90,9 @@ export function ComposerToolbar({
   stopAllowed = true,
   pasting,
   pickAndAttach,
-  onOpenCommands,
+  plusOpen,
+  setPlusOpen,
+  onPickCommand,
   configureActiveSession,
   showToast,
   modelMenu,
@@ -117,23 +121,19 @@ export function ComposerToolbar({
     <div className="composer-toolbar">
       <div className="composer-left">
         <div className="composer-plus">
-          <TooltipButton
-            type="button"
-            className="icon-btn icon-btn-square"
-            tooltip={t("chat.slashMenu")}
-            ariaLabel={t("chat.slashMenu")}
-            disabled={controlsBlocked || pasting}
-            onClick={(event) => {
+          <ComposerPlusMenu
+            open={plusOpen}
+            setOpen={setPlusOpen}
+            controlsBlocked={controlsBlocked}
+            pasting={pasting}
+            attachmentsAllowed={attachmentsAllowed}
+            onCloseOtherMenus={() => {
               setPermissionOpen(false);
-              if (event.shiftKey && attachmentsAllowed) {
-                void pickAndAttach();
-                return;
-              }
-              onOpenCommands();
+              modelMenu.setOpen(false);
             }}
-          >
-            <IconPlus size={15} aria-hidden="true" />
-          </TooltipButton>
+            onAttach={() => void pickAndAttach()}
+            onPickCommand={onPickCommand}
+          />
         </div>
         {localToolsAllowed ? <LiveVoiceControls t={t} workSessionId={workSessionId} /> : null}
         {localToolsAllowed ? (
@@ -145,6 +145,7 @@ export function ComposerToolbar({
           controlsBlocked={controlsBlocked}
           onCloseOtherMenus={() => {
             modelMenu.setOpen(false);
+            setPlusOpen(false);
           }}
           onSelect={async (candidate) => {
                 try {

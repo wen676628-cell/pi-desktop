@@ -64,6 +64,7 @@ import {
   PanelLeft,
   PanelRight,
   PanelRightOpen,
+  Paperclip,
   Maximize2,
   Minimize2,
   PawPrint,
@@ -171,6 +172,7 @@ export const IconGlobe = icon(Globe2);
 export const IconBranch = icon(GitFork);
 export const IconTerminal = icon(Terminal);
 export const IconPencil = icon(PencilLine);
+export const IconPaperclip = icon(Paperclip);
 export const IconWrench = icon(Wrench);
 export const IconPullRequest = icon(GitPullRequestArrow);
 export const IconClock = icon(Clock);
