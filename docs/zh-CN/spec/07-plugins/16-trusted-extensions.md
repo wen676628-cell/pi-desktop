@@ -182,8 +182,11 @@ main、渲染层或插件宿主进程中。
   其他 Node 构建则从导入文件所在位置解析它们，而打包安装目录（`resources/agent-runtime/`）
   无法满足这种解析方式。在进程内打包 pi 会话或扩展加载器的入口也必须设置同一编译常量。
 - 导入别名：`pi-ai`、`pi-agent-core` 和 `typebox` 解析到 sidecar 自带的副本；
-  `@earendil-works/pi-coding-agent` 解析到一个运行时 shim，导出 `defineTool` 和
-  工具结果类型守卫。`@earendil-works/pi-tui` 解析到一个桩
+  `pi-ai` 的 provider 注册表子路径（`@earendil-works/pi-ai/providers/all`，以及旧的
+  `@mariozechner` 拼写）映射到同一个模块对象，因为 provider 扩展在加载时会导入它。
+  `@earendil-works/pi-coding-agent` 解析到一个运行时 shim，导出 `defineTool`、
+  工具结果类型守卫、`getAgentDir`、`formatSize`、`DEFAULT_MAX_LINES` 与
+  `DEFAULT_MAX_BYTES`。`@earendil-works/pi-tui` 解析到一个桩
   模块，它把每个符号导出为无实际作用的占位值，使顶层 import 永不失败。调用被桩替代的
   符号时在调用点产生一条诊断。
 - 可信扩展的 coding-agent shim 仅公开文档列出的受支持助手。导入或访问其他根导出会

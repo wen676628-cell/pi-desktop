@@ -13,6 +13,8 @@ import * as typeboxCompile from "typebox/compile";
 import * as typeboxValue from "typebox/value";
 import * as piAgentCore from "@earendil-works/pi-agent-core";
 import * as piAi from "@earendil-works/pi-ai";
+import * as piAiProvidersAll from "@earendil-works/pi-ai/providers/all";
+import { resolveAgentDir } from "../agent-dir.js";
 import { TRUSTED_EXTENSION_KERNEL_VERSION } from "@pi-desktop/shared";
 
 export type ExtensionFactory = (api: unknown) => unknown;
@@ -80,6 +82,23 @@ export function createCodingAgentShim(onMissingApi?: MissingCodingAgentApiReport
     isPowerShellToolResult: () => false,
     isToolCallEventType: (type: unknown) =>
       type === "tool_call" || type === "tool_result",
+    /**
+     * The directory the CLI and Desktop share. Extensions that persist their own
+     * state beside the agent directory (pi-voice writes its settings there) call
+     * this at factory time, so it resolves through the same env-based resolver.
+     */
+    getAgentDir: () => resolveAgentDir(),
+    // Tool-output accounting constants and the display helper extensions use
+    // when they report trimmed output (pi-voice's transcription tool). Values
+    // match pi-coding-agent's own truncate defaults.
+    DEFAULT_MAX_LINES: 2000,
+    DEFAULT_MAX_BYTES: 50 * 1024,
+    formatSize: (bytes: number): string =>
+      bytes < 1024
+        ? `${bytes}B`
+        : bytes < 1024 * 1024
+          ? `${(bytes / 1024).toFixed(1)}KB`
+          : `${(bytes / (1024 * 1024)).toFixed(1)}MB`,
     VERSION: TRUSTED_EXTENSION_KERNEL_VERSION,
   };
   const reportMissing = (target: typeof supported, prop: PropertyKey) => {
@@ -179,11 +198,15 @@ export function createVirtualModules(
     "@earendil-works/pi-agent-core": piAgentCore,
     "@earendil-works/pi-ai": piAi,
     "@earendil-works/pi-ai/compat": piAi,
+    // The provider registry is a subpath export, not a re-export of the root:
+    // pi-claude-code registers its provider through it at import time.
+    "@earendil-works/pi-ai/providers/all": piAiProvidersAll,
     "@earendil-works/pi-coding-agent": codingAgent,
     "@earendil-works/pi-tui": tui,
     "@mariozechner/pi-agent-core": piAgentCore,
     "@mariozechner/pi-ai": piAi,
     "@mariozechner/pi-ai/compat": piAi,
+    "@mariozechner/pi-ai/providers/all": piAiProvidersAll,
     "@mariozechner/pi-coding-agent": codingAgent,
     "@mariozechner/pi-tui": tui,
   };
