@@ -43,6 +43,9 @@
 
 .main-pane {
   background: var(--ds-front-main);
+  /* Topbar is absolutely positioned; reserve its height for the whole pane so
+     the home hero is never drawn under it. */
+  padding-top: var(--ds-toolbar-height);
 }
 
 .conversation-topbar {
@@ -135,6 +138,9 @@
   padding-inline: 32px;
   padding-bottom: 28px;
   flex-shrink: 0;
+  /* Constrain the inner composer stack to the same 760px band as the hero, so
+     its padding can never push the visual edge past the viewport. */
+  --chat-composer-max-width: 760px;
 }
 
 .home-main-content .composer-shell {
