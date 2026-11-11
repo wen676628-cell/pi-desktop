@@ -239,8 +239,12 @@ never in Electron main, the renderer, or a plugin host process.
   bundles pi's session or extension loader in process needs the same
   define.
 - Import aliases: `pi-ai`, `pi-agent-core`, and `typebox` resolve to the
-  sidecar's copies; `@earendil-works/pi-coding-agent` resolves to a runtime
-  shim that exports `defineTool` and the tool-result type guards. `@earendil-works/pi-tui`
+  sidecar's copies; the `pi-ai` provider-registry subpath
+  (`@earendil-works/pi-ai/providers/all`, plus the legacy `@mariozechner`
+  spelling) maps to the same module object, because provider extensions import
+  it at load time. `@earendil-works/pi-coding-agent` resolves to a runtime
+  shim that exports `defineTool`, the tool-result type guards, `getAgentDir`,
+  `formatSize`, `DEFAULT_MAX_LINES`, and `DEFAULT_MAX_BYTES`. `@earendil-works/pi-tui`
   resolves to a stub module that exports every symbol as an inert
   value so a top-level import never fails. Using a stubbed symbol raises a
   diagnostic at call time.

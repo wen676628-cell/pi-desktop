@@ -15,6 +15,7 @@ import {
   createVirtualModules,
   setMissingCodingAgentApiReporter,
 } from "./loader.js";
+import { resolveAgentDir } from "../agent-dir.js";
 import { TRUSTED_EXTENSION_KERNEL_VERSION } from "@pi-desktop/shared";
 
 let root: string;
@@ -138,6 +139,31 @@ export default function (pi) { pi.setSessionName(String(newSessionApi)); }
         member: "newSessionApi",
       }),
     );
+    await runner.dispose();
+  });
+
+  it("loads the imports real ecosystem extensions use", async () => {
+    // pi-claude-code imports the provider registry through the pi-ai subpath and
+    // pi-voice calls the agent-dir/size helpers at factory time.
+    const ext = spec(
+      "ecosystem-imports",
+      `import { formatSize, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
+export default function (pi) {
+  const providers = getBuiltinProviders();
+  pi.setSessionName(
+    [formatSize(2048), Array.isArray(providers) ? "providers" : "missing", getAgentDir()].join("|"),
+  );
+}
+`,
+    );
+    const { bridge, log } = fakeBridge();
+    const runner = new TrustedExtensionRunner({ specs: [ext], bridge });
+    const [report] = await runner.load();
+    expect(report.state).toBe("loaded");
+    const name = String(log.sessionName);
+    expect(name.startsWith("2.0KB|providers|")).toBe(true);
+    expect(name).toContain(resolveAgentDir());
     await runner.dispose();
   });
 
