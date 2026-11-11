@@ -2472,6 +2472,10 @@ async fn handle_request(
 
         "settings.get" => {
             let st = state.lock().await;
+            // A CLI edit to the shared settings becomes visible on the next
+            // read; Desktop-only keys are untouched.
+            let _ =
+                config_backend::import_settings(&st.db, &st.secrets, &config_backend::pi_home());
             let stored = st
                 .db
                 .get_setting("app")
@@ -2523,6 +2527,8 @@ async fn handle_request(
             st.db
                 .set_setting("app", &settings)
                 .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
+            // Mirror the few settings the CLI also owns into settings.json.
+            let _ = config_backend::export_settings(&st.db, &config_backend::pi_home());
             // Keep the marketplace channel in memory aligned with settings.
             // Legacy source values are ignored, so this remains the official
             // channel; the renderer owns remote refresh timing.
