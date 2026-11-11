@@ -70,14 +70,48 @@
   background: transparent;
 }
 
+.home-main-content {
+  position: relative;
+}
+
+.home-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  user-select: none;
+  font-size: var(--ds-home-watermark-size);
+  line-height: var(--leading-none);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--tracking-tight);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--ds-front-accent);
+  opacity: 0.065;
+  transform: translateY(-3%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 52%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 52%);
+}
+
+:root[data-theme="light"] .home-watermark {
+  opacity: 0.05;
+}
+
+.home-scroll,
+.home-composer-wrap {
+  position: relative;
+  z-index: 1;
+}
+
 .home-scroll {
   justify-content: center;
 }
 
 .home-stack-inner {
   width: min(100%, 760px);
-  gap: 28px;
-  padding: 56px 32px 36px;
+  gap: 30px;
+  padding: 44px 32px 30px;
   margin-inline: auto;
   flex-shrink: 0;
 }
@@ -148,7 +182,12 @@
 }
 
 .home-main-content .composer-input-wrap {
-  min-height: 64px;
+  min-height: 84px;
+  padding: 16px 18px 0;
+}
+
+.home-main-content .composer-bar {
+  padding: 8px 10px 10px;
 }
 
 .home-main-content .onboarding-checklist {

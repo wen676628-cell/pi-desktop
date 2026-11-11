@@ -167,6 +167,9 @@ export const ChatSurface = memo(function ChatSurface({
             heroProject ? "project" : isTemporarySession ? "temporary" : "empty"
           }
         >
+          <div className="home-watermark" aria-hidden="true">
+            P
+          </div>
           <div className="home-scroll">
             <div className="home-stack-inner">
               <div className="empty-hero">

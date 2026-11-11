@@ -136,14 +136,15 @@ test("picker attachments materialize a session before importing paths", () => {
   );
 });
 
-test("composer opens one unified file picker directly from the plus button", () => {
+test("the plus button opens slash commands and Shift-click keeps the file picker", () => {
   const leftStart = composer.indexOf('<div className="composer-left">');
-  const plusIndex = composer.indexOf('tooltip={t("chat.addFiles")}', leftStart);
-  const modeIndex = composer.indexOf("<ComposerModePicker", leftStart);
-  assert.ok(leftStart >= 0 && plusIndex > leftStart && modeIndex > leftStart);
-  assert.ok(plusIndex < modeIndex, "upload must precede the agent mode chip");
+  const plusIndex = composer.indexOf('tooltip={t("chat.slashMenu")}', leftStart);
+  assert.ok(leftStart >= 0 && plusIndex > leftStart);
+  assert.doesNotMatch(composer, /<ComposerModePicker/);
+  assert.match(composer, /event\.shiftKey && attachmentsAllowed/);
   assert.match(composer, /void pickAndAttach\(\);/);
-  assert.match(composer, /const pickAndAttach = async \(\) =>/);
+  assert.match(composer, /onOpenCommands\(\);/);
+  assert.match(composer, /const openSlashCommands = \(\) => \{/);
   assert.match(composer, /const result = await api\.pickFiles\(\);/);
   assert.doesNotMatch(composer, /plusOpen|plusRef|composer-plus-menu|pickAndAttach\("photos"\)/);
 });

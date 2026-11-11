@@ -17,11 +17,7 @@ import { parseProbe, probed, propsProbe, slotMounts, slotSsr } from "./helpers/s
 // Live Voice's idle entry is conditional on the feature setting and therefore
 // is not a permanent host slot in this disabled-by-default fixture.
 // Every label-driven trigger states its control and its current value.
-const HOST_LEFT = [
-  "chat.addFiles",
-  "settings.mode: settings.modeAgent",
-  "chat.permissionMode",
-];
+const HOST_LEFT = ["chat.slashMenu", "chat.permissionMode"];
 const HOST_RIGHT = ["context", "chat.model: Model. chat.reasoningLevel: Off", "chat.send"];
 
 async function composer(t, toolbarProps = {}) {

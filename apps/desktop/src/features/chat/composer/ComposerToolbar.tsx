@@ -9,7 +9,6 @@ import {
   type PluginComposerTransformMeta,
 } from "@pi-desktop/shared";
 import { type AppState, useAppStore } from "../../../stores/app-store";
-import { ComposerModePicker } from "./ComposerModePicker";
 import { modeErrorMessage } from "../../modes/mode-run-model";
 import { ComposerPermissionPicker } from "./ComposerPermissionPicker";
 import { ContextUsageInspector } from "../../../components/ContextUsageInspector";
@@ -38,8 +37,6 @@ export type ComposerToolbarProps = {
   modelId?: string;
   thinkingLevel: SessionThinkingLevel;
   composerPermissionMode: Exclude<PermissionMode, "inherit">;
-  modeOpen: boolean;
-  setModeOpen: Dispatch<SetStateAction<boolean>>;
   permissionOpen: boolean;
   setPermissionOpen: Dispatch<SetStateAction<boolean>>;
   controlsBlocked: boolean;
@@ -48,6 +45,8 @@ export type ComposerToolbarProps = {
   stopAllowed?: boolean;
   pasting: boolean;
   pickAndAttach: () => Promise<void>;
+  /** Opens the draft's slash-command menu; Shift-click still attaches files. */
+  onOpenCommands: () => void;
   configureActiveSession: AppState["configureActiveSession"];
   showToast: AppState["showToast"];
   modelMenu: ModelMenuController;
@@ -81,8 +80,6 @@ export function ComposerToolbar({
   modelId,
   thinkingLevel,
   composerPermissionMode,
-  modeOpen,
-  setModeOpen,
   permissionOpen,
   setPermissionOpen,
   controlsBlocked,
@@ -91,6 +88,7 @@ export function ComposerToolbar({
   stopAllowed = true,
   pasting,
   pickAndAttach,
+  onOpenCommands,
   configureActiveSession,
   showToast,
   modelMenu,
@@ -122,12 +120,16 @@ export function ComposerToolbar({
           <TooltipButton
             type="button"
             className="icon-btn icon-btn-square"
-            tooltip={t("chat.addFiles")}
-            ariaLabel={t("chat.addFiles")}
-            disabled={controlsBlocked || pasting || !attachmentsAllowed}
-            onClick={() => {
+            tooltip={t("chat.slashMenu")}
+            ariaLabel={t("chat.slashMenu")}
+            disabled={controlsBlocked || pasting}
+            onClick={(event) => {
               setPermissionOpen(false);
-              void pickAndAttach();
+              if (event.shiftKey && attachmentsAllowed) {
+                void pickAndAttach();
+                return;
+              }
+              onOpenCommands();
             }}
           >
             <IconPlus size={15} aria-hidden="true" />
@@ -137,40 +139,12 @@ export function ComposerToolbar({
         {localToolsAllowed ? (
           <ComputerUseIndicator sessionId={workSessionId ?? null} abort={abort} />
         ) : null}
-        <ComposerModePicker
-          t={t}
-          mode={mode}
-          planningLive={planningLive}
-          open={modeOpen}
-          setOpen={setModeOpen}
-          controlsBlocked={controlsBlocked}
-          onCloseOtherMenus={() => {
-            modelMenu.setOpen(false);
-            setPermissionOpen(false);
-          }}
-          onSelect={async (next) => {
-            try {
-              await configureActiveSession({
-                mode: next,
-                providerId,
-                modelId,
-                thinkingLevel,
-              });
-            } catch (error) {
-              // MODE_RUN_ACTIVE / MODE_NOT_FOUND are named, not shown raw.
-              showToast(modeErrorMessage(t, error), {
-                variant: "error",
-              });
-            }
-          }}
-        />
         <ComposerPermissionPicker t={t} mode={mode}
           composerPermissionMode={composerPermissionMode}
           permissionOpen={permissionOpen} setPermissionOpen={setPermissionOpen}
           controlsBlocked={controlsBlocked}
           onCloseOtherMenus={() => {
             modelMenu.setOpen(false);
-            setModeOpen(false);
           }}
           onSelect={async (candidate) => {
                 try {
