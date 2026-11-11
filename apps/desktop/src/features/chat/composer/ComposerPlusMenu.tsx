@@ -11,6 +11,7 @@ import { TooltipButton } from "../../../components/ui";
 import {
   IconBookOpen,
   IconPaperclip,
+  IconPlus,
   IconPlug,
   IconSlash,
   IconSparkles,
@@ -139,7 +140,7 @@ export function ComposerPlusMenu({
             setOpen(!open);
           }}
         >
-          <IconPaperclip size={15} aria-hidden />
+          <IconPlus size={15} aria-hidden />
         </TooltipButton>
       )}
     >
