@@ -92,7 +92,7 @@ export function LiveVoiceSettings({
     const bindings = current
       ? live.bindings.map((binding) => binding.id === current.id ? nextBinding : binding)
       : [...live.bindings, nextBinding];
-    return save({ ...live, bindings, selectedBindingId: patch.providerId ? id : live.selectedBindingId ?? id });
+    return save({ ...live, bindings, selectedBindingId: live.selectedBindingId ?? id });
   };
 
   const removeBinding = (adapter: Adapter) => {
@@ -146,7 +146,13 @@ export function LiveVoiceSettings({
               checked={live.selectedBindingId === current.id}
               label={t("liveVoice.useForNextCall")}
               disabled={saving || locked}
-              onChange={() => void save({ ...live, selectedBindingId: current.id })}
+              onChange={() =>
+                void save({
+                  ...live,
+                  selectedBindingId:
+                    live.selectedBindingId === current.id ? undefined : current.id,
+                })
+              }
             />
           </SettingsRow>
         ) : null}

@@ -477,7 +477,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     ...settings,
     sidebarRunningIndicators: settings.sidebarRunningIndicators !== false,
     sidebarRunningBadge: settings.sidebarRunningBadge !== false,
-    sidebarRunningRail: settings.sidebarRunningRail === true,
+    sidebarRunningRail: settings.sidebarRunningRail !== false,
     keepCommandsExpanded: settings.keepCommandsExpanded !== false,
     scheduledTasksEnabled: settings.scheduledTasksEnabled !== false,
     transcriptDisplayMode: isTranscriptDisplayModeValue(settings.transcriptDisplayMode)
