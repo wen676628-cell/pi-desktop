@@ -9,6 +9,7 @@ import { modesApi } from "./modes-api";
 import { setModeCatalog, useModesStore } from "./modes-store";
 import { refreshModeCatalog } from "./modes-sync";
 import { modeErrorMessage } from "./mode-run-model";
+import { setSettingsLeaveGuard } from "../settings/settings-leave-guard";
 import {
   duplicateModeSource,
   labelFromModeId,
@@ -52,6 +53,13 @@ export function ModesSettingsPage() {
   const { armed, setArmed } = useArmedDelete();
   const editable = !!open && !open.builtin;
   const dirty = !!open && (!open.saved || draft !== open.savedSource);
+  useEffect(() => {
+    if (!dirty) return;
+    setSettingsLeaveGuard(() =>
+      window.confirm(t("modes.settings.discardConfirm")),
+    );
+    return () => setSettingsLeaveGuard(null);
+  }, [dirty, t]);
   const { validation, pending, record } = useModeSourceValidation(open?.id ?? null, draft, editable);
 
   useEffect(() => {

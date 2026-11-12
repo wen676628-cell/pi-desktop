@@ -14,6 +14,7 @@ import {
   visibleSettingsNav,
   type SettingsNavGroupId,
 } from "../../lib/settings-search";
+import { confirmSettingsLeave } from "./settings-leave-guard";
 import { pluginViewIcon } from "../../lib/plugin-view-icons";
 import {
   IconArchive,
@@ -338,6 +339,7 @@ export function SettingsPage() {
                     key={item.id}
                     className={cx("settings-nav-item", tab === item.id && "active")}
                     onClick={() => {
+                      if (!confirmSettingsLeave()) return;
                       setActiveExtension(null);
                       setSettingsTab(item.id);
                     }}
@@ -366,7 +368,10 @@ export function SettingsPage() {
                   <button
                     key={entry.ref}
                     className={cx("settings-nav-item", activeExtension?.ref === entry.ref && "active")}
-                    onClick={() => setActiveExtension(entry)}
+                    onClick={() => {
+                      if (!confirmSettingsLeave()) return;
+                      setActiveExtension(entry);
+                    }}
                   >
                     <span className="settings-nav-icon"><ExtensionIcon size={14} /></span>
                     <span className="settings-nav-label">{entry.label}</span>
@@ -385,7 +390,10 @@ export function SettingsPage() {
             type="button"
             className="settings-back no-drag"
             data-nav="back-to-app"
-            onClick={() => setPage("chat")}
+            onClick={() => {
+              if (!confirmSettingsLeave()) return;
+              setPage("chat");
+            }}
           >
             <IconChevronLeft size={15} />
             <span>{t("settings.backToApp")}</span>

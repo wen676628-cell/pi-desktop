@@ -81,7 +81,8 @@ type McpEditorState = {
 type McpCollection = {
   global: McpServerRecord[];
   project: McpServerRecord[];
-  statuses: McpServerStatus[];
+  globalStatuses: McpServerStatus[];
+  projectStatuses: McpServerStatus[];
   /** Stored per-project overrides on global rows, from the accepted fetch. */
   globalOverrides: Record<string, CapabilityOverride>;
 };
@@ -89,7 +90,8 @@ type McpCollection = {
 const EMPTY_MCP_COLLECTION: McpCollection = {
   global: [],
   project: [],
-  statuses: [],
+  globalStatuses: [],
+  projectStatuses: [],
   globalOverrides: {},
 };
 
@@ -124,7 +126,8 @@ export function AgentMcpPage() {
     return {
       global: global.servers ?? [],
       project: project.servers ?? [],
-      statuses: [...(global.statuses ?? []), ...(project.statuses ?? [])],
+      globalStatuses: global.statuses ?? [],
+      projectStatuses: project.statuses ?? [],
       globalOverrides: selectedProjectPath
         ? Object.fromEntries(
             deriveProjectOverrides(global.servers ?? [], globalEffective.servers ?? []),
@@ -133,7 +136,7 @@ export function AgentMcpPage() {
     };
   }, [selectedProjectPath]);
   const {
-    data: { global: globalServers, project: projectServers, statuses, globalOverrides },
+    data: { global: globalServers, project: projectServers, globalStatuses, projectStatuses, globalOverrides },
     setData: setServers,
     loading,
     refreshing,
@@ -142,8 +145,16 @@ export function AgentMcpPage() {
   } = useHostCollection(fetchServers, EMPTY_MCP_COLLECTION, (error) =>
     showToast(error instanceof Error ? error.message : String(error), { variant: "error" }),
   );
-  const setStatuses = (update: (current: McpServerStatus[]) => McpServerStatus[]) =>
-    setServers((current) => ({ ...current, statuses: update(current.statuses) }));
+  const setStatuses = (
+    update: (current: McpServerStatus[]) => McpServerStatus[],
+    level: AgentCapabilityLevel,
+  ) =>
+    setServers((current) => ({
+      ...current,
+      ...(level === "global"
+        ? { globalStatuses: update(current.globalStatuses) }
+        : { projectStatuses: update(current.projectStatuses) }),
+    }));
   const [filter, setFilter] = useState<CapabilityFilter>("all");
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -290,7 +301,7 @@ export function AgentMcpPage() {
 
   const testConnection = async (server: McpServerRecord, level: AgentCapabilityLevel) => {
     if (testingId) return;
-    setTestingId(server.id);
+    setTestingId(rowKey(level, server.id));
     try {
       const result = await api.testMcpServer(server.id, {
         level,
@@ -301,7 +312,7 @@ export function AgentMcpPage() {
       setStatuses((current) => [
         ...current.filter((status) => status.serverId !== server.id),
         result.status,
-      ]);
+      ], level);
       if (result.status.state === "ready") {
         showToast(t("extensions.mcp.testReady", { count: result.status.toolCount }), {
           variant: "success",
@@ -320,7 +331,7 @@ export function AgentMcpPage() {
 
   const authorizeServer = async (server: McpServerRecord, level: AgentCapabilityLevel) => {
     if (authorizingId || pendingOAuthRef.current) return;
-    setAuthorizingId(server.id);
+    setAuthorizingId(rowKey(level, server.id));
     let activeLoginId: string | null = null;
     let unsubscribed = false;
     let unsubscribe = () => {};
@@ -347,7 +358,7 @@ export function AgentMcpPage() {
         setStatuses((current) => [
           ...current.filter((status) => status.serverId !== server.id),
           event.status,
-        ]);
+        ], level);
         showToast(t("extensions.mcp.authReady", { count: event.status.toolCount }), {
           variant: "success",
         });
@@ -484,17 +495,18 @@ export function AgentMcpPage() {
   const renderRow = (server: McpServerRecord, level: AgentCapabilityLevel) => {
     const key = rowKey(level, server.id);
     const name = server.label || server.id;
-    const status = statusFor(statuses, server);
+    const status = statusFor(level === "global" ? globalStatuses : projectStatuses, server);
     const busy = rowBusy.isBusy(key);
-    const testing = testingId === server.id;
-    const authorizing = authorizingId === server.id;
+    const testing = testingId === key;
+    const authorizing = authorizingId === key;
     const isArmed = armed === key;
     const isHttp = server.transport === "http";
     const hasAuthHeader = Boolean(
       server.headers &&
       Object.keys(server.headers).some((k) => k.toLowerCase() === "authorization"),
     );
-    const isOAuth = isHttp && (Boolean(status?.hasOauth) || !hasAuthHeader);
+    const isOAuth =
+      isHttp && (Boolean(status?.hasOauth) || Boolean(status?.authRequired));
     const needsAuth =
       isHttp &&
       !hasAuthHeader &&
@@ -855,8 +867,18 @@ export function AgentMcpPage() {
           setDraft={(draft) => setEditor((current) => (current ? { ...current, draft } : current))}
           editing={editor.editing}
           saving={saving}
-          status={editor.editing ? statusFor(statuses, editor.editing) : undefined}
-          testing={testingId === editor.editing?.id}
+          status={
+            editor.editing
+              ? statusFor(
+                  editor.level === "global" ? globalStatuses : projectStatuses,
+                  editor.editing,
+                )
+              : undefined
+          }
+          testing={
+            !!editor.editing &&
+            testingId === rowKey(editor.level, editor.editing.id)
+          }
           projects={[]}
           currentProjectPath={selectedProjectPath}
           managementLevel={editor.level}

@@ -3129,6 +3129,7 @@ sklm: {
     profile: "协议配置",
     profiles: { "realtime-ga": "OpenAI Realtime GA", "realtime-compat-v1": "Realtime 兼容版 v1" },
     useForNextCall: "用于下次通话",
+    bindingDefaults: "绑定默认值",
     bindingLocked: "通话进行中",
     bindingLockedDetail: "结束通话后才能应用此服务绑定的更改。",
     saveFailed: "无法保存实时语音设置。",
