@@ -15,6 +15,8 @@ export type HostCollection<T> = {
   loading: boolean;
   /** Later reloads keep the rows on screen and only dim them. */
   refreshing: boolean;
+  /** Last load failure, cleared by the next successful load. */
+  error: unknown | null;
   reload: () => Promise<void>;
 };
 
@@ -37,6 +39,7 @@ export function useHostCollection<T>(
   const [data, setData] = useState<T>(empty);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
   const hydrated = useRef(false);
   const latestRequest = useRef(0);
   const emptyRef = useRef(empty);
@@ -53,11 +56,15 @@ export function useHostCollection<T>(
       const next = await fetcher();
       if (!isCurrent()) return;
       setData(next);
+      setError(null);
       hydrated.current = true;
     } catch (error) {
       if (!isCurrent()) return;
       onErrorRef.current(error);
-      setData(emptyRef.current);
+      setError(error);
+      // Keep the last good rows on a failed refresh; only a first load has
+      // nothing to preserve.
+      if (!hydrated.current) setData(emptyRef.current);
     } finally {
       if (isCurrent()) {
         setLoading(false);
@@ -81,5 +88,5 @@ export function useHostCollection<T>(
     };
   }, [reload]);
 
-  return { data, setData, loading, refreshing, reload };
+  return { data, setData, loading, refreshing, error, reload };
 }

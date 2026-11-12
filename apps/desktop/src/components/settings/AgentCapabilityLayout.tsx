@@ -533,6 +533,25 @@ export function CapabilityEmpty({
   );
 }
 
+/** Inline load failure: distinct from an empty library, and never a dead end. */
+export function CapabilityLoadError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="agent-capability-load-error" role="alert">
+      <span>{message}</span>
+      <Button variant="secondary" onClick={onRetry}>
+        {t("errors.action.retry")}
+      </Button>
+    </div>
+  );
+}
+
 export function CapabilityButton({
   children,
   onClick,

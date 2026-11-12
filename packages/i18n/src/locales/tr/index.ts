@@ -1550,6 +1550,7 @@ sklm: {
     capabilityFilterProject: "Proje",
     clearSearch: "Aramayı temizle",
     capabilityNoMatches: "Eşleşen yetenek yok",
+    capabilityLoadFailed: "Liste yüklenemedi.",
     capabilityRefreshing: "Yenileniyor…",
     capabilityDeleted: "{{name}} silindi",
     capabilityRemoveConfirm: "Silmek için yeniden tıklayın",

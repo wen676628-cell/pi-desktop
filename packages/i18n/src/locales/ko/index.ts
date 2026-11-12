@@ -1556,6 +1556,7 @@ sklm: {
     capabilityFilterProject: "프로젝트",
     clearSearch: "검색 지우기",
     capabilityNoMatches: "일치하는 기능 없음",
+    capabilityLoadFailed: "목록을 불러오지 못했습니다.",
     capabilityRefreshing: "새로 고치는 중…",
     capabilityDeleted: "{{name}} 삭제됨",
     capabilityRemoveConfirm: "다시 클릭하여 삭제",

@@ -1400,6 +1400,7 @@ sklm: {
     capabilityFilterProject: "Project",
     clearSearch: "Clear search",
     capabilityNoMatches: "No matching capabilities",
+    capabilityLoadFailed: "Could not load this list.",
     capabilityRefreshing: "Refreshing…",
     capabilityDeleted: "Deleted {{name}}",
     capabilityRemoveConfirm: "Click again to delete",
