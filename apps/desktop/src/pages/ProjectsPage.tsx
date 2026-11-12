@@ -45,6 +45,19 @@ import {
 import { ProjectArchiveIndex, projectRowId } from "../features/projects/ProjectArchiveIndex";
 import { ProjectDetailPanel } from "../features/projects/ProjectDetailPanel";
 
+const PROJECT_SORT_STORAGE_KEY = "pi-desktop:projects-sort";
+
+/** The archive's own order is a UI preference, not a host-backed setting. */
+function loadProjectSort(): SortMode {
+  try {
+    return window.localStorage?.getItem(PROJECT_SORT_STORAGE_KEY) === "name"
+      ? "name"
+      : "recent";
+  } catch {
+    return "recent";
+  }
+}
+
 export function ProjectsPage() {
   const { t, i18n } = useTranslation();
   const workspace = useAppStore((s) => s.workspace);
@@ -72,7 +85,14 @@ export function ProjectsPage() {
   // index means "not loaded yet" rather than "no projects".
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortMode>("recent");
+  const [sort, setSort] = useState<SortMode>(() => loadProjectSort());
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(PROJECT_SORT_STORAGE_KEY, sort);
+    } catch {
+      // A blocked storage area only costs the next launch's order.
+    }
+  }, [sort]);
   // The row whose card is open. Closed until the user asks for one.
   const [openPath, setOpenPath] = useState<string | null>(null);
   const [visibleSessionCounts, setVisibleSessionCounts] = useState<Record<string, number>>({});
