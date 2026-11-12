@@ -16,7 +16,7 @@ const [
   chatSurface,
   composer,
   styles,
-  mascotLogo,
+  homeBrandMark,
   rendererLanguage,
 ] = await Promise.all([
     read("../../../packages/i18n/src/locales/en/index.ts"),
@@ -28,7 +28,7 @@ const [
     read("../src/components/ChatSurface.tsx"),
     readComposerSource(),
     loadStyles(),
-    read("../src/components/HomeMascotLogo.tsx"),
+    read("../src/components/HomeBrandMark.tsx"),
     read("../src/lib/renderer-language.ts"),
   ]);
 
@@ -53,47 +53,20 @@ test("app chrome uses the shared brand asset without branding the composer input
   assert.match(brandLogo, /src=\{.*brandLogoUrl/);
   assert.match(icons, /export const IconNewSession/);
   assert.doesNotMatch(icons, /IconCodexHome|IconCompose|IconPiMark|IconPiHome/);
-  await access(new URL("../src/assets/home-mascot-dark.gif", import.meta.url));
-  await access(new URL("../src/assets/home-mascot-light.gif", import.meta.url));
-  await access(new URL("../src/assets/home-mascot-still-dark.png", import.meta.url));
-  await access(new URL("../src/assets/home-mascot-still-light.png", import.meta.url));
+  assert.match(chatSurface, /<HomeBrandMark \/>/);
   await assert.rejects(
-    () => access(new URL("../src/assets/home-mascot-groups.png", import.meta.url)),
+    () => access(new URL("../src/components/HomeMascotLogo.tsx", import.meta.url)),
+    "the animated mascot component is removed from the renderer",
   );
-  assert.match(chatSurface, /<HomeMascotLogo \/>/);
-  assert.match(mascotLogo, /import mascotMotionDarkUrl from\s*"\.\.\/assets\/home-mascot-dark\.gif"/);
-  assert.match(mascotLogo, /import mascotMotionLightUrl from\s*"\.\.\/assets\/home-mascot-light\.gif"/);
-  assert.match(mascotLogo, /import mascotStillDarkUrl from\s*"\.\.\/assets\/home-mascot-still-dark\.png"/);
-  assert.match(mascotLogo, /import mascotStillLightUrl from\s*"\.\.\/assets\/home-mascot-still-light\.png"/);
-  assert.match(mascotLogo, /className="home-mascot-logo"/);
-  assert.match(mascotLogo, /aria-hidden="true"/);
-  assert.match(mascotLogo, /className="home-mascot-motion home-mascot-dark"/);
-  assert.match(mascotLogo, /className="home-mascot-motion home-mascot-light"/);
-  assert.match(mascotLogo, /className="home-mascot-still home-mascot-dark"/);
-  assert.match(mascotLogo, /className="home-mascot-still home-mascot-light"/);
-  assert.doesNotMatch(mascotLogo, /<svg/);
-  assert.doesNotMatch(
-    mascotLogo,
-    /home-mascot-groups\.png|home-mascot-orbit|Math\.random\(\)|setTimeout|backgroundPosition|onMouseEnter|onMouseLeave|useState|useEffect|matchMedia/,
-  );
-  assert.doesNotMatch(chatSurface, /<BrandLogo/);
-  assert.match(styles, /\.empty-hero-icon\s*\{[\s\S]*?height:\s*100px;[\s\S]*?width:\s*100px;/);
-  assert.match(
-    styles,
-    /\.home-mascot-logo\s*\{[\s\S]*?display:\s*block;[\s\S]*?width:\s*100px;[\s\S]*?height:\s*100px;/,
-  );
-  assert.match(
-    styles,
-    /:root:not\(\[data-theme="light"\]\) \.home-mascot-logo \.home-mascot-motion\.home-mascot-dark/,
-  );
-  assert.match(
-    styles,
-    /:root\[data-theme="light"\] \.home-mascot-logo \.home-mascot-motion\.home-mascot-light/,
-  );
-  assert.match(
-    styles,
-    /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.home-mascot-still\.home-mascot-dark,[\s\S]*?\.home-mascot-still\.home-mascot-light[\s\S]*?display:\s*block;/,
-  );
+  assert.match(homeBrandMark, /className="home-brand-logo home-brand-logo-dark"/);
+  assert.match(homeBrandMark, /className="home-brand-logo home-brand-logo-light"/);
+  assert.match(homeBrandMark, /className="home-brand-mark"/);
+  assert.match(homeBrandMark, /aria-hidden="true"/);
+  assert.doesNotMatch(homeBrandMark, /\.gif|mascot|setTimeout|onMouseEnter/);
+  assert.doesNotMatch(chatSurface, /HomeMascotLogo|home-mascot/);
+  assert.doesNotMatch(styles, /home-mascot|home-mascot-motion|home-mascot-still/);
+  assert.match(styles, /\.empty-hero\s*\{[\s\S]*?align-items:\s*center;/);
+  assert.match(styles, /\.home-brand-mark\s*\{[\s\S]*?width:\s*48px;[\s\S]*?height:\s*48px;/);
   assert.match(
     rendererLanguage,
     /if \(request === languageRequest\)\s*document\.documentElement\.lang = target/,

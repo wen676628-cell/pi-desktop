@@ -1,70 +1,47 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { composerToolbar } from "./helpers/composer-toolbar.mjs";
-import { readComposerModule, readComposerSource } from "./helpers/source-contracts.mjs";
-import { slotSsr } from "./helpers/slot-ssr.mjs";
+
+const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 /*
- * The operating mode is a compact chip that opens one menu. It used to advance
- * one state per click, so reaching Goal from Agent took two clicks and the two
- * other modes were never on screen; a row of three always-visible options fixed
- * the clicks but cost the toolbar a wide cluster. The chip names the committed
- * mode only, and the menu lists the three modes with their check marks.
+ * Mode switching moved into the composer's built-in slash commands. The
+ * toolbar no longer carries an agent-mode chip: `/agent-mode`, `/plan-mode`
+ * and `/goal-mode` are the single entry point, and the plus button opens the
+ * same list. This keeps the toolbar from advertising two duplicate doors to
+ * the same state.
  */
 
-const modePicker = await readComposerModule("ComposerModePicker.tsx");
-const composerSource = await readComposerSource();
+const [builtins, toolbar] = await Promise.all([
+  read("../electron/main/builtin-commands.ts"),
+  read("../src/features/chat/composer/ComposerToolbar.tsx"),
+]);
 
-async function toolbar(t, overrides = {}) {
-  const ssr = await slotSsr(t);
-  return (await composerToolbar(t, ssr, overrides))();
-}
-
-test("the chip opens a labelled menu instead of cycling", async (t) => {
-  const html = await toolbar(t, { mode: "plan" });
-  assert.match(html, /aria-haspopup="menu"/);
-  assert.match(html, /aria-expanded="false"/);
-  // The trigger names the committed mode only: no other mode label in the chip.
-  assert.match(html, /class="composer-mode-chip-label text-sm">settings\.modePlan</);
-  // No state-advancing helper survives: the chip only opens the menu.
-  assert.doesNotMatch(composerSource, /\bnextMode\b/);
-  assert.match(modePicker, /menuClassName="composer-mode-menu"/);
-  assert.match(modePicker, /role="menu"/);
+test("built-in commands carry one slash alias per operating mode", () => {
+  assert.match(builtins, /slash: "agent-mode"/);
+  assert.match(builtins, /slash: "plan-mode"/);
+  assert.match(builtins, /slash: "goal-mode"/);
+  assert.match(builtins, /title: "Switch to Agent mode"/);
+  assert.match(builtins, /title: "Switch to Plan mode"/);
+  assert.match(builtins, /title: "Switch to Goal mode"/);
 });
 
-test("the menu lists every mode with the committed one checked", () => {
-  assert.match(modePicker, /\{MODE_CYCLE\.map\(\(candidate\) => \(/);
-  assert.match(modePicker, /role="menuitemradio"/);
-  assert.match(modePicker, /aria-checked=\{mode === candidate\}/);
-  assert.match(modePicker, /composer-mode-menu/);
+test("the toolbar no longer renders a mode chip", () => {
+  assert.doesNotMatch(toolbar, /ComposerModePicker/);
+  assert.doesNotMatch(toolbar, /composer-mode-chip/);
+  assert.doesNotMatch(toolbar, /settings\.mode/);
 });
 
-test("choosing a mode closes the menu and configures the active session once", () => {
-  assert.match(
-    modePicker,
-    /onClick=\{async \(\) => \{\s*\n\s*setOpen\(false\);\s*\n\s*await onSelect\(candidate\);/,
-  );
-  const toolbarSource = composerSource.slice(
-    composerSource.indexOf("<ComposerModePicker"),
-    composerSource.indexOf("<ComposerPermissionPicker"),
-  );
-  assert.match(toolbarSource, /onSelect=\{async \(next\) => \{/);
-  assert.match(toolbarSource, /mode: next,/);
+test("the mode picker is not mounted by the toolbar", async () => {
+  const picker = await read("../src/features/chat/composer/ComposerModePicker.tsx");
+  assert.match(picker, /export function ComposerModePicker/);
+  assert.doesNotMatch(toolbar, /<ComposerModePicker/);
 });
 
-test("opening one menu closes the other", () => {
-  const toolbarSource = composerSource.slice(
-    composerSource.indexOf("<ComposerModePicker"),
-    composerSource.indexOf('<div className="composer-right">'),
-  );
-  assert.match(
-    toolbarSource,
-    /onCloseOtherMenus=\{\(\) => \{\s*\n\s*modelMenu\.setOpen\(false\);\s*\n\s*setPermissionOpen\(false\);/,
-  );
-  assert.match(
-    toolbarSource,
-    /onCloseOtherMenus=\{\(\) => \{\s*\n\s*modelMenu\.setOpen\(false\);\s*\n\s*setModeOpen\(false\);/,
-  );
-  // A blocked composer closes both menus, not just the approval one.
-  assert.match(composerSource, /setModeOpen\(false\);\s*\n\s*setPermissionOpen\(false\);/);
+test("the plus menu lists the slash commands", async () => {
+  const menu = await read("../src/features/chat/composer/ComposerPlusMenu.tsx");
+  assert.match(toolbar, /<ComposerPlusMenu/);
+  assert.match(menu, /command\.kind === "builtin"/);
+  assert.match(menu, /onPickCommand\(command\.name\)/);
+  assert.match(menu, /t\("chat\.addFiles"\)/);
 });

@@ -121,8 +121,32 @@ use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
 use windows_sys::Win32::System::JobObjects::{
     AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
     SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+    JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_JOB_MEMORY,
     JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
+
+/// Defensive caps for one shell tool call. A runaway build or a fork bomb dies
+/// with the job instead of the machine; both are environment-tunable because a
+/// legitimately huge build may need more. Zero means "no limit".
+const DEFAULT_MAX_JOB_PROCESSES: u32 = 256;
+const DEFAULT_JOB_MEMORY_LIMIT_MB: u64 = 0;
+
+#[cfg(windows)]
+fn job_process_limit() -> u32 {
+    std::env::var("PI_DESKTOP_TOOL_MAX_PROCESSES")
+        .ok()
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .unwrap_or(DEFAULT_MAX_JOB_PROCESSES)
+}
+
+#[cfg(windows)]
+fn job_memory_limit_bytes() -> usize {
+    let megabytes = std::env::var("PI_DESKTOP_TOOL_MEMORY_LIMIT_MB")
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .unwrap_or(DEFAULT_JOB_MEMORY_LIMIT_MB);
+    (megabytes.saturating_mul(1024 * 1024)) as usize
+}
 
 #[cfg(windows)]
 #[derive(Debug, Default)]
@@ -142,7 +166,18 @@ impl ProcessOwnership {
         }
 
         let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
-        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        let max_processes = job_process_limit();
+        let memory_bytes = job_memory_limit_bytes();
+        let mut flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if max_processes > 0 {
+            flags |= JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            limits.BasicLimitInformation.ActiveProcessLimit = max_processes;
+        }
+        if memory_bytes > 0 {
+            flags |= JOB_OBJECT_LIMIT_JOB_MEMORY;
+            limits.JobMemoryLimit = memory_bytes;
+        }
+        limits.BasicLimitInformation.LimitFlags = flags;
         let configured = unsafe {
             SetInformationJobObject(
                 job,
@@ -6103,5 +6138,23 @@ while True:
             msg.contains("no-such-file.txt"),
             "diagnostic should name the path: {msg}"
         );
+    }
+}
+
+#[cfg(all(test, windows))]
+mod job_limit_tests {
+    use super::*;
+
+    #[test]
+    fn job_limits_read_the_environment() {
+        std::env::set_var("PI_DESKTOP_TOOL_MAX_PROCESSES", "7");
+        assert_eq!(job_process_limit(), 7);
+        std::env::remove_var("PI_DESKTOP_TOOL_MAX_PROCESSES");
+        assert_eq!(job_process_limit(), DEFAULT_MAX_JOB_PROCESSES);
+
+        std::env::set_var("PI_DESKTOP_TOOL_MEMORY_LIMIT_MB", "512");
+        assert_eq!(job_memory_limit_bytes(), 512 * 1024 * 1024);
+        std::env::remove_var("PI_DESKTOP_TOOL_MEMORY_LIMIT_MB");
+        assert_eq!(job_memory_limit_bytes(), 0);
     }
 }

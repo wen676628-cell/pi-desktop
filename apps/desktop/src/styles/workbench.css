@@ -1,0 +1,231 @@
+/*
+  PI workbench — the navigation rail belongs to the projects; the central pane
+  belongs to one task. Codex's quiet hierarchy, with PI's own static brand mark.
+  Presentation only: session state, shortcuts and panel geometry stay unchanged.
+*/
+
+.app-scenic-backdrop {
+  background: var(--ds-front-main);
+}
+
+.sidebar-surface,
+.sidebar-rail {
+  background-color: var(--ds-front-sidebar);
+}
+
+.sidebar-header {
+  padding-inline: 12px 8px;
+}
+
+.brand {
+  gap: 10px;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-strong);
+}
+
+.sidebar-list-toolbar {
+  padding-top: 18px;
+}
+
+.sidebar-list-toolbar-secondary:first-child {
+  padding-top: 12px;
+}
+
+.sidebar-list-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.thread-item.active {
+  background: var(--ds-front-accent-soft);
+  box-shadow: none;
+}
+
+.main-pane {
+  background: var(--ds-front-main);
+  /* Topbar is absolutely positioned; reserve its height for the whole pane so
+     the home hero is never drawn under it. */
+  padding-top: var(--ds-toolbar-height);
+}
+
+.conversation-topbar {
+  height: 52px;
+  padding-inline: 20px 12px;
+  background: var(--ds-front-main);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.conversation-topbar .ct-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.conversation-topbar .ct-project {
+  font-size: var(--text-sm);
+}
+
+.conversation-topbar .ct-actions {
+  gap: 4px;
+  padding: 3px;
+  background: transparent;
+}
+
+.home-main-content {
+  position: relative;
+}
+
+.home-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  user-select: none;
+  font-size: var(--ds-home-watermark-size);
+  line-height: var(--leading-none);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--tracking-tight);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--ds-front-accent);
+  opacity: 0.065;
+  transform: translateY(-3%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 52%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 52%);
+}
+
+:root[data-theme="light"] .home-watermark {
+  opacity: 0.05;
+}
+
+.home-scroll,
+.home-composer-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.home-scroll {
+  justify-content: center;
+}
+
+.home-stack-inner {
+  width: min(100%, 760px);
+  gap: 30px;
+  padding: 44px 32px 30px;
+  margin-inline: auto;
+  flex-shrink: 0;
+}
+
+.empty-hero {
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.empty-hero-icon {
+  height: 48px;
+  width: 48px;
+}
+
+.home-brand-mark {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: var(--ds-front-accent-soft);
+  color: var(--ds-front-accent);
+}
+
+.home-brand-logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.home-brand-logo-light,
+:root[data-theme="light"] .home-brand-logo-dark {
+  display: none;
+}
+
+:root[data-theme="light"] .home-brand-logo-light {
+  display: block;
+}
+
+.empty-hero h1 {
+  max-width: 34rem;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.empty-hero .project-underline {
+  color: var(--ds-front-accent);
+  text-decoration-color: var(--ds-front-accent-soft);
+}
+
+.home-composer-wrap {
+  padding-inline: 32px;
+  padding-bottom: 28px;
+  flex-shrink: 0;
+  /* Constrain the inner composer stack to the same 760px band as the hero, so
+     its padding can never push the visual edge past the viewport. */
+  --chat-composer-max-width: 760px;
+}
+
+.home-main-content .composer-shell {
+  border-radius: var(--radius-xl);
+}
+
+.home-main-content .composer-input-wrap {
+  min-height: 84px;
+  padding: 16px 18px 0;
+}
+
+.home-main-content .composer-bar {
+  padding: 8px 10px 10px;
+}
+
+.home-main-content .onboarding-checklist {
+  width: 100%;
+}
+
+.thread-content {
+  padding-top: 36px;
+}
+
+.message-row.user .message-bubble {
+  border: 0;
+  background: var(--ds-front-user-bg);
+}
+
+@media (max-width: 900px) {
+  .conversation-topbar {
+    padding-inline: 12px 8px;
+  }
+
+  .home-stack-inner,
+  .home-composer-wrap {
+    padding-inline: 20px;
+  }
+}
+
+@media (max-height: 720px) {
+  .home-scroll {
+    margin-top: 0;
+  }
+
+  .home-stack-inner {
+    gap: 20px;
+    padding-top: 24px;
+    padding-bottom: 20px;
+  }
+
+  .home-composer-wrap {
+    margin-bottom: 0;
+  }
+}
