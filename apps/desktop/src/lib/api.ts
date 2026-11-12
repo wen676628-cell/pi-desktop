@@ -188,6 +188,7 @@ import type {
   ConfigSyncProgress,
   ConfigSyncState,
   TrustedExtensionStatusEvent,
+  TrustedExtensionShortcut,
   TrustedExtensionUiPrompt,
   TrustedExtensionUiPromptResponse,
   SessionTodoSnapshot,
@@ -1716,6 +1717,12 @@ export const api = {
     >(IPC.invoke.pluginImportExtension),
   runExtensionCommand: (input: { sessionId: string; name: string; args: string }) =>
     invoke<{ ok: boolean }>(IPC.invoke.extensionsCommandRun, input),
+  extensionShortcuts: (sessionId: string) =>
+    invoke<{ shortcuts: TrustedExtensionShortcut[] }>(IPC.invoke.extensionsShortcutList, {
+      sessionId,
+    }),
+  runExtensionShortcut: (input: { sessionId: string; key: string }) =>
+    invoke<{ ok: boolean }>(IPC.invoke.extensionsShortcutRun, input),
   respondExtensionPrompt: (response: TrustedExtensionUiPromptResponse) =>
     invoke<{ ok: boolean }>(IPC.invoke.extensionsUiRespond, response),
   searchCommands: (query: string) =>

@@ -304,6 +304,88 @@ export function keybindingMatchesEvent(
   return shiftedEqualVariant(normalized) === eventBinding;
 }
 
+/**
+ * Key names an extension can pass to `pi.registerShortcut`, expressed in the
+ * `KeyId` spelling of the pi SDK. Anything not listed here is either a plain
+ * letter/digit/F-key (handled by `normalizeKey`) or a symbol the desktop
+ * keybinding model cannot represent, in which case the binding is dropped so
+ * it can never steal an unrelated key.
+ */
+const PI_SHORTCUT_KEY_NAMES: Record<string, string> = {
+  escape: "Escape",
+  esc: "Escape",
+  enter: "Enter",
+  return: "Enter",
+  tab: "Tab",
+  space: "Space",
+  backspace: "Backspace",
+  delete: "Delete",
+  insert: "Insert",
+  home: "Home",
+  end: "End",
+  pageup: "PageUp",
+  pagedown: "PageDown",
+  up: "ArrowUp",
+  down: "ArrowDown",
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  "`": "Backquote",
+  "-": "Minus",
+  "=": "Equal",
+  "[": "BracketLeft",
+  "]": "BracketRight",
+  "\\": "Backslash",
+  ";": "Semicolon",
+  "'": "Quote",
+  ",": "Comma",
+  ".": "Period",
+  "/": "Slash",
+};
+
+/**
+ * Translate a pi `KeyId` (for example `ctrl+alt+m`, `super+k`, `pageUp`) into
+ * the desktop keybinding vocabulary so extension shortcuts share the same
+ * matcher as built-in ones. `ctrl` is literal Control, `super`/`cmd` is the
+ * platform command key; on non-macOS `super` has no desktop equivalent and the
+ * binding is dropped. Returns null when the key cannot be represented.
+ */
+export function keybindingFromPiShortcut(
+  shortcut: unknown,
+  platform: ShortcutPlatform,
+): string | null {
+  if (typeof shortcut !== "string") return null;
+  const parts = shortcut.trim().toLowerCase().split("+").filter(Boolean);
+  if (parts.length === 0) return null;
+  const rawKey = parts.at(-1) ?? "";
+  const key = PI_SHORTCUT_KEY_NAMES[rawKey] ?? normalizeKey(rawKey);
+  if (!key) return null;
+  let mod = false;
+  let ctrl = false;
+  let alt = false;
+  let shift = false;
+  for (const part of parts.slice(0, -1)) {
+    if (part === "ctrl" || part === "control") {
+      if (platform === "darwin") ctrl = true;
+      else mod = true;
+    } else if (part === "alt" || part === "option") {
+      alt = true;
+    } else if (part === "shift") {
+      shift = true;
+    } else if (part === "super" || part === "cmd" || part === "command" || part === "meta") {
+      if (platform === "darwin") mod = true;
+      else return null;
+    } else {
+      return null;
+    }
+  }
+  const modifiers: string[] = [];
+  if (mod) modifiers.push("Mod");
+  if (ctrl) modifiers.push("Ctrl");
+  if (alt) modifiers.push("Alt");
+  if (shift) modifiers.push("Shift");
+  return normalizeKeybinding([...modifiers, key].join("+"));
+}
+
 export function keybindingsConflict(
   left: string | null | undefined,
   right: string | null | undefined,

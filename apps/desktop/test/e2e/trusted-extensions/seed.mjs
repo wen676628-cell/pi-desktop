@@ -74,7 +74,7 @@ export default function (pi: any) {
 write("tui.ts", `import { Text } from "@earendil-works/pi-tui";
 export default function (pi: any) {
   new Text("x");
-  pi.registerShortcut("ctrl+x", { handler() {} });
+  pi.registerShortcut("ctrl+alt+x", { handler() {} });
   pi.on("session_start", (_e: any, ctx: any) => { ctx.ui.setWidget("w", () => null); });
 }
 `);

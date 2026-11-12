@@ -629,6 +629,17 @@ async function handle(method: string, params: any): Promise<unknown> {
         String(params.args ?? ""),
       );
     }
+    case "extensions.shortcut.run": {
+      const sessionId = String(params.sessionId ?? "");
+      const runtime = runtimes.get(sessionId);
+      if (!runtime) {
+        throw Object.assign(new Error("runtime not found for session"), {
+          rpcCode: -32000,
+          errorCode: "RUNTIME_NOT_FOUND",
+        });
+      }
+      return runtime.runTrustedExtensionShortcut(String(params.key ?? ""));
+    }
     case "agent.modeTurnNotice": {
       const runtime = runtimes.get(String(params.sessionId ?? ""));
       return runtime?.modeTurnNotice(parseModeTurnNotice(params)) ?? { applied: false };

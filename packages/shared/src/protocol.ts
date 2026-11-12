@@ -344,6 +344,8 @@ export const IPC = {
     /** Plugin-contributed agent extensions (D387/D388, ADR 0214). */
     pluginImportExtension: "pi-desktop/plugin/importExtension",
     extensionsCommandRun: "pi-desktop/extensions/commands/run",
+    extensionsShortcutList: "pi-desktop/extensions/shortcuts/list",
+    extensionsShortcutRun: "pi-desktop/extensions/shortcuts/run",
     extensionsUiRespond: "pi-desktop/extensions/ui/respond",
     pluginLoadDev: "pi-desktop/plugin/loadDev",
     /**
