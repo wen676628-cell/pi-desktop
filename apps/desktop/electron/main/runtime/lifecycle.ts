@@ -238,7 +238,10 @@ export function createRuntimeLifecycle({
     } catch {
       await applyNetworkProxyFromAppSettings({ mode: "system" });
     }
-    await startSidecar();
+    // The agent sidecar starts on the first agent/extension call. Booting it
+    // here put a multi-second Node child in front of the first window even
+    // when the reader only opens a project or settings. IPC entries that need
+    // it await `ensureSidecar()`.
 
     // Keep plugin host services wired to live workspace / app metadata.
     plugins.setServices({

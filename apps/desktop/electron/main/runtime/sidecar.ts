@@ -110,6 +110,7 @@ export function createSidecarRuntime({
   emitAgentEvent: (envelope: AgentEventEnvelope) => void;
   wireSidecar: (sidecar: AgentSidecar) => void;
   startSidecar: () => Promise<void>;
+  ensureSidecar: () => Promise<AgentSidecar>;
 } {
   const emitAgentEvent = (envelope: AgentEventEnvelope) => {
     // A terminal event for a turn that no longer owns its session must not clear
@@ -369,7 +370,7 @@ export function createSidecarRuntime({
     void superviseRestart("sidecar");
   });
   };
-  const startSidecar = async (): Promise<void> => {
+  const launchSidecar = async (): Promise<void> => {
 
   const s = new AgentSidecar((text) => logger.child("agent", text));
   wireSidecar(s);
@@ -726,5 +727,25 @@ export function createSidecarRuntime({
   });
   logger.app("runtime", "info", "agent sidecar configured");
   };
-  return { emitAgentEvent, wireSidecar, startSidecar };
+
+  /**
+   * Boot, an agent call, and a crash restart can all race for the same child.
+   * Keep one in-flight launch so the second caller shares the first child
+   * instead of spawning a second sidecar.
+   */
+  let sidecarStartup: Promise<void> | null = null;
+  const startSidecar = async (): Promise<void> => {
+    if (runtimeState.sidecar) return;
+    if (sidecarStartup) return sidecarStartup;
+    sidecarStartup = launchSidecar().finally(() => {
+      sidecarStartup = null;
+    });
+    return sidecarStartup;
+  };
+  const ensureSidecar = async (): Promise<AgentSidecar> => {
+    if (!runtimeState.sidecar) await startSidecar();
+    if (!runtimeState.sidecar) throw new Error("agent sidecar unavailable");
+    return runtimeState.sidecar;
+  };
+  return { emitAgentEvent, wireSidecar, startSidecar, ensureSidecar };
 }

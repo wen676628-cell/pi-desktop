@@ -823,7 +823,7 @@ const sidecarRuntime = createSidecarRuntime({
   publishComputerGrant,
 });
 emitAgentEvent = sidecarRuntime.emitAgentEvent;
-const { startSidecar } = sidecarRuntime;
+const { startSidecar, ensureSidecar } = sidecarRuntime;
 
 const { startHost } = createHostRuntime({
   runtimeState,
@@ -950,6 +950,7 @@ function registerIpc() {
     getHost,
     publishComputerGrant,
     getSidecar,
+    ensureSidecar,
     getAgentHostBridge: () => mainState.agentHostBridge,
     getBackendRouter: () => startupState.backendRouter,
     getNotificationViewingSessionId: () => mainState.notificationViewingSessionId,

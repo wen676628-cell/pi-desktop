@@ -91,6 +91,7 @@ export type SessionIpcDependencies = {
   registrar: IpcRegistrar;
   getHost: () => HostProcess | null;
   getSidecar: () => AgentSidecar | null;
+  ensureSidecar: () => Promise<AgentSidecar>;
   dataDir: string;
   activeTurns: ReadonlyMap<string, string>;
   sessionProjects: Map<string, string | null>;
@@ -114,6 +115,11 @@ export function registerSessionIpc({
   registrar,
   getHost,
   getSidecar,
+  ensureSidecar = async () => {
+    const current = getSidecar();
+    if (!current) throw new Error("agent sidecar unavailable");
+    return current;
+  },
   dataDir,
   activeTurns,
   sessionProjects,
@@ -257,7 +263,7 @@ export function registerSessionIpc({
       if (sessionId.startsWith("native-pi:")) {
         // Native forks read the canonical JSONL and publish a new child file in
         // the sidecar; the Rust host and the Desktop queue are never involved.
-        if (!sidecar) throw new Error("sidecar unavailable");
+        sidecar = await ensureSidecar();
         const title = typeof input.title === "string" ? input.title.trim().replace(/\s+/g, " ").slice(0, 200) : "";
         const throughMessageId =
           typeof input.throughMessageId === "string" ? input.throughMessageId.trim() : "";
@@ -339,7 +345,7 @@ export function registerSessionIpc({
       const id = String(request.id ?? "").trim();
       if (!id) throw new Error("session id required");
       if (id.startsWith("native-pi:")) {
-        if (!sidecar) throw new Error("sidecar unavailable");
+        sidecar = await ensureSidecar();
         return sidecar.call("native.session.get", { id, ...request });
       }
       const [result, { providers, defaults }] = await Promise.all([
@@ -395,7 +401,7 @@ export function registerSessionIpc({
     const sessionId = String(rawSessionId ?? "").trim();
     if (!sessionId) throw new Error("session id required");
     if (sessionId.startsWith("native-pi:")) {
-      if (!sidecar) throw new Error("sidecar unavailable");
+      sidecar = await ensureSidecar();
       return sidecar.call("native.session.get", { id: sessionId, messageLimit: 1 });
     }
     const [result, { providers, defaults }] = await Promise.all([
