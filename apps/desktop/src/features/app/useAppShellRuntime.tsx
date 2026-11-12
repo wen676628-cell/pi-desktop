@@ -1075,8 +1075,8 @@ export function useAppShellRuntime() {
     plugins,
     projectPath,
     settings?.keybindings,
-    activeSessionId,
     toggleSidebar,
+    activeSessionId,
   ]);
 
   useEffect(() => installRendererApi(), []);
