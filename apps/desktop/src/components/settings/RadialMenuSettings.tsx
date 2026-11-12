@@ -15,7 +15,7 @@ import {
   type RadialMenuPreferences,
 } from "@pi-desktop/shared";
 import { SettingsCard, SettingsRow } from "../../features/settings/primitives";
-import { SettingsToggle } from "../ui";
+import { Button, SettingsToggle } from "../ui";
 import { SettingsMenuSelect } from "./SettingsMenuSelect";
 import {
   RADIAL_MENU_ACTION_LABEL_KEYS,
@@ -69,6 +69,18 @@ export function RadialMenuSettings({
           />
         </SettingsRow>
       ))}
+      <SettingsRow title={t("settings.radialMenu")}>
+        <Button
+          variant="secondary"
+          disabled={!radial.enabled}
+          onClick={() =>
+            // Drop the slot overrides; normalization supplies the defaults.
+            void saveSettings({ radialMenu: { enabled: radial.enabled } })
+          }
+        >
+          {t("settings.shortcutResetAll")}
+        </Button>
+      </SettingsRow>
     </SettingsCard>
   );
 }
