@@ -46,7 +46,7 @@ test("Main cancellation crosses the real UI bridge and retires only the old comm
       requestUi: (extension, request, signal) => requestExtensionUi(
         (envelope) => broker.requestUi(envelope),
         { sessionId: "session", extensionId: extension.id, extensionLabel: extension.label, request }, signal),
-      publishCommands() {}, publishDiagnostics() {},
+      publishCommands() {}, publishShortcuts() {}, publishDiagnostics() {},
     },
   });
   try {

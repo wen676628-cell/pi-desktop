@@ -1,14 +1,17 @@
 import {
   type AppMenuCommand,
   isActiveInProject,
+  isAllowedKeybinding,
   isThemeColorScheme,
   KEYBOARD_SHORTCUTS,
   type KeyboardShortcutId,
   keybindingDisplayParts,
+  keybindingFromPiShortcut,
   keybindingMatchesEvent,
   resolveFontScale,
   resolveKeybinding,
   type ShortcutPlatform,
+  type TrustedExtensionShortcut,
 } from "@pi-desktop/shared";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -86,6 +89,12 @@ export function useAppShellRuntime() {
   const projectPath = useAppStore((s) => s.workspace?.path ?? null);
   /** Monotonic counter for the plugin active-session push. */
   const activeSessionSeq = useRef(0);
+  /**
+   * Keyboard shortcuts published by trusted extensions for the active session.
+   * Kept in a ref so a refresh does not re-attach the keydown listener; the
+   * refresh effect owns the lifetime.
+   */
+  const extensionShortcutsRef = useRef<TrustedExtensionShortcut[]>([]);
   /** Identifies this renderer load: a reload restarts the counter, and the
    * main-side high-water mark must restart with it (#1753). */
   const sessionPushBootId = useRef(crypto.randomUUID());
@@ -111,6 +120,41 @@ export function useAppShellRuntime() {
     }).catch((error) => console.warn("Browser tab restore failed", error));
     return () => { current = false; };
   }, [ready, activeSessionId, workPanelOpen]);
+
+  // Extension shortcuts are published while the sidecar loads the session, so
+  // a fetch issued as soon as the session becomes active can still see an
+  // empty list. Retry once; plugin reloads republish and refresh immediately.
+  useEffect(() => {
+    if (!ready || !activeSessionId || activeSessionId.startsWith("remote:")) {
+      extensionShortcutsRef.current = [];
+      return;
+    }
+    let current = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const load = () => {
+      void api
+        .extensionShortcuts(activeSessionId)
+        .then(({ shortcuts }) => {
+          if (!current || useAppStore.getState().activeSessionId !== activeSessionId) {
+            return;
+          }
+          extensionShortcutsRef.current = shortcuts;
+          if (shortcuts.length === 0 && retry === undefined) {
+            retry = setTimeout(load, 1_500);
+          }
+        })
+        .catch((error) =>
+          console.warn("Extension shortcut refresh failed", error),
+        );
+    };
+    load();
+    const offPluginChanged = api.onPluginChanged(() => load());
+    return () => {
+      current = false;
+      if (retry !== undefined) clearTimeout(retry);
+      offPluginChanged();
+    };
+  }, [ready, activeSessionId, plugins]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -898,9 +942,38 @@ export function useAppShellRuntime() {
                 platform as ShortcutPlatform,
               ),
           );
-        if (!pluginShortcut) return;
+        if (pluginShortcut) {
+          e.preventDefault();
+          void api.executeCommand(pluginShortcut.setting.command!);
+          return;
+        }
+        const sessionId = activeSessionId;
+        if (!sessionId || sessionId.startsWith("remote:")) return;
+        const extensionShortcut = extensionShortcutsRef.current.find(
+          (candidate) => {
+            const binding = keybindingFromPiShortcut(
+              candidate.key,
+              platform as ShortcutPlatform,
+            );
+            // A bare letter or digit must never swallow typing in the
+            // composer; extension shortcuts need a chord or an F-key.
+            return (
+              binding !== null &&
+              isAllowedKeybinding(binding) &&
+              keybindingMatchesEvent(binding, e, platform as ShortcutPlatform)
+            );
+          },
+        );
+        if (!extensionShortcut) return;
         e.preventDefault();
-        void api.executeCommand(pluginShortcut.setting.command!);
+        void api
+          .runExtensionShortcut({ sessionId, key: extensionShortcut.key })
+          .catch((error) =>
+            showToast(
+              error instanceof Error ? error.message : String(error),
+              { variant: "error" },
+            ),
+          );
         return;
       }
       if (
@@ -1003,6 +1076,7 @@ export function useAppShellRuntime() {
     projectPath,
     settings?.keybindings,
     toggleSidebar,
+    activeSessionId,
   ]);
 
   useEffect(() => installRendererApi(), []);

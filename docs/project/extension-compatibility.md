@@ -1,9 +1,9 @@
 # Ecosystem extension compatibility
 
 Probe of real `earendil-works` extensions against the Desktop trusted-extension
-kernel, run 2026-11-11 on `origin/main` (1d7da53) plus the fixes in this branch.
-Repositories at `pi-review` f1de050, `pi-claude-code` d5b5e04, `pi-voice`
-970ef02.
+kernel, run 2026-11-11 on `origin/main` (1d7da53), then rechecked against the
+loader fixes from #19 and the shortcut wiring in this branch. Repositories at
+`pi-review` f1de050, `pi-claude-code` d5b5e04, `pi-voice` 970ef02.
 
 ## Method
 
@@ -43,13 +43,17 @@ Commands registered: `review`, `end-review`, `claude-code-status`, `voice`,
 Regression test: `runner.test.ts` loads a fixture that imports the provider
 registry and the four shim helpers and asserts the factory result.
 
+## Resolved after the probe
+
+- **Extension shortcuts now run** (this change). `pi-voice` registers its
+  capture hotkey (`ctrl+space`, falling back to `ctrl+alt+z`) through
+  `registerShortcut`; the key is now published per session and dispatched by
+  the renderer after built-in and plugin-setting bindings. Bare keys and
+  spellings the desktop keybinding model cannot represent remain inert without
+  a diagnostic, so an extension cannot swallow composer typing.
+
 ## Remaining gaps
 
-- **`registerShortcut` is inert.** `pi-voice` registers a capture hotkey through
-  it; on Desktop the registration reports an `unsupported_api` diagnostic and
-  does nothing, so the voice tools and commands work but the extension's own
-  keybinding does not. Wiring extension shortcuts into the configurable
-  keybinding registry is a separate change.
 - **`session_tree` is deferred.** `pi-review` subscribes to it; the handler is
   accepted but never emitted. The explicit `/review` and `/end-review` commands
   are unaffected.

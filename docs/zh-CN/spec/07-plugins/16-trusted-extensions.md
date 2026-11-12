@@ -218,14 +218,22 @@ main、渲染层或插件宿主进程中。
 
 | 类别 | 成员 |
 |---|---|
-| 支持 | `registerTool`、`registerCommand`、`registerAgent`、`registerProvider`（插件自有的兼容别名，接口与 `registerAgent` 相同）、`unregisterAgent`、`unregisterProvider`、§6 中每个事件的 `on(...)`、`exec`、`getActiveTools`、`getAllTools`、`setActiveTools`、`getCommands`、`setModel`（支持已配置模型和插件 Agent；仅限空闲时调用；持久化当前会话绑定）、`getThinkingLevel`、`setThinkingLevel`、`setSessionName`、`getSessionName`、`sendUserMessage`（Host 队列，D386）、`getFlag` |
+| 支持 | `registerTool`、`registerCommand`、`registerShortcut`、`registerAgent`、`registerProvider`（插件自有的兼容别名，接口与 `registerAgent` 相同）、`unregisterAgent`、`unregisterProvider`、§6 中每个事件的 `on(...)`、`exec`、`getActiveTools`、`getAllTools`、`setActiveTools`、`getCommands`、`setModel`（支持已配置模型和插件 Agent；仅限空闲时调用；持久化当前会话绑定）、`getThinkingLevel`、`setThinkingLevel`、`setSessionName`、`getSessionName`、`sendUserMessage`（Host 队列，D386）、`getFlag` |
 | 上下文上支持 | `ui.notify`、`ui.confirm`、`ui.select`、`ui.input`、`ui.setStatus`、`ui.setWorkingMessage`、`cwd`、`modelRegistry`、`isIdle`、`abort`、`hasPendingMessages`、`getContextUsage`、`compact`、`getSystemPrompt`、`waitForIdle`、`newSession`、`fork` |
-| 推迟到 v2 | `sendMessage`、`appendEntry`、`setLabel`、`sessionManager` 只读 API、`switchSession`、`registerShortcut`、`registerMarkdownTransformer`、`ui.setEditorText`、`ui.getEditorText`、`ui.addAutocompleteProvider`、`registerFlag` 值编辑 |
+| 推迟到 v2 | `sendMessage`、`appendEntry`、`setLabel`、`sessionManager` 只读 API、`switchSession`、`registerMarkdownTransformer`、`ui.setEditorText`、`ui.getEditorText`、`ui.addAutocompleteProvider`、`registerFlag` 值编辑 |
 | 不支持 | `ui.setWidget`、`ui.setFooter`、`ui.setHeader`、`ui.setTitle`、`ui.custom`、`ui.overlay`、`ui.onTerminalInput`、`ui.setWorkingVisible`、`ui.setWorkingIndicator`、`ui.setHiddenThinkingLabel`、`ui.pasteToEditor`、`ui.editor`、`registerMessageRenderer`、`registerEntryRenderer`、`navigateTree`、`shutdown` |
 
 `getActiveTools` 描述的是向模型公开的工具声明，不代表执行授权。Plan/Goal 可以保留禁止执行的
 Write/Edit 和已配置的 Task 系列工具声明；运行时会先执行模式门控，再调用扩展的工具调用 Hook
 或处理器。插件不能仅凭名称出现在此列表中就推断自己具备执行权限。
+
+`registerShortcut(key, { description?, handler })` 把 pi `KeyId`（例如 `ctrl+alt+m`、
+`super+k`、`pageUp`）绑定到当前会话的处理器。渲染层读取会话已发布的快捷键，并且只在
+内置快捷键和插件设置快捷键都未命中后分发，因此内置绑定始终优先。`ctrl` 是字面 Control，
+`super`/`cmd` 是平台命令键；桌面快捷键模型无法表达的绑定（Windows/Linux 上的 `super`、
+带 Shift 的符号键）以及裸字母、裸数字仍会发布，但永远不会触发，因此扩展无法吞掉
+输入框中的打字。处理器与命令共享同一套生命周期、取消和
+超时规则；任意扩展已注册的键按先注册者获胜拒绝，并产生 `rejected_registration` 诊断。
 
 `registerAgent({ id, name?, models, stream? | complete? })` 注册由插件实现的会话级 LLM 集成。
 每个模型声明受限的公开元数据（`id`、显示名称、API 标签、模态、推理能力及限制）。插件回调
@@ -373,6 +381,7 @@ v1 不改任何 host-core RPC 方法、协议版本或 SQLite schema。
 | 方法 | 用途 |
 |---|---|
 | `extensions.commands.publish` | 替换会话已注册的命令列表 |
+| `extensions.shortcuts.publish` | 替换会话已注册的键盘快捷键列表 |
 | `extensions.ui.request` | §9 中的一次交互或状态调用 |
 | `extensions.diagnostics.publish` | 替换会话的诊断列表 |
 | `extensions.model.configure` | 校验插件自有的 provider/模型绑定，经 `session.configure` 持久化，然后广播 `session:modelChanged` |
@@ -384,11 +393,13 @@ v1 不改任何 host-core RPC 方法、协议版本或 SQLite schema。
 |---|---|---|
 | `plugin/importExtension` | 请求 | 原生选择器、生成插件、注册为开发插件 |
 | `extensions/commands/run` | 请求 | 在当前会话运行已注册命令 |
+| `extensions/shortcuts/list` | 请求 | 列出当前会话已注册的扩展快捷键 |
+| `extensions/shortcuts/run` | 请求 | 运行某个快捷键键位对应的处理器 |
 | `extensions/ui/respond` | 请求 | 回答一个待处理提示 |
 | `extensions/ui/prompt` | 事件 | 有提示待处理 |
 | `extensions/event/status` | 事件 | `ui.setStatus` / `ui.setWorkingMessage` 文本变化 |
 | `plugin/list` | 请求 | 插件行携带 `agentExtension` 状态、工具、命令、自定义 Agent 名称和诊断 |
-| `event/pluginChanged` | 事件 | 会话发布命令、诊断或模型绑定变化时同样触发 |
+| `event/pluginChanged` | 事件 | 会话发布命令、快捷键、诊断或模型绑定变化时同样触发 |
 
 所有通道像其他插件通道一样做 sender 校验。MCP 控制面暴露 `extensions/commands/run`
 （写）和 `extensions/ui/respond`（危险，需 confirm）；导入是原生选择器，保持本地。
@@ -412,7 +423,8 @@ main 在 `logs/app/plugin.log` 审计每个提示 id。
 | v1 | loader、每会话 Runner、支持矩阵、事件、工具、命令、UI 桥接 | 已交付（D387） |
 | v1.1 | 模块成为带 `agent.extension` 授权的 `contributes.agentExtensions`；把 pi CLI 扩展导入为开发插件；独立注册表和设置标签移除 | 已交付（D388） |
 | v1.1 修订 | 通过 `registerAgent` 注册插件自有的自定义 Agent、Provider 兼容别名、脱敏模型注册表、仅限空闲时切换的会话绑定，以及通过 `extension-agent:` ID 恢复绑定 | 已实现（D426 / ADR 0258） |
-| v2 | 自定义会话条目（`sendMessage`、`appendEntry`）含 schema 升版和通用渲染、`sessionManager` 只读 shim、`switchSession`、编辑器读写、补全 provider、`registerShortcut`、markdown 转换器 | 已规划，需先决定条目持久化与压缩 |
+| v1.2 修订 | 通过 `registerShortcut` 注册扩展键盘快捷键，按会话发布，由渲染层在内置与插件设置绑定之后分发 | 已实现 |
+| v2 | 自定义会话条目（`sendMessage`、`appendEntry`）含 schema 升版和通用渲染、`sessionManager` 只读 shim、`switchSession`、编辑器读写、补全 provider、markdown 转换器 | 已规划，需先决定条目持久化与压缩 |
 | v3 | 只读地将 pi CLI 的 `settings.json` 用作发现线索、统一技能与提示词发现、远程控制下的提示路由、市场上架 | 尚未排期 |
 
 显式本地包导入（包括 `pi.extensions` / `pi.skills` 和有界、仅限 registry 的依赖准备）已在

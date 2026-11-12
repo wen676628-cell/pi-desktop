@@ -36,7 +36,7 @@ const bridge = {
   getSystemPrompt: () => "", getActiveTools: () => [], getAllTools: () => [], setActiveTools: () => {},
   getSessionName: () => undefined, setSessionName: () => {}, sendUserMessage: () => {},
   waitForIdle: async () => {}, newSession: async () => ({ cancelled: false }), fork: async () => ({ cancelled: false }),
-  requestUi: async (_e: unknown, r: { kind: string }) => ({ kind: r.kind }), publishCommands: () => {}, publishDiagnostics: () => {},
+  requestUi: async (_e: unknown, r: { kind: string }) => ({ kind: r.kind }), publishCommands: () => {}, publishShortcuts: () => {}, publishDiagnostics: () => {},
 };
 const runner = new TrustedExtensionRunner({ specs: [{ id: extension, entry: extension, label: "typed", source: "user", root: process.cwd() }], bridge: bridge as any });
 const [report] = await runner.load();

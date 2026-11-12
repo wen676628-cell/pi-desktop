@@ -13,6 +13,7 @@ export {
   type TrustedExtensionDiagnosticKind,
   type TrustedExtensionLoadReport,
   type TrustedExtensionLoadState,
+  type TrustedExtensionShortcut,
   type TrustedExtensionSource,
   type TrustedExtensionSpec,
   type TrustedExtensionUiPrompt,

@@ -140,7 +140,7 @@ check("fx loaded with tool + no diagnostics", ax("fx")?.state === "loaded" && ax
 check("greet loaded with command", ax("greet")?.state === "loaded" && ax("greet")?.commandNames?.includes("greet"));
 check("bad in error with load_error", ax("bad")?.state === "error" && ax("bad")?.diagnostics?.some((d) => d.kind === "load_error" && /refuses to load/.test(d.message)), JSON.stringify(ax("bad")?.diagnostics?.map((d) => d.kind)));
 const tuiKinds = (ax("tui")?.diagnostics ?? []).map((d) => `${d.kind}:${d.member}`).sort();
-check("tui inert with diagnostics", ax("tui")?.state === "loaded" && tuiKinds.includes("stub_symbol:Text") && tuiKinds.includes("unsupported_api:registerShortcut") && tuiKinds.includes("unsupported_api:ui.setWidget"), tuiKinds.join(","));
+check("tui keeps inert symbols and widget diagnostics without shortcut noise", ax("tui")?.state === "loaded" && tuiKinds.includes("stub_symbol:Text") && tuiKinds.includes("unsupported_api:ui.setWidget") && !tuiKinds.includes("unsupported_api:registerShortcut"), tuiKinds.join(","));
 check("proj plugin is project scoped and registered its tool", byName.proj?.scope?.mode === "projects" && ax("proj")?.state === "loaded" && ax("proj")?.toolNames?.includes("proj_tool"), JSON.stringify([byName.proj?.scope, ax("proj")?.toolNames]));
 // A custom agent registered through registerAgent / registerProvider reaches the
 // plugin row, and a contributed provider becomes an owned native row (ADR 0259).

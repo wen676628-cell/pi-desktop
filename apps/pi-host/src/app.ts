@@ -175,6 +175,7 @@ export async function startPiHost(config: PiHostConfig, options: { log?: HostLog
     });
     sidecar.setTrustedExtensionBridge({
       publishCommands: () => undefined,
+      publishShortcuts: () => undefined,
       publishDiagnostics: () => undefined,
       requestUi: async () => {
         throw new Error("extension UI is not available on a headless host");

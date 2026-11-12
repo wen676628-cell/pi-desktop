@@ -23,6 +23,7 @@ import {
 import {
   trustedExtensionAgentProviderId,
   type TrustedExtensionAgentModelConfig,
+  type TrustedExtensionShortcut,
 } from "@pi-desktop/shared";
 import {
   createVirtualModules,
@@ -59,7 +60,6 @@ const INERT_API_MEMBERS = [
   "appendEntry",
   "setLabel",
   "switchSession",
-  "registerShortcut",
   "registerMarkdownTransformer",
   "registerMessageRenderer",
   "registerEntryRenderer",
@@ -173,6 +173,7 @@ export interface TrustedExtensionBridge {
     signal?: AbortSignal,
   ): Promise<TrustedExtensionUiResponse>;
   publishCommands(commands: TrustedExtensionCommand[]): void;
+  publishShortcuts(shortcuts: TrustedExtensionShortcut[]): void;
   publishDiagnostics(diagnostics: TrustedExtensionDiagnostic[]): void;
   /** Optional read-only registry passed straight through to extensions. */
   modelRegistry?: unknown;
@@ -200,12 +201,18 @@ type RegisteredCommandLike = {
   getArgumentCompletions?: (prefix: string) => unknown;
 };
 
+type RegisteredShortcutLike = {
+  description?: string;
+  handler: (ctx: unknown) => Promise<void> | void;
+};
+
 type Handler = (event: unknown, ctx: unknown) => unknown;
 
 type LoadedExtension = {
   spec: TrustedExtensionSpec;
   tools: Map<string, ToolDefinitionLike>;
   commands: Map<string, RegisteredCommandLike>;
+  shortcuts: Map<string, RegisteredShortcutLike>;
   agents: Map<string, RegisteredTrustedExtensionAgent>;
   handlers: Map<string, Handler[]>;
   flags: Map<string, { type: "boolean" | "string"; default?: boolean | string }>;
@@ -340,6 +347,7 @@ export class TrustedExtensionRunner {
         spec,
         tools: new Map(),
         commands: new Map(),
+        shortcuts: new Map(),
         agents: new Map(),
         handlers: new Map(),
         flags: new Map(),
@@ -411,6 +419,7 @@ export class TrustedExtensionRunner {
     }
     if (this.closing || signal.aborted) return this.getLoadReports();
     this.bridge.publishCommands(this.getCommands());
+    this.bridge.publishShortcuts(this.getShortcuts());
     this.flushDiagnostics();
     await this.emit("session_start", { type: "session_start", reason: "startup" });
     return this.getLoadReports();
@@ -433,6 +442,7 @@ export class TrustedExtensionRunner {
         this.lifecycle.cancel();
         await Promise.allSettled([...this.processes]);
         this.bridge.publishCommands([]);
+        this.bridge.publishShortcuts([]);
       }
     });
     return this.disposal;
@@ -538,6 +548,41 @@ export class TrustedExtensionRunner {
     return false;
   }
 
+  /** Shortcuts registered by every loaded extension in this session. */
+  getShortcuts(): TrustedExtensionShortcut[] {
+    const out: TrustedExtensionShortcut[] = [];
+    for (const extension of this.loaded.values()) {
+      for (const [key, shortcut] of extension.shortcuts) {
+        out.push({
+          extensionId: extension.spec.id,
+          extensionLabel: extension.spec.label,
+          key,
+          ...(shortcut.description ? { description: shortcut.description } : {}),
+        });
+      }
+    }
+    return out;
+  }
+
+  /** Run the handler registered for `key`. Returns false when unknown. */
+  async runShortcut(key: string): Promise<boolean> {
+    if (this.closing) return false;
+    for (const extension of this.loaded.values()) {
+      const shortcut = extension.shortcuts.get(key);
+      if (!shortcut) continue;
+      const signal = this.lifecycle.signal;
+      try {
+        await this.lifecycle.run(() => shortcut.handler(this.createCommandContext(extension)), signal);
+      } catch (err) {
+        if (!signal.aborted && !(err instanceof Error && err.name === "AbortError")) {
+          this.report(extension.spec.id, "handler_error", errorMessage(err), `shortcut:${key}`, errorStack(err));
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Emit one event to every handler in load order. For result events the
    * results are folded by the caller-supplied reducer; a throwing or stalled
@@ -622,7 +667,7 @@ export class TrustedExtensionRunner {
     member?: string,
     stack?: string,
   ): void {
-    const key = `${extensionId} ${kind} ${member ?? ""}`;
+    const key = `${extensionId}\u0000${kind}\u0000${member ?? ""}`;
     const existing = this.diagnostics.get(key);
     if (existing) {
       existing.count += 1;
@@ -877,6 +922,27 @@ export class TrustedExtensionRunner {
           return;
         }
         extension.commands.set(clean, options);
+      },
+      registerShortcut: (key: string, options: RegisteredShortcutLike) => {
+        if (typeof key !== "string" || !key.trim() || typeof options?.handler !== "function") {
+          this.report(
+            extension.spec.id,
+            "rejected_registration",
+            "shortcut needs a key and handler()",
+            typeof key === "string" ? key : "",
+          );
+          return;
+        }
+        // pi's KeyId spelling is what the renderer's matcher consumes; store the
+        // normalized form so differently-cased spellings cannot both register.
+        const clean = key.trim().toLowerCase();
+        const taken = [...this.loaded.values()].some((other) => other.shortcuts.has(clean));
+        if (taken || extension.shortcuts.has(clean)) {
+          this.report(extension.spec.id, "rejected_registration", `shortcut "${clean}" is already registered`, clean);
+          return;
+        }
+        extension.shortcuts.set(clean, options);
+        this.bridge.publishShortcuts(this.getShortcuts());
       },
       registerAgent: (definition: TrustedExtensionAgentDefinition) => {
         this.registerAgentDefinition(extension, definition);

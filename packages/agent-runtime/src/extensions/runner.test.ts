@@ -7,6 +7,7 @@ import type {
   TrustedExtensionBridge,
   TrustedExtensionCommand,
   TrustedExtensionDiagnostic,
+  TrustedExtensionShortcut,
   TrustedExtensionSpec,
   TrustedExtensionUiRequest,
   TrustedExtensionUiResponse,
@@ -38,6 +39,7 @@ function spec(name: string, source: string): TrustedExtensionSpec {
 
 type BridgeLog = {
   commands: TrustedExtensionCommand[][];
+  shortcuts: TrustedExtensionShortcut[][];
   diagnostics: TrustedExtensionDiagnostic[][];
   ui: TrustedExtensionUiRequest[];
   sessionName?: string;
@@ -47,7 +49,7 @@ type BridgeLog = {
 function fakeBridge(
   answers: Partial<Record<TrustedExtensionUiRequest["kind"], TrustedExtensionUiResponse>> = {},
 ): { bridge: TrustedExtensionBridge; log: BridgeLog } {
-  const log: BridgeLog = { commands: [], diagnostics: [], ui: [], userMessages: [] };
+  const log: BridgeLog = { commands: [], shortcuts: [], diagnostics: [], ui: [], userMessages: [] };
   const bridge: TrustedExtensionBridge = {
     sessionId: "s1",
     cwd: root,
@@ -80,6 +82,9 @@ function fakeBridge(
     },
     publishCommands: (commands) => {
       log.commands.push(commands);
+    },
+    publishShortcuts: (shortcuts) => {
+      log.shortcuts.push(shortcuts);
     },
     publishDiagnostics: (diagnostics) => {
       log.diagnostics.push(diagnostics);
@@ -707,7 +712,6 @@ export default function (pi: any) {
 export default function (pi: any) {
   const t = new Text("x"); t.setText("y");
   matchesKey({}, "ctrl+c");
-  pi.registerShortcut("ctrl+x", { handler() {} });
   pi.sendMessage({ customType: "x", content: "hi" });
   pi.sendMessage({ customType: "y", content: "hi" });
   pi.on("session_start", (_e: any, ctx: any) => {
@@ -730,7 +734,6 @@ export default function (pi: any) {
       // `Box` is imported but never touched, so it is never reported.
       "stub_symbol:Text": 1,
       "stub_symbol:matchesKey": 1,
-      "unsupported_api:registerShortcut": 1,
       "unsupported_api:sendMessage": 2,
       "unsupported_api:ui.setWidget": 1,
       "unsupported_api:on:made_up_event": 1,
@@ -796,6 +799,55 @@ export default function (pi: any) {
     expect(log.sessionName).toBe("Ann/blue/true/now");
     expect(log.userMessages).toEqual(["follow up"]);
     expect((globalThis as { __exec?: { stdout: string; code: number } }).__exec).toMatchObject({ stdout: "out", code: 0 });
+  });
+
+  it("publishes registered shortcuts and dispatches the owning handler", async () => {
+    const ext = spec("voice", `export default function (pi: any) {
+  pi.registerShortcut("ctrl+alt+m", { description: "Toggle mute", handler() {
+    pi.setSessionName("muted");
+  } });
+}`);
+    const { bridge, log } = fakeBridge();
+    const runner = new TrustedExtensionRunner({ specs: [ext], bridge });
+    await runner.load();
+    expect(runner.getShortcuts()).toEqual([
+      {
+        extensionId: ext.id,
+        extensionLabel: "voice",
+        key: "ctrl+alt+m",
+        description: "Toggle mute",
+      },
+    ]);
+    expect(log.shortcuts.at(-1)).toEqual(runner.getShortcuts());
+    expect(await runner.runShortcut("ctrl+alt+m")).toBe(true);
+    expect(log.sessionName).toBe("muted");
+    expect(await runner.runShortcut("ctrl+alt+k")).toBe(false);
+    await runner.dispose();
+    expect(log.shortcuts.at(-1)).toEqual([]);
+  });
+
+  it("rejects duplicate and malformed shortcut registrations", async () => {
+    const a = spec("a", `export default function (pi: any) {
+  pi.registerShortcut("Ctrl+Alt+M", { handler() {} });
+  pi.registerShortcut("ctrl+alt+m", { handler() {} });
+  pi.registerShortcut("", { handler() {} });
+  pi.registerShortcut("ctrl+alt+n", {});
+}`);
+    const b = spec("b", `export default function (pi: any) {
+  pi.registerShortcut("ctrl+alt+m", { handler() {} });
+}`);
+    const { bridge } = fakeBridge();
+    const runner = new TrustedExtensionRunner({ specs: [a, b], bridge });
+    await runner.load();
+    expect(runner.getShortcuts()).toEqual([
+      { extensionId: a.id, extensionLabel: "a", key: "ctrl+alt+m" },
+    ]);
+    expect(runner.getDiagnostics().map((d) => [d.kind, d.member])).toEqual([
+      ["rejected_registration", "ctrl+alt+m"],
+      ["rejected_registration", undefined],
+      ["rejected_registration", "ctrl+alt+n"],
+      ["rejected_registration", "ctrl+alt+m"],
+    ]);
   });
 
   it("folds context results, and records a stalled handler as a timeout", async () => {

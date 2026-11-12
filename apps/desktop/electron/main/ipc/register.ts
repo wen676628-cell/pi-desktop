@@ -434,6 +434,11 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
       if (!currentSidecar) throw new Error("agent sidecar unavailable");
       return currentSidecar.call<{ handled: boolean }>("extensions.command.run", input);
     },
+    runShortcut: async (input) => {
+      const currentSidecar = getSidecar();
+      if (!currentSidecar) throw new Error("agent sidecar unavailable");
+      return currentSidecar.call<{ handled: boolean }>("extensions.shortcut.run", input);
+    },
   });
   registerAgentIpc({
     registrar,
