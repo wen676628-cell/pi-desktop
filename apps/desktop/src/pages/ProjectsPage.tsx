@@ -8,7 +8,9 @@ import {
   IconArchive,
   IconArchiveRestore,
   IconChat,
+  IconCopy,
   IconFileText,
+  IconFolder,
   IconMore,
   IconPencil,
   IconPin,
@@ -36,7 +38,6 @@ import {
   groupArchiveRows,
   neighborPath,
   nextArchiveOpenPath,
-  sessionMatchesIndexProject,
   type ProjectIndexItem,
   type SessionIndexRecord,
   type SortMode,
@@ -541,23 +542,64 @@ export function ProjectsPage() {
                           <IconSparkles size={14} />
                           {t("project.editMemory")}
                         </button>
+                        {!project.legacy ? (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            data-action="edit-project"
+                            onClick={() => {
+                              setMenuFor(null);
+                              setEditProjectFor({
+                                path: project.path,
+                                name: project.name,
+                                groupId: project.groupId,
+                                roots: project.roots,
+                                legacy: project.legacy,
+                              });
+                            }}
+                          >
+                            <IconPencil size={14} />
+                            {t("project.edit", { defaultValue: "Edit project" })}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           role="menuitem"
-                          data-action="edit-project"
+                          data-action="open-project-folder"
                           onClick={() => {
                             setMenuFor(null);
-                            setEditProjectFor({
-                              path: project.path,
-                              name: project.name,
-                              groupId: project.groupId,
-                              roots: project.roots,
-                              legacy: project.legacy,
-                            });
+                            void api.openProjectFolder(project.path).catch((error) =>
+                              showToast(
+                                error instanceof Error ? error.message : String(error),
+                                { variant: "error" },
+                              ),
+                            );
                           }}
                         >
-                          <IconPencil size={14} />
-                          {t("project.edit", { defaultValue: "Edit project" })}
+                          <IconFolder size={14} />
+                          {t("project.openFolder")}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          data-action="copy-project-path"
+                          onClick={() => {
+                            setMenuFor(null);
+                            void navigator.clipboard
+                              .writeText(project.path)
+                              .then(() => showToast(t("chat.copied")))
+                              .catch((error) =>
+                                showToast(
+                                  error instanceof Error
+                                    ? error.message
+                                    : t("chat.copyFailed"),
+                                  { variant: "error" },
+                                ),
+                              );
+                          }}
+                        >
+                          <IconCopy size={14} />
+                          {t("project.copyPath")}
                         </button>
                         <div className="projects-menu-sep" role="separator" />
                         <button
@@ -667,11 +709,21 @@ export function ProjectsPage() {
       ) : null}
       {deleteFor ? (
         <ProjectDeleteDialog
-          project={deleteFor}
+          project={{
+            ...deleteFor,
+            // The host removes sessions only for the primary root; other
+            // roots are detached with their chats intact (#1358).
+            sessionCount: sessions.filter(
+              (session) =>
+                normalizeProjectPath(session.projectPath) ===
+                normalizeProjectPath(deleteFor.path),
+            ).length,
+          }}
           runningSessionIds={sessions
             .filter(
               (session) =>
-                sessionMatchesIndexProject(session, deleteFor) &&
+                normalizeProjectPath(session.projectPath) ===
+                  normalizeProjectPath(deleteFor.path) &&
                 runningSessions[session.id] === true,
             )
             .map((session) => session.id)}

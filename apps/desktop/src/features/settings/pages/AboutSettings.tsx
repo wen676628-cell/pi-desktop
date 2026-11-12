@@ -21,6 +21,11 @@ export function AboutSettings({
 }) {
   const { t } = useTranslation();
   const version = useAppStore((s) => s.version);
+  const showToast = useAppStore((s) => s.showToast);
+  const reportError = (error: unknown) =>
+    showToast(error instanceof Error ? error.message : String(error), {
+      variant: "error",
+    });
   return (
     <div className="settings-stack">
       <div className="settings-about-hero">
@@ -39,7 +44,10 @@ export function AboutSettings({
       />
       <SettingsCard>
         <SettingsRow title={t("settings.logs")}>
-          <Button variant="secondary" onClick={() => void api.openLogs()}>
+          <Button
+            variant="secondary"
+            onClick={() => void api.openLogs().catch(reportError)}
+          >
             {t("settings.openLogs")}
           </Button>
         </SettingsRow>
@@ -49,7 +57,7 @@ export function AboutSettings({
         >
           <Button
             variant="secondary"
-            onClick={() => void api.openFeedback().catch(() => undefined)}
+            onClick={() => void api.openFeedback().catch(reportError)}
           >
             {t("settings.openFeedback")}
           </Button>

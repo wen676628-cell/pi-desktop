@@ -315,6 +315,41 @@ export function ModelConfigPage() {
     if (!rowBusy.begin(provider.id)) return;
     try {
       await api.deleteProvider(provider.id);
+      // The host drops the provider row but leaves app defaults pointing at it.
+      // Re-point them before refreshing so Settings and scheduled tasks never
+      // name a provider that no longer exists.
+      const current = await api.getSettings();
+      const remaining = providers.filter((entry) => entry.id !== provider.id);
+      const currentDefault = remaining.find(
+        (entry) => entry.id === current.defaultProviderId,
+      );
+      const keepsDefault =
+        !!currentDefault &&
+        providerReady(currentDefault) &&
+        chatModelOptions([currentDefault], imageGenerationCandidates).some(
+          ({ modelId }) => sameWireId(modelId, current.defaultModelId ?? ""),
+        );
+      if (!keepsDefault) {
+        const replacement = remaining.find(
+          (entry) =>
+            providerReady(entry) &&
+            providerServesChatModels(entry, imageGenerationCandidates) &&
+            chatModelOptions([entry], imageGenerationCandidates).length > 0,
+        );
+        const nextSettings = {
+          ...current,
+          ...(replacement
+            ? {
+                defaultProviderId: replacement.id,
+                defaultModelId:
+                  chatModelOptions([replacement], imageGenerationCandidates)[0]
+                    ?.modelId ?? "",
+              }
+            : { defaultProviderId: "", defaultModelId: "" }),
+        };
+        await api.setSettings(nextSettings);
+        useAppStore.setState({ settings: nextSettings });
+      }
       await refreshProviders();
       showToast(t("settings.providerRemoved"), { variant: "success" });
     } catch (error) {

@@ -54,6 +54,7 @@ import {
   IconServer,
   IconTerminal,
   IconTrash,
+  IconX,
 } from "../icons";
 import { TooltipButton, cx } from "../ui";
 
@@ -519,6 +520,24 @@ export function AgentMcpPage() {
               onSelect: () => {
                 setMenuFor(null);
                 void authorizeServer(server, level);
+              },
+            } satisfies CapabilityMenuItem,
+          ]
+        : []),
+      ...(authorizing
+        ? [
+            {
+              key: "cancel-authorize",
+              label: t("common.cancel"),
+              icon: <IconX size={14} />,
+              onSelect: () => {
+                setMenuFor(null);
+                void api.cancelMcpOAuth({ id: server.id }).catch((error: unknown) => {
+                  showToast(
+                    error instanceof Error ? error.message : String(error),
+                    { variant: "error" },
+                  );
+                });
               },
             } satisfies CapabilityMenuItem,
           ]

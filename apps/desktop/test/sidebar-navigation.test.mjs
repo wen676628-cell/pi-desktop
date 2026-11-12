@@ -34,6 +34,19 @@ test("home sidebar exposes only the supported destination entries", () => {
   assert.doesNotMatch(sidebarSource, /t\("nav\.scheduled"\)/);
 });
 
+test("primary nav carries new task, automation, and extensions", () => {
+  const nav =
+    sidebarSource.match(
+      /<nav className="sidebar-primary-nav"[\s\S]*?<\/nav>/,
+    )?.[0] ?? "";
+  assert.match(nav, /data-nav="new-task"/);
+  assert.match(nav, /data-nav="scheduled"/);
+  assert.match(nav, /data-nav="plugins"/);
+  assert.match(nav, /onClick=\{onNewTask\}/);
+  assert.match(nav, /t\("scheduled\.title"\)/);
+  assert.match(nav, /t\("nav\.plugins"\)/);
+});
+
 test("sidebar brand returns to the chat home", () => {
   const brandButton = sidebarSource.match(
     /<TooltipButton\s+type="button"\s+className="brand no-drag"[\s\S]*?<\/TooltipButton>/,

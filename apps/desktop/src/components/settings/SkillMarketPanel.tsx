@@ -10,6 +10,7 @@ import {
   mergeSkillEntries,
   sanitizeSkillSources,
   validateSkillCatalogFile,
+  type AgentCapabilityLevel,
   type SkillCatalogCategory,
   type SkillCatalogEntry,
   type SkillMarketSource,
@@ -149,10 +150,14 @@ function saveSources(sources: SkillMarketSource[]): void {
  */
 export function SkillMarketPanel({
   installedIds,
+  level = "global",
+  projectPath,
   onBack,
   onInstalled,
 }: {
   installedIds: readonly string[];
+  level?: AgentCapabilityLevel;
+  projectPath?: string | null;
   onBack: () => void;
   onInstalled: (id: string) => void;
 }) {
@@ -363,6 +368,10 @@ export function SkillMarketPanel({
 
   const install = async () => {
     if (!installFor || installing) return;
+    if (level === "project" && !projectPath) {
+      showToast(t("settings.selectProjectFirst"), { variant: "error" });
+      return;
+    }
     setInstalling(true);
     try {
       const document = await api.fetchSkillMarketDocument(installFor);
@@ -377,8 +386,12 @@ export function SkillMarketPanel({
         name: assembled.name,
         description: assembled.description,
         body: assembled.body,
-        level: "global",
-        scope: GLOBAL_SCOPE,
+        level,
+        ...(level === "project" && projectPath ? { projectPath } : {}),
+        scope:
+          level === "project" && projectPath
+            ? { mode: "projects", projects: [projectPath] }
+            : GLOBAL_SCOPE,
         enabled: true,
       });
       showToast(t("settings.sklm.installSuccess", { name: assembled.name }), {

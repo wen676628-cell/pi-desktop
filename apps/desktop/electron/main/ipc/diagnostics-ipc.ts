@@ -27,7 +27,8 @@ export function registerDiagnosticsIpc({
   handle(IPC.invoke.logOpenFolder, async () => {
     const logs = join(dataDir, "logs");
     mkdirSync(logs, { recursive: true });
-    await shell.openPath(stripWinLongPrefix(logs));
+    const failure = await shell.openPath(stripWinLongPrefix(logs));
+    if (failure) throw new Error(failure);
     return { ok: true, path: logs };
   });
 

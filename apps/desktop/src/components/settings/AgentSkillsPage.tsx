@@ -646,6 +646,8 @@ export function AgentSkillsPage() {
     return (
       <SkillMarketPanel
         installedIds={[...globalSkills, ...projectSkills].map((skill) => skill.id)}
+        level={targetLevel}
+        projectPath={selectedProjectPath}
         onBack={() => {
           setView("skills");
           void load();

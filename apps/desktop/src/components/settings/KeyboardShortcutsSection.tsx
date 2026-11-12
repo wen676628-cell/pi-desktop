@@ -67,6 +67,7 @@ export function KeyboardShortcutsSection({ settings, platform, saveSettings }: P
   const { t } = useTranslation();
   const [recordingId, setRecordingId] = useState<KeyboardShortcutId | null>(null);
   const [savingId, setSavingId] = useState<KeyboardShortcutId | null>(null);
+  const [resettingAll, setResettingAll] = useState(false);
   const [error, setError] = useState<{ id: KeyboardShortcutId; message: string } | null>(
     null,
   );
@@ -133,6 +134,12 @@ export function KeyboardShortcutsSection({ settings, platform, saveSettings }: P
     event: ReactKeyboardEvent<HTMLButtonElement>,
     shortcut: KeyboardShortcutDefinition,
   ) => {
+    if (event.key === "Tab") {
+      // Recording must not trap focus; leave Tab to the browser.
+      setRecordingId(null);
+      setError(null);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     if (event.key === "Escape") {
@@ -161,11 +168,12 @@ export function KeyboardShortcutsSection({ settings, platform, saveSettings }: P
         <button
           type="button"
           className="settings-text-action"
-          disabled={!hasOverrides || savingId !== null}
+          disabled={!hasOverrides || savingId !== null || resettingAll}
           onClick={() => {
             setRecordingId(null);
             setError(null);
-            void saveSettings({ keybindings: {} });
+            setResettingAll(true);
+            void saveSettings({ keybindings: {} }).finally(() => setResettingAll(false));
           }}
         >
           <IconSnapshot size={13} />
