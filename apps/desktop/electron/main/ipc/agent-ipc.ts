@@ -20,6 +20,7 @@ export type AgentIpcDependencies = {
   registrar: IpcRegistrar;
   getHost: () => HostProcess | null;
   getSidecar: () => AgentSidecar | null;
+  ensureSidecar: () => Promise<AgentSidecar>;
   getAgentHostBridge: () => AgentHostBridge | null;
   logger: Pick<Logger, "app">;
   agentExtensions: AgentExtensionBridge;
@@ -85,6 +86,11 @@ export function registerAgentIpc({
   registrar,
   getHost,
   getSidecar,
+  ensureSidecar = async () => {
+    const current = getSidecar();
+    if (!current) throw new Error("agent sidecar unavailable");
+    return current;
+  },
   getAgentHostBridge,
   logger,
   agentExtensions,
@@ -124,7 +130,8 @@ export function registerAgentIpc({
     });
   };
   handle(IPC.invoke.agentSteer, async (req: AgentSteerRequest) => {
-    if (!host || !sidecar) throw new Error("backend unavailable");
+    if (!host) throw new Error("backend unavailable");
+    sidecar = await ensureSidecar();
     if (
       !req?.sessionId || typeof req.content !== "string" || !req.expectedTurnId ||
       (!req.content.trim() && !req.attachments?.length)
@@ -193,7 +200,7 @@ export function registerAgentIpc({
     // Set only on an in-process request built by the Agent Host bridge for a
     // Host-started mode run turn; a renderer or plugin request never has it.
     const modeOrigin = modeContinuationOrigin(req);
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     const voiceOrigin = parseVoiceOrigin(req.voiceOrigin);
     if (req.sessionId.startsWith("native-pi:")) {
       // Desktop-managed MCP servers are not installed in native Pi sessions.
@@ -644,7 +651,8 @@ export function registerAgentIpc({
 
   handle(IPC.invoke.agentCompact, async (req: { sessionId: string }) => {
     rejectNativeAgentOperation(req.sessionId);
-    if (!host || !sidecar) throw new Error("backend unavailable");
+    if (!host) throw new Error("backend unavailable");
+    sidecar = await ensureSidecar();
     if (activeTurns.has(req.sessionId)) {
       throw Object.assign(new Error("Session already has an active turn"), {
         errorCode: ErrorCodes.AGENT_BUSY,
@@ -693,7 +701,7 @@ export function registerAgentIpc({
   });
 
   handle(IPC.invoke.agentAbort, async (req: { sessionId: string; turnId?: string }) => {
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     // Prompt admission holds this same session operation until the sidecar has
     // accepted the turn. Waiting here closes the startup window where the
     // renderer already shows Stop but activeTurns/runtime are not ready yet.
@@ -753,12 +761,12 @@ export function registerAgentIpc({
       throw new Error("Invalid subagent stop request");
     }
     rejectNativeAgentOperation(req.sessionId);
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     return sidecar.call("agent.stopSubagents", req);
   });
 
   handle(IPC.invoke.agentStop, async (req: AgentStopRequest) => {
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     const activeTurnId = activeTurns.get(req.sessionId);
     if (req.turnId && activeTurnId !== req.turnId) {
       return { requested: false };
@@ -774,7 +782,7 @@ export function registerAgentIpc({
   });
 
   handle(IPC.invoke.agentGetStatus, async (sessionId: string) => {
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     return sidecar.call("agent.getStatus", { sessionId });
   });
 
@@ -832,7 +840,7 @@ export function registerAgentIpc({
   });
 
   handle(IPC.invoke.askToolResolve, async (resolution: AskToolResolution) => {
-    if (!sidecar) throw new Error("sidecar unavailable");
+    sidecar = await ensureSidecar();
     const sessionId = String(resolution?.sessionId ?? "").trim();
     const requestId = String(resolution?.requestId ?? "").trim();
     if (!sessionId || !requestId) throw new Error("asktool resolution identity required");

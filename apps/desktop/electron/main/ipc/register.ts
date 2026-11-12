@@ -58,6 +58,8 @@ export type RegisterIpcDependencies = {
   traySessions: ReturnType<typeof createTraySessions>;
   taskbarUnreadBadge: ReturnType<typeof createTaskbarUnreadBadge>;
   getSidecar: () => AgentSidecar | null;
+  /** Start the sidecar on first use and return the live child. */
+  ensureSidecar: () => Promise<AgentSidecar>;
   getAgentHostBridge: () => AgentHostBridge | null;
   /**
    * Resolves the remote backend router once it exists. Renderer IPC calls whose
@@ -110,6 +112,11 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     getHost,
     publishComputerGrant,
     getSidecar,
+    ensureSidecar = async () => {
+      const current = getSidecar();
+      if (!current) throw new Error("agent sidecar unavailable");
+      return current;
+    },
     getAgentHostBridge,
     getBackendRouter,
     getNotificationViewingSessionId,
@@ -291,6 +298,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     registrar,
     getHost,
     getSidecar,
+    ensureSidecar,
     dataDir,
     activeTurns,
     sessionProjects,
@@ -430,13 +438,11 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
       return loaded;
     },
     runCommand: async (input) => {
-      const currentSidecar = getSidecar();
-      if (!currentSidecar) throw new Error("agent sidecar unavailable");
+      const currentSidecar = await ensureSidecar();
       return currentSidecar.call<{ handled: boolean }>("extensions.command.run", input);
     },
     runShortcut: async (input) => {
-      const currentSidecar = getSidecar();
-      if (!currentSidecar) throw new Error("agent sidecar unavailable");
+      const currentSidecar = await ensureSidecar();
       return currentSidecar.call<{ handled: boolean }>("extensions.shortcut.run", input);
     },
   });
@@ -444,6 +450,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     registrar,
     getHost,
     getSidecar,
+    ensureSidecar,
     getAgentHostBridge,
     cancelSessionTools: (sessionId: string, reason?: string) => {
       plugins.cancelSessionTools(sessionId, reason);
