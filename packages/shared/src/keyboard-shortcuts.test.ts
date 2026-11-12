@@ -6,6 +6,7 @@ import {
   isReservedKeybinding,
   keybindingDisplayParts,
   keybindingFromEvent,
+  keybindingFromPiShortcut,
   keybindingMatchesEvent,
   keybindingToElectronAccelerator,
   keybindingsConflict,
@@ -333,5 +334,41 @@ describe("retired window keybindings migrate into the toggle (D438, D439)", () =
         migrateKeybindingOverrides({ summonWindow: "Ctrl+Alt+W" }),
       ),
     ).toEqual({ toggleWindow: "Ctrl+Alt+W" });
+  });
+});
+
+describe("pi extension shortcuts", () => {
+  it("maps literal ctrl/alt/shift between terminal and desktop semantics", () => {
+    expect(keybindingFromPiShortcut("ctrl+alt+m", "win32")).toBe("Mod+Alt+M");
+    expect(keybindingFromPiShortcut("ctrl+alt+m", "darwin")).toBe(
+      "Ctrl+Alt+M",
+    );
+    expect(keybindingFromPiShortcut("shift+pageUp", "linux")).toBe(
+      "Shift+PageUp",
+    );
+    expect(keybindingFromPiShortcut("f5", "linux")).toBe("F5");
+    expect(
+      keybindingMatchesEvent(
+        keybindingFromPiShortcut("ctrl+alt+m", "win32"),
+        { key: "m", code: "KeyM", ctrlKey: true, altKey: true },
+        "win32",
+      ),
+    ).toBe(true);
+  });
+
+  it("maps super to the command key only where one exists", () => {
+    expect(keybindingFromPiShortcut("super+k", "darwin")).toBe("Mod+K");
+    expect(keybindingFromPiShortcut("super+k", "win32")).toBeNull();
+    expect(keybindingFromPiShortcut("cmd+shift+p", "darwin")).toBe(
+      "Mod+Shift+P",
+    );
+  });
+
+  it("drops keys the desktop keybinding model cannot represent", () => {
+    expect(keybindingFromPiShortcut("ctrl+!", "win32")).toBeNull();
+    expect(keybindingFromPiShortcut("hyper+x", "win32")).toBeNull();
+    expect(keybindingFromPiShortcut("", "win32")).toBeNull();
+    expect(keybindingFromPiShortcut(undefined, "win32")).toBeNull();
+    expect(keybindingFromPiShortcut("ctrl+escape", "win32")).toBeNull();
   });
 });

@@ -24,6 +24,8 @@ export type AgentExtensionIpcDeps = NpmRecoveryDependencies & {
   loadDevPlugin: (path: string) => Promise<unknown>;
   /** Run a registered command in one session's sidecar Runner. */
   runCommand: (input: { sessionId: string; name: string; args: string }) => Promise<{ handled: boolean }>;
+  /** Run the handler an extension registered for a keyboard shortcut. */
+  runShortcut: (input: { sessionId: string; key: string }) => Promise<{ handled: boolean }>;
 };
 
 export function registerAgentExtensionIpc(deps: AgentExtensionIpcDeps): void {
@@ -46,6 +48,39 @@ export function registerAgentExtensionIpc(deps: AgentExtensionIpcDeps): void {
       });
       if (!result.handled) {
         throw Object.assign(new Error(`command "/${name}" is not registered in this session`), {
+          errorCode: ErrorCodes.NOT_FOUND,
+        });
+      }
+      return { ok: true };
+    },
+  );
+
+  handle(
+    IPC.invoke.extensionsShortcutList,
+    async (input: { sessionId?: unknown } = {}) => {
+      const sessionId = String(input?.sessionId ?? "").trim();
+      if (!sessionId) {
+        throw Object.assign(new Error("session id required"), {
+          errorCode: ErrorCodes.INVALID_ARGUMENT,
+        });
+      }
+      return { shortcuts: bridge.shortcutsForSession(sessionId) };
+    },
+  );
+
+  handle(
+    IPC.invoke.extensionsShortcutRun,
+    async (input: { sessionId?: unknown; key?: unknown } = {}) => {
+      const sessionId = String(input?.sessionId ?? "").trim();
+      const key = String(input?.key ?? "").trim().toLowerCase();
+      if (!sessionId || !key) {
+        throw Object.assign(new Error("session and shortcut key required"), {
+          errorCode: ErrorCodes.INVALID_ARGUMENT,
+        });
+      }
+      const result = await deps.runShortcut({ sessionId, key });
+      if (!result.handled) {
+        throw Object.assign(new Error(`shortcut "${key}" is not registered in this session`), {
           errorCode: ErrorCodes.NOT_FOUND,
         });
       }

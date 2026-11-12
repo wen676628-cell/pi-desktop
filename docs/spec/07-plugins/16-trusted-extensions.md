@@ -239,8 +239,12 @@ never in Electron main, the renderer, or a plugin host process.
   bundles pi's session or extension loader in process needs the same
   define.
 - Import aliases: `pi-ai`, `pi-agent-core`, and `typebox` resolve to the
-  sidecar's copies; `@earendil-works/pi-coding-agent` resolves to a runtime
-  shim that exports `defineTool` and the tool-result type guards. `@earendil-works/pi-tui`
+  sidecar's copies; the `pi-ai` provider-registry subpath
+  (`@earendil-works/pi-ai/providers/all`, plus the legacy `@mariozechner`
+  spelling) maps to the same module object, because provider extensions import
+  it at load time. `@earendil-works/pi-coding-agent` resolves to a runtime
+  shim that exports `defineTool`, the tool-result type guards, `getAgentDir`,
+  `formatSize`, `DEFAULT_MAX_LINES`, and `DEFAULT_MAX_BYTES`. `@earendil-works/pi-tui`
   resolves to a stub module that exports every symbol as an inert
   value so a top-level import never fails. Using a stubbed symbol raises a
   diagnostic at call time.
@@ -281,15 +285,27 @@ unsupported ones.
 
 | Class | Members |
 |---|---|
-| Supported | `registerTool`, `registerCommand`, `registerAgent`, `registerProvider` (plugin-owned compatibility alias; same shape as `registerAgent`), `unregisterAgent`, `unregisterProvider`, `on(...)` for every event in §6, `exec`, `getActiveTools`, `getAllTools`, `setActiveTools`, `getCommands`, `setModel` (configured models and plugin agents; idle-only; persists the current session binding), `getThinkingLevel`, `setThinkingLevel`, `setSessionName`, `getSessionName`, `sendUserMessage` (Host-owned queue, D386), `getFlag` |
+| Supported | `registerTool`, `registerCommand`, `registerShortcut`, `registerAgent`, `registerProvider` (plugin-owned compatibility alias; same shape as `registerAgent`), `unregisterAgent`, `unregisterProvider`, `on(...)` for every event in §6, `exec`, `getActiveTools`, `getAllTools`, `setActiveTools`, `getCommands`, `setModel` (configured models and plugin agents; idle-only; persists the current session binding), `getThinkingLevel`, `setThinkingLevel`, `setSessionName`, `getSessionName`, `sendUserMessage` (Host-owned queue, D386), `getFlag` |
 | Supported on context | `ui.notify`, `ui.confirm`, `ui.select`, `ui.input`, `ui.setStatus`, `ui.setWorkingMessage`, `cwd`, `modelRegistry`, `isIdle`, `abort`, `hasPendingMessages`, `getContextUsage`, `compact`, `getSystemPrompt`, `waitForIdle`, `newSession`, `fork` |
-| Deferred to v2 | `sendMessage`, `appendEntry`, `setLabel`, `sessionManager` read API, `switchSession`, `registerShortcut`, `registerMarkdownTransformer`, `ui.setEditorText`, `ui.getEditorText`, `ui.addAutocompleteProvider`, `registerFlag` value editing |
+| Deferred to v2 | `sendMessage`, `appendEntry`, `setLabel`, `sessionManager` read API, `switchSession`, `registerMarkdownTransformer`, `ui.setEditorText`, `ui.getEditorText`, `ui.addAutocompleteProvider`, `registerFlag` value editing |
 | Unsupported | `ui.setWidget`, `ui.setFooter`, `ui.setHeader`, `ui.setTitle`, `ui.custom`, `ui.overlay`, `ui.onTerminalInput`, `ui.setWorkingVisible`, `ui.setWorkingIndicator`, `ui.setHiddenThinkingLabel`, `ui.pasteToEditor`, `ui.editor`, `registerMessageRenderer`, `registerEntryRenderer`, `navigateTree`, `shutdown` |
 
 `getActiveTools` describes the model-facing declarations, not execution grants.
 Plan/Goal can retain denied Write/Edit and configured Task-family declarations;
 the runtime mode gate runs before extension tool-call hooks or handlers. Plugins
 must not infer permission from the presence of a name in this list.
+
+`registerShortcut(key, { description?, handler })` binds a pi `KeyId`
+(for example `ctrl+alt+m`, `super+k`, `pageUp`) to a handler in the active
+session. The renderer reads the session's published shortcuts and dispatches
+them only after built-in and plugin-setting shortcuts, so a built-in binding
+always wins. `ctrl` is literal Control, `super`/`cmd` is the platform command
+key; bindings the desktop keybinding model cannot represent (`super` on
+Windows/Linux, shifted symbol keys) and bare letters or digits are published
+but never fire, so an extension cannot swallow typing in the composer.
+Handlers run through the same lifecycle, cancellation, and timeout rules as
+commands, and a key already registered by any extension is rejected
+first-registration-wins with a `rejected_registration` diagnostic.
 
 `registerAgent({ id, name?, models, stream? | complete? })` registers a
 session-scoped plugin-owned LLM integration. Each model declares bounded public
@@ -483,6 +499,7 @@ No host-core RPC method, protocol version, or SQLite schema changes in v1.
 | Method | Purpose |
 |---|---|
 | `extensions.commands.publish` | Replace the session's registered command list |
+| `extensions.shortcuts.publish` | Replace the session's registered keyboard-shortcut list |
 | `extensions.ui.request` | One interactive or status call from §9 |
 | `extensions.diagnostics.publish` | Replace the session's diagnostics list |
 | `extensions.model.configure` | Validate and persist a plugin-owned provider/model binding through `session.configure`, then broadcast `session:modelChanged` |
@@ -494,11 +511,13 @@ No host-core RPC method, protocol version, or SQLite schema changes in v1.
 |---|---|---|
 | `plugin/importExtension` | request | Native picker, generate the plugin, register it as a development plugin |
 | `extensions/commands/run` | request | Run a registered command in the active session |
+| `extensions/shortcuts/list` | request | List the active session's registered extension shortcuts |
+| `extensions/shortcuts/run` | request | Run the handler registered for one shortcut key |
 | `extensions/ui/respond` | request | Answer a pending prompt |
 | `extensions/ui/prompt` | event | A prompt is pending |
 | `extensions/event/status` | event | `ui.setStatus` / `ui.setWorkingMessage` text changed |
 | `plugin/list` | request | Plugin rows carry `agentExtension` state, tool, command, custom-agent names, and diagnostics |
-| `event/pluginChanged` | event | Also fires when a session publishes commands, diagnostics, or model binding changes |
+| `event/pluginChanged` | event | Also fires when a session publishes commands, shortcuts, diagnostics, or model binding changes |
 
 All channels are sender-validated like other plugin channels. The MCP
 control plane exposes `extensions/commands/run` (write) and
@@ -525,7 +544,8 @@ The Plugins page shows agent extensions on the owning plugin's row:
 | v1 | Loader, Runner per session, support matrix, events, tools, commands, UI bridge | Shipped (D387) |
 | v1.1 | Modules become `contributes.agentExtensions` with the `agent.extension` grant; import of pi CLI extensions as development plugins; the standalone registry and settings tab are removed | Shipped (D388) |
 | v1.1 amendment | Plugin-owned custom agents via `registerAgent`, provider compatibility alias, redacted model registry, idle-only session binding and restore through `extension-agent:` ids | Implemented (D426 / ADR 0258) |
-| v2 | Custom session entries (`sendMessage`, `appendEntry`) with a schema bump and a generic renderer, `sessionManager` read shim, `switchSession`, editor read and write, autocomplete providers, `registerShortcut`, markdown transformers | Planned, needs a decision on entry persistence and compaction |
+| v1.2 amendment | Extension keyboard shortcuts through `registerShortcut`, published per session and dispatched by the renderer after built-in and plugin-setting bindings | Implemented |
+| v2 | Custom session entries (`sendMessage`, `appendEntry`) with a schema bump and a generic renderer, `sessionManager` read shim, `switchSession`, editor read and write, autocomplete providers, markdown transformers | Planned, needs a decision on entry persistence and compaction |
 | v3 | Read-only hints from the pi CLI's `settings.json`, unified skill and prompt discovery, remote-control routing for prompts, marketplace listing | Not scheduled |
 
 Explicit local package import, including `pi.extensions` / `pi.skills` and bounded

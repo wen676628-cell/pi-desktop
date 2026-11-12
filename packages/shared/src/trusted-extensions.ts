@@ -48,6 +48,20 @@ export type TrustedExtensionCommand = {
   description?: string;
 };
 
+/**
+ * A session-scoped keyboard shortcut a trusted extension registered. The key
+ * uses pi's KeyId spelling (`ctrl+shift+v`-style); the renderer maps it through
+ * the same matcher as its own bindings. These are not user-configurable entries
+ * in `settings.keybindings`: they exist only while the extension is loaded in
+ * the session that published them.
+ */
+export type TrustedExtensionShortcut = {
+  extensionId: string;
+  extensionLabel: string;
+  key: string;
+  description?: string;
+};
+
 export type TrustedExtensionLoadState = "loaded" | "error";
 
 export type TrustedExtensionLoadReport = {

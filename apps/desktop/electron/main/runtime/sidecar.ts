@@ -439,6 +439,11 @@ export function createSidecarRuntime({
         String(params.sessionId ?? ""),
         Array.isArray(params.commands) ? (params.commands as any[]) : [],
       ),
+    publishShortcuts: (params) =>
+      agentExtensions.publishShortcuts(
+        String(params.sessionId ?? ""),
+        Array.isArray(params.shortcuts) ? (params.shortcuts as any[]) : [],
+      ),
     publishDiagnostics: (params) =>
       agentExtensions.publishDiagnostics(
         String(params.sessionId ?? ""),

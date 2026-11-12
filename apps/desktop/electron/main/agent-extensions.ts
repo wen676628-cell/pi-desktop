@@ -29,6 +29,7 @@ import {
   type TrustedExtensionCommand,
   type TrustedExtensionDiagnostic,
   type TrustedExtensionLoadReport,
+  type TrustedExtensionShortcut,
   type TrustedExtensionStatusEvent,
   type TrustedExtensionUiPrompt,
   type TrustedExtensionUiRequestEnvelope,
@@ -37,6 +38,7 @@ import {
 
 type SessionState = {
   commands: TrustedExtensionCommand[];
+  shortcuts: TrustedExtensionShortcut[];
   diagnostics: TrustedExtensionDiagnostic[];
   reports: TrustedExtensionLoadReport[];
 };
@@ -82,6 +84,11 @@ export class AgentExtensionBridge {
     this.options.onChanged();
   }
 
+  publishShortcuts(sessionId: string, shortcuts: TrustedExtensionShortcut[]): void {
+    this.session(sessionId).shortcuts = shortcuts;
+    this.options.onChanged();
+  }
+
   publishDiagnostics(
     sessionId: string,
     diagnostics: TrustedExtensionDiagnostic[],
@@ -106,6 +113,10 @@ export class AgentExtensionBridge {
 
   commandsForSession(sessionId: string): TrustedExtensionCommand[] {
     return this.sessions.get(sessionId)?.commands ?? [];
+  }
+
+  shortcutsForSession(sessionId: string): TrustedExtensionShortcut[] {
+    return this.sessions.get(sessionId)?.shortcuts ?? [];
   }
 
   clearSession(sessionId: string): void {
@@ -273,7 +284,7 @@ export class AgentExtensionBridge {
   private session(sessionId: string): SessionState {
     let state = this.sessions.get(sessionId);
     if (!state) {
-      state = { commands: [], diagnostics: [], reports: [] };
+      state = { commands: [], shortcuts: [], diagnostics: [], reports: [] };
       this.sessions.set(sessionId, state);
     }
     return state;

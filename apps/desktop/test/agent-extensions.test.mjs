@@ -226,6 +226,25 @@ test("session publications drive the plugin's agent-extension status and the com
   assert.ok(events.changed >= 5);
 });
 
+test("shortcut publications are per session and clear with the session", () => {
+  const { b, events } = bridge();
+  assert.deepEqual(b.shortcutsForSession("s1"), []);
+  b.publishShortcuts("s1", [
+    { extensionId: "/p/a.ts", extensionLabel: "P", key: "ctrl+alt+m", description: "Mute" },
+  ]);
+  b.publishShortcuts("s2", [
+    { extensionId: "/p/a.ts", extensionLabel: "P", key: "ctrl+alt+n" },
+  ]);
+  assert.deepEqual(b.shortcutsForSession("s1"), [
+    { extensionId: "/p/a.ts", extensionLabel: "P", key: "ctrl+alt+m", description: "Mute" },
+  ]);
+  assert.deepEqual(b.shortcutsForSession("s2").map((shortcut) => shortcut.key), ["ctrl+alt+n"]);
+  assert.ok(events.changed >= 2);
+  b.clearSession("s1");
+  assert.deepEqual(b.shortcutsForSession("s1"), []);
+  assert.deepEqual(b.shortcutsForSession("s2").map((shortcut) => shortcut.key), ["ctrl+alt+n"]);
+});
+
 test("ui requests: notify and status pass through; prompts round-trip, queue per session, time out, and cancel on abort", async () => {
   const { b, events } = bridge();
   const envelope = (request, sessionId = "s1") => ({ sessionId, extensionId: "ext", extensionLabel: "Hello", request });

@@ -77,6 +77,7 @@ const HOST_PROXY_ALLOWED = new Set([
   // Trusted extensions (D387): answered by the embedding host, plus the
   // session methods the ExtensionAPI reaches (spec 16 §10.1).
   "extensions.commands.publish",
+  "extensions.shortcuts.publish",
   "extensions.ui.request",
   "extensions.diagnostics.publish",
   "extensions.model.configure",
@@ -90,6 +91,7 @@ const HOST_PROXY_ALLOWED = new Set([
 /** Host-side answers for the `extensions.*` proxy methods. */
 export type TrustedExtensionSidecarBridge = {
   publishCommands: (params: Record<string, unknown>) => void;
+  publishShortcuts: (params: Record<string, unknown>) => void;
   publishDiagnostics: (params: Record<string, unknown>) => void;
   requestUi: (params: Record<string, unknown>) => Promise<unknown>;
   configureModel: (params: Record<string, unknown>) => Promise<unknown>;
@@ -541,6 +543,7 @@ export class AgentSidecar {
           if (!bridge) throw new Error("trusted extension bridge unavailable");
           let result: unknown = { ok: true };
           if (method === "extensions.commands.publish") bridge.publishCommands(params);
+          else if (method === "extensions.shortcuts.publish") bridge.publishShortcuts(params);
           else if (method === "extensions.diagnostics.publish") bridge.publishDiagnostics(params);
           else if (method === "extensions.model.configure") result = await bridge.configureModel(params);
           else if (method === "session.queuePush") result = await bridge.queuePush(params);

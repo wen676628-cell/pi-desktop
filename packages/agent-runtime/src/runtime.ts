@@ -68,6 +68,7 @@ import {
   OAUTH_AUTH_KIND,
   type TrustedExtensionCommand,
   type TrustedExtensionDiagnostic,
+  type TrustedExtensionShortcut,
   type TrustedExtensionSpec,
   type TrustedExtensionUiResponse,
 } from "@pi-desktop/shared";
@@ -2871,6 +2872,12 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
     return { handled: await this.extensionRunner.runCommand(name, args) };
   }
 
+  /** Run the handler a trusted extension registered for a keyboard shortcut. */
+  async runTrustedExtensionShortcut(key: string): Promise<{ handled: boolean }> {
+    if (!this.extensionRunner) return { handled: false };
+    return { handled: await this.extensionRunner.runShortcut(key) };
+  }
+
   private extensionProviderFor(agent: RegisteredTrustedExtensionAgent, model: Model<Api>): RuntimeProviderConfig {
     const supportedThinkingLevels: ThinkingLevel[] = model.reasoning
       ? ["off", "low", "medium", "high"]
@@ -3100,6 +3107,11 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
       publishCommands: (commands: TrustedExtensionCommand[]) => {
         void runtime.host
           .call("extensions.commands.publish", { sessionId: runtime.sessionId, commands })
+          .catch(() => undefined);
+      },
+      publishShortcuts: (shortcuts: TrustedExtensionShortcut[]) => {
+        void runtime.host
+          .call("extensions.shortcuts.publish", { sessionId: runtime.sessionId, shortcuts })
           .catch(() => undefined);
       },
       publishDiagnostics: (diagnostics: TrustedExtensionDiagnostic[]) => {
@@ -3833,7 +3845,7 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
           failureKey !== undefined &&
           typeof result.errorCode === "string" &&
           RECOVERABLE_MUTATION_ERROR_CODES.has(result.errorCode)
-            ? `${failureKey} ${result.errorCode}`
+            ? `${failureKey}\u0000${result.errorCode}`
             : undefined;
         const grantedRecoveryGrace =
           graceKey !== undefined && !this.mutationRecoveryGraces.has(graceKey);
@@ -3866,7 +3878,7 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
           if (succeededKey !== undefined) {
             this.mutationFailureCounts.delete(succeededKey);
             for (const key of this.mutationRecoveryGraces) {
-              if (key.startsWith(`${succeededKey} `)) {
+              if (key.startsWith(`${succeededKey}\u0000`)) {
                 this.mutationRecoveryGraces.delete(key);
               }
             }
