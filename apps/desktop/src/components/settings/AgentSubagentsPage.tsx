@@ -10,6 +10,7 @@ import {
   CapabilityButton,
   CapabilityEmpty,
   CapabilityGroupHeader,
+  CapabilityLoadError,
   CapabilityPanel,
   CapabilityRow,
   CapabilityRowMenu,
@@ -67,6 +68,7 @@ export function AgentSubagentsPage() {
     setData: setSubagents,
     loading,
     refreshing,
+    error,
     reload: load,
   } = useHostCollection(fetchSubagentPageData, EMPTY_SUBAGENT_PAGE, (error) =>
     showToast(error instanceof Error ? error.message : String(error), { variant: "error" }),
@@ -409,6 +411,12 @@ export function AgentSubagentsPage() {
         />
       }
     >
+      {error ? (
+        <CapabilityLoadError
+          message={t("settings.capabilityLoadFailed")}
+          onRetry={() => void load()}
+        />
+      ) : null}
       <CapabilityPanel
         loading={loading}
         refreshing={refreshing}

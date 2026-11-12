@@ -1540,6 +1540,7 @@ sklm: {
     capabilityFilterProject: "專案",
     clearSearch: "清除搜尋",
     capabilityNoMatches: "沒有匹配的能力",
+    capabilityLoadFailed: "無法載入清單。",
     capabilityRefreshing: "正在重新整理…",
     capabilityDeleted: "已刪除“{{name}}”",
     capabilityRemoveConfirm: "再點一次刪除",

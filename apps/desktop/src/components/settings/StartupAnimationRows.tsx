@@ -49,8 +49,13 @@ export function StartupAnimationRows({
   useEffect(() => {
     mountedRef.current = true;
     refresh();
+    // openPath resolves when the folder opens, not when the user returns;
+    // rescan on focus so a dropped file appears without leaving Settings.
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
     return () => {
       mountedRef.current = false;
+      window.removeEventListener("focus", onFocus);
     };
   }, [refresh]);
 

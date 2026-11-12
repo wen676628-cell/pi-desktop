@@ -1368,6 +1368,7 @@ export const ptBR = {
     capabilityFilterProject: "Projeto",
     clearSearch: "Limpar pesquisa",
     capabilityNoMatches: "Nenhuma funcionalidade correspondente",
+    capabilityLoadFailed: "Não foi possível carregar a lista.",
     capabilityRefreshing: "Atualizando...",
     capabilityDeleted: "Excluído {{name}}",
     capabilityRemoveConfirm: "Clique novamente para excluir",
