@@ -54,9 +54,15 @@ registry and the four shim helpers and asserts the factory result.
 
 ## Remaining gaps
 
-- **`session_tree` is deferred.** `pi-review` subscribes to it; the handler is
-  accepted but never emitted. The explicit `/review` and `/end-review` commands
-  are unaffected.
+- **`session_tree` has no standalone emission path.** Desktop's branch switch is
+  a transcript rewrite: main drains the persistence outbox, disposes the
+  sidecar session, and the next turn reloads extensions with `session_start`.
+  There is no live pi session tree or `navigateTree` call to notify, and
+  `pi-review`'s handler reads `ctx.sessionManager.getEntries()`, whose desktop
+  shim returns no entries. Emitting the event alone would push handlers into an
+  empty tree. The explicit `/review` and `/end-review` commands are unaffected;
+  the event becomes meaningful only with the v2 `sessionManager` /
+  `navigateTree` slice.
 - **Runtime dependencies.** `pi-claude-code` needs the `claude` CLI at run time;
   `pi-voice` needs its npm dependencies (`transcribe-cpp`, recorder) installed,
   which the Desktop extension dependency installer already supports.
