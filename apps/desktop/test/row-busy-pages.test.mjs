@@ -29,7 +29,8 @@ test("model config rows keep independent busy guards", () => {
   for (const name of ["toggleEnabled", "removeProvider", "saveProviderKey", "testProvider"]) {
     const start = modelsSource.indexOf(`const ${name} = async`);
     assert.ok(start >= 0, `${name} missing`);
-    const body = modelsSource.slice(start, start + 1600);
+    const end = modelsSource.indexOf("\n  const ", start + 10);
+    const body = modelsSource.slice(start, end === -1 ? undefined : end);
     assert.match(body, /if \(!rowBusy\.begin\(provider\.id\)\) return/, `${name} must claim its row`);
     assert.match(body, /rowBusy\.end\(provider\.id\)/, `${name} must release its row`);
   }

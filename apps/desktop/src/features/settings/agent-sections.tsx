@@ -23,29 +23,42 @@ const ReleaseNotesDialog = lazy(() =>
 
 export function AgentInstructionsSection() {
   const { t } = useTranslation();
+  const showToast = useAppStore((state) => state.showToast);
   const [global, setGlobal] = useState<AgentInstructionFile | null>(null);
   const [globalDraft, setGlobalDraft] = useState("");
   const [discovered, setDiscovered] = useState<DiscoveredConfigEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void api.getAgentInstructions().then((result) => {
-      if (cancelled) return;
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const result = await api.getAgentInstructions();
       setGlobal(result.global);
       setGlobalDraft(result.global.content);
       setDiscovered(result.discovered ?? []);
-    }).catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const save = async () => {
     setSaving(true);
     try {
       const result = await api.saveAgentInstructions("global", globalDraft);
       setGlobal(result.file);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : String(error), {
+        variant: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -59,23 +72,39 @@ export function AgentInstructionsSection() {
         description={t("settings.instructionsGlobalDesc")}
       >
         <div className="settings-form-grid">
-          <div className="settings-row-copy">
-            <div className="settings-instruction-path">{global?.path ?? ""}</div>
-          </div>
-          <textarea
-            className="field-textarea settings-instruction-editor"
-            value={globalDraft}
-            onChange={(event) => setGlobalDraft(event.target.value)}
-            aria-label={t("settings.instructionsGlobal")}
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="off"
-          />
+          {loadError ? (
+            <>
+              <div className="settings-row-copy">
+                <div className="settings-row-detail" role="alert">
+                  {t("settings.instructionsLoadFailed")}
+                </div>
+              </div>
+              <Button variant="secondary" onClick={() => void load()}>
+                {t("errors.action.retry")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="settings-row-copy">
+                <div className="settings-instruction-path">{global?.path ?? ""}</div>
+              </div>
+              <textarea
+                className="field-textarea settings-instruction-editor"
+                value={globalDraft}
+                onChange={(event) => setGlobalDraft(event.target.value)}
+                aria-label={t("settings.instructionsGlobal")}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                disabled={loading}
+              />
+            </>
+          )}
         </div>
         <div className="settings-panel-actions">
           <Button
             variant="primary"
-            disabled={!globalDirty || saving}
+            disabled={!globalDirty || saving || loading || loadError}
             onClick={() => void save()}
           >
             {saving ? t("settings.saving") : t("settings.instructionsSave")}
@@ -144,11 +173,12 @@ export function UpdatesRow({
     }
   }, [saveSettings, showToast, t]);
   const closeReleaseNotes = useCallback(() => setReleaseNotesOpen(false), []);
-  const disabled = !update || update.mode === "disabled";
+  const unavailable = update?.mode === "disabled";
+  const disabled = !update || unavailable;
   const busy = update?.status === "checking" || update?.status === "downloading";
   const preferenceLocked =
     !update ||
-    update.mode === "disabled" ||
+    unavailable ||
     !settings ||
     update.status === "downloading";
 
@@ -157,7 +187,13 @@ export function UpdatesRow({
     action = (
       <Button
         variant="primary"
-        onClick={() => void api.updatesInstall().catch(() => undefined)}
+        onClick={() =>
+          void api.updatesInstall().catch((error) =>
+            showToast(error instanceof Error ? error.message : String(error), {
+              variant: "error",
+            }),
+          )
+        }
       >
         {t("updates.restart")}
       </Button>
@@ -166,7 +202,13 @@ export function UpdatesRow({
     action = (
       <Button
         variant="secondary"
-        onClick={() => void api.updatesOpenReleases().catch(() => undefined)}
+        onClick={() =>
+          void api.updatesOpenReleases().catch((error) =>
+            showToast(error instanceof Error ? error.message : String(error), {
+              variant: "error",
+            }),
+          )
+        }
       >
         {t("updates.viewRelease")}
       </Button>
@@ -178,7 +220,13 @@ export function UpdatesRow({
       <Button
         variant="secondary"
         disabled={disabled || busy}
-        onClick={() => void api.updatesCheck().catch(() => undefined)}
+        onClick={() =>
+          void api.updatesCheck().catch((error) =>
+            showToast(error instanceof Error ? error.message : String(error), {
+              variant: "error",
+            }),
+          )
+        }
       >
         {update?.status === "error" ? (
           <IconRefresh size={14} />
@@ -197,11 +245,15 @@ export function UpdatesRow({
   const progress = Math.max(0, Math.min(100, update?.progressPercent ?? 0));
 
   let statusBody: ReactNode = null;
-  if (disabled) {
+  if (unavailable) {
     statusBody = (
       <div className="about-update-status">{t("updates.devDisabled")}</div>
     );
-  } else if (update) {
+  } else if (!update) {
+    statusBody = (
+      <div className="about-update-status">{t("common.loading")}</div>
+    );
+  } else {
     switch (update.status) {
       case "checking":
         statusBody = (

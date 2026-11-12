@@ -98,6 +98,7 @@ export function AppShell() {
     retryStartup,
     startupRetrying,
     sidebarToggleShortcut,
+    newTaskShortcut,
     workPanelToggleTooltip,
     requestedWorkPanelWidth,
   } = useAppShellRuntime();
@@ -155,6 +156,8 @@ export function AppShell() {
                 onAnimationEnd={handleSidebarAnimationEnd}
                 onToggleSidebar={toggleSidebar}
                 sidebarToggleShortcut={sidebarToggleShortcut}
+                newTaskShortcut={newTaskShortcut}
+                onNewTask={() => void runMenuCommand("newTask")}
                 sidebarWidth={sidebarWidth}
                 widthMax={sidebarWidthMax}
                 onWidthChange={handleSidebarWidthChange}

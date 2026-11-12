@@ -1166,6 +1166,19 @@ export function useAppShellRuntime() {
         shortcutPlatform,
       ).join(shortcutPlatform === "darwin" ? "" : "+")
     : "";
+  const newTaskShortcutDefinition = KEYBOARD_SHORTCUTS.find(
+    (shortcut) => shortcut.id === "newTask",
+  );
+  const newTaskShortcut = newTaskShortcutDefinition
+    ? keybindingDisplayParts(
+        resolveKeybinding(
+          newTaskShortcutDefinition,
+          settings?.keybindings,
+          shortcutPlatform,
+        ),
+        shortcutPlatform,
+      ).join(shortcutPlatform === "darwin" ? "" : "+")
+    : "";
   const toggleWorkPanelShortcutDefinition = KEYBOARD_SHORTCUTS.find(
     (shortcut) => shortcut.id === "openWorkPanel",
   );
@@ -1243,6 +1256,7 @@ export function useAppShellRuntime() {
     retryStartup,
     startupRetrying,
     sidebarToggleShortcut,
+    newTaskShortcut,
     workPanelToggleTooltip,
   };
 }

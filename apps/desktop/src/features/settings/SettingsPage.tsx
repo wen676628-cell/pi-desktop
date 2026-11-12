@@ -77,6 +77,7 @@ export function SettingsPage() {
   const setSettingsAnchor = useAppStore((s) => s.setSettingsAnchor);
   const setPage = useAppStore((s) => s.setPage);
   const settings = useAppStore((s) => s.settings);
+  const showToast = useAppStore((s) => s.showToast);
   const refreshProviders = useAppStore((s) => s.refreshProviders);
   const platform = (window.piDesktop?.platform ?? "darwin") as ShortcutPlatform;
 
@@ -111,6 +112,7 @@ export function SettingsPage() {
   }
   const contentRef = useRef<HTMLDivElement>(null);
   const settingsSearchRef = useRef<HTMLInputElement>(null);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const destination = activeExtension ? `extension:${activeExtension.ref}` : `builtin:${tab}`;
 
   useLayoutEffect(() => {
@@ -204,12 +206,33 @@ export function SettingsPage() {
     };
   }, [settingsAnchor, tab, t, setSettingsAnchor]);
 
-  const saveSettings = async (patch: Partial<AppSettings>) => {
-    if (!settings) return;
-    const nextSettings = { ...settings, ...patch };
-    await api.setSettings(nextSettings);
-    useAppStore.setState({ settings: nextSettings });
-    await refreshProviders();
+  const saveSettings = (patch: Partial<AppSettings>): Promise<void> => {
+    // Read the latest settings when the write runs, not when the row rendered,
+    // so two quick edits cannot resurrect each other's previous values. Writes
+    // stay serialized to keep the host on one order.
+    const write = saveQueue.current.then(async () => {
+      const current = useAppStore.getState().settings;
+      if (!current) return;
+      const nextSettings = { ...current, ...patch };
+      try {
+        await api.setSettings(nextSettings);
+        useAppStore.setState({ settings: nextSettings });
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : String(error), {
+          variant: "error",
+        });
+        return;
+      }
+      // A provider/session refresh failure must not make a persisted settings
+      // write look like it failed to the row that issued it.
+      try {
+        await refreshProviders();
+      } catch (error) {
+        console.warn("Provider refresh after settings save failed", error);
+      }
+    });
+    saveQueue.current = write;
+    return write;
   };
 
   const selectPluginTheme = async (theme: string) => {
@@ -278,7 +301,7 @@ export function SettingsPage() {
 
   const activeNavItem = navItems.find((item) => item.id === tab);
   const activeTitleKey = activeNavItem?.titleKey ?? "settings.title";
-  const tabNeedsSettings = ["appearance", "chat", "behavior", "system", "shortcuts", "agent"].includes(tab);
+  const tabNeedsSettings = ["appearance", "chat", "behavior", "system", "shortcuts", "agent", "voice"].includes(tab);
 
   return (
     <div className="settings-shell settings-shell-full">

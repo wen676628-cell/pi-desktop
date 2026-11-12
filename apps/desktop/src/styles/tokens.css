@@ -168,6 +168,8 @@
   --ds-shadow-composer: 0 3px 7.5px #0000000a, 0 0 20px #0000000d;
   --ds-bg-elevated-primary: color-mix(in oklab, var(--gray-800) 96%, transparent);
   --ds-sidebar-width: clamp(232px, 232px, min(520px, calc(100vw - 320px)));
+  /* Home workbench signature mark. Sized to the pane, not the font scale. */
+  --ds-home-watermark-size: clamp(320px, 38vw, 520px);
   /* Settings rail border-box width, including its 1px right border. The
    * settings drag band starts after the rail so the rail keeps a single
    * surface tone from the window top edge down. */

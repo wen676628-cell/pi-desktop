@@ -154,7 +154,7 @@ export function Composer({
       : EMPTY_QUEUED_PROMPTS,
   );
 
-  const [modeOpen, setModeOpen] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
   const [permissionOpen, setPermissionOpen] = useState(false);
   const composerTransformInvalidateRef = useRef<() => void>(() => {});
   const composerShellRef = useRef<HTMLDivElement>(null);
@@ -418,8 +418,8 @@ export function Composer({
 
   useEffect(() => {
     if (!controlsBlocked) return;
-    setModeOpen(false);
     setPermissionOpen(false);
+    setPlusOpen(false);
   }, [controlsBlocked]);
 
   const composerTransformController = useComposerTransforms({
@@ -469,6 +469,18 @@ export function Composer({
   const submitFromComposer = (steering?: boolean) => {
     inputHistory.exitBrowsing();
     return submit(steering);
+  };
+
+  // The add menu inserts the selected slash command into the draft instead of
+  // sending it; the user can still add arguments before Enter.
+  const insertCommand = (name: string) => {
+    if (inputBlocked) return;
+    inputHistory.exitBrowsing();
+    const joined = value.trim().length > 0
+      ? `${value}${/\s$/.test(value) ? "" : " "}/${name} `
+      : `/${name} `;
+    applyEditorDraft(joined, fileReferencesRef.current, joined.length);
+    requestAnimationFrame(() => ref.current?.focus());
   };
 
   // Keep the legacy listener for already-started or IPC-owned Dictation, but
@@ -625,8 +637,6 @@ export function Composer({
             modelId={modelId}
             thinkingLevel={thinkingLevel}
             composerPermissionMode={composerPermissionMode}
-            modeOpen={modeOpen}
-            setModeOpen={setModeOpen}
             permissionOpen={permissionOpen}
             setPermissionOpen={setPermissionOpen}
             controlsBlocked={controlsBlocked}
@@ -635,6 +645,9 @@ export function Composer({
             stopAllowed={sessionAllows(capabilitySession, "canStop")}
             pasting={pasting}
             pickAndAttach={pickAndAttach}
+            plusOpen={plusOpen}
+            setPlusOpen={setPlusOpen}
+            onPickCommand={insertCommand}
             configureActiveSession={configureActiveSession}
             showToast={showToast}
             modelMenu={modelMenu}

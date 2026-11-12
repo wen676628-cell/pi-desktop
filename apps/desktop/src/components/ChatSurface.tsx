@@ -5,7 +5,7 @@ import {
   vendorAccountOmitsSessionModel,
 } from "../lib/chat-launch-error";
 import { Composer } from "./Composer";
-import { HomeMascotLogo } from "./HomeMascotLogo";
+import { HomeBrandMark } from "./HomeBrandMark";
 import { HomeProjectSwitcher } from "./HomeProjectSwitcher";
 import { IconX } from "./icons";
 import { TooltipButton } from "./ui";
@@ -167,6 +167,9 @@ export const ChatSurface = memo(function ChatSurface({
             heroProject ? "project" : isTemporarySession ? "temporary" : "empty"
           }
         >
+          <div className="home-watermark" aria-hidden="true">
+            P
+          </div>
           <div className="home-scroll">
             <div className="home-stack-inner">
               <div className="empty-hero">
@@ -175,7 +178,7 @@ export const ChatSurface = memo(function ChatSurface({
                   data-testid="home-icon"
                   aria-hidden
                 >
-                  <HomeMascotLogo />
+                  <HomeBrandMark />
                 </div>
                 <h1>
                   {heroProject ? (

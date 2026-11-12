@@ -98,19 +98,18 @@ test("thinking levels use their canonical English values without i18n", () => {
   assert.doesNotMatch(settingsSource, /thinkingLevel\./);
 });
 
-test("Composer owns the mode and model controls", () => {
+test("Composer owns the model controls; modes live in slash commands", () => {
   const leftToolbar = composerToolbarSource.slice(
     composerToolbarSource.indexOf('<div className="composer-left">'),
     composerToolbarSource.indexOf('<div className="composer-right">'),
   );
-  const modeControl = leftToolbar.indexOf("<ComposerModePicker");
   const permissionControl = leftToolbar.indexOf("<ComposerPermissionPicker");
   const rightToolbar = composerToolbarSource.slice(
     composerToolbarSource.indexOf('<div className="composer-right">'),
   );
 
-  assert.ok(modeControl >= 0, "the left toolbar owns the mode trigger");
-  assert.ok(permissionControl > modeControl, "approval follows the mode trigger");
+  assert.doesNotMatch(leftToolbar, /<ComposerModePicker/);
+  assert.ok(permissionControl >= 0, "the toolbar owns the approval trigger");
   // The task draft has no session, so its picker must not claim one: with
   // `activeSessionId` unset the menu resolves the selected model's binding
   // default thinking level instead of pinning the draft to its current value.

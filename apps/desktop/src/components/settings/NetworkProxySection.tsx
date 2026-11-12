@@ -236,7 +236,10 @@ export function NetworkProxySection({
               <Input
                 value={bypassDraft}
                 aria-label={t("settings.proxyBypass")}
-                onChange={(event) => setBypassDraft(event.target.value)}
+                onChange={(event) => {
+                  setBypassDraft(event.target.value);
+                  setTestState("idle");
+                }}
                 onBlur={commitBypass}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {

@@ -92,7 +92,7 @@ export function ThemeRow({
   }, [activeId, open]);
 
   const selected = options.find((option) => option.id === selectedId);
-  const triggerLabel = selected?.title ?? selectedId;
+  const triggerLabel = selected?.title ?? t("settings.themeSystem");
 
   const close = () => {
     setOpen(false);

@@ -243,6 +243,8 @@ function compareOptionalDate(
 export function Sidebar({
   onToggleSidebar,
   sidebarToggleShortcut,
+  newTaskShortcut,
+  onNewTask,
   sidebarWidth,
   widthMax = SIDEBAR_WIDTH_MAX,
   onWidthChange,
@@ -253,6 +255,8 @@ export function Sidebar({
 }: {
   onToggleSidebar: () => void;
   sidebarToggleShortcut: string;
+  newTaskShortcut: string;
+  onNewTask: () => void;
   sidebarWidth: number;
   widthMax?: number;
   onWidthChange: (width: number) => void;
@@ -2583,6 +2587,49 @@ export function Sidebar({
 
       <div className="sidebar-body no-drag">
 
+        <nav className="sidebar-primary-nav" aria-label={t("nav.primaryActions", { defaultValue: "Primary actions" })}>
+          <button
+            type="button"
+            className="sidebar-primary-action"
+            data-nav="new-task"
+            onClick={onNewTask}
+          >
+            <IconNewSession size={16} aria-hidden />
+            <span className="sidebar-primary-label">{t("nav.newTask")}</span>
+            {newTaskShortcut ? (
+              <span className="sidebar-primary-shortcut">{newTaskShortcut}</span>
+            ) : null}
+          </button>
+          {settings?.scheduledTasksEnabled !== false ? (
+            <button
+              type="button"
+              className={cx("sidebar-primary-action", page === "scheduled" && "active")}
+              data-nav="scheduled"
+              aria-pressed={page === "scheduled"}
+              onClick={() => setPage("scheduled")}
+            >
+              <IconClock size={16} aria-hidden />
+              <span className="sidebar-primary-label">{t("scheduled.title")}</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={cx("sidebar-primary-action", page === "plugins" && "active")}
+            data-nav="plugins"
+            aria-pressed={page === "plugins"}
+            onClick={() =>
+              page === "plugins"
+                ? canNavBack()
+                  ? navBack()
+                  : setPage("chat")
+                : setPage("plugins")
+            }
+          >
+            <IconPlug size={16} aria-hidden />
+            <span className="sidebar-primary-label">{t("nav.plugins")}</span>
+          </button>
+        </nav>
+
         {pinnedSessions.length > 0 ? (
           <section
             className="sidebar-pinned-sessions"
@@ -2758,32 +2805,6 @@ export function Sidebar({
             >
               <IconSettings size={14} aria-hidden />
             </TooltipButton>
-            <TooltipButton
-              type="button"
-              className={`footer-action ${page === "plugins" ? "active" : ""}`}
-              data-nav="plugins"
-              tooltip={t("nav.plugins")}
-              ariaLabel={t("nav.plugins")}
-              onClick={() => page === "plugins"
-                ? (canNavBack() ? navBack() : setPage("chat"))
-                : setPage("plugins")}
-              aria-pressed={page === "plugins"}
-            >
-              <IconPlug size={14} aria-hidden />
-            </TooltipButton>
-            {settings?.scheduledTasksEnabled !== false && (
-              <TooltipButton
-                type="button"
-                className={`footer-action ${page === "scheduled" ? "active" : ""}`}
-                data-nav="scheduled"
-                tooltip={t("scheduled.title")}
-                ariaLabel={t("scheduled.title")}
-                onClick={() => setPage("scheduled")}
-                aria-pressed={page === "scheduled"}
-              >
-                <IconClock size={14} aria-hidden />
-              </TooltipButton>
-            )}
             <NotificationCenter onBeforeOpen={() => closeMenus(false)} />
           </div>
 

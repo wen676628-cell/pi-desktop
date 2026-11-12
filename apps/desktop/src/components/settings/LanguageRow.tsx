@@ -90,7 +90,7 @@ export function LanguageRow({
   const triggerLabel =
     selectedId === "auto"
       ? autoLabel
-      : (selected?.nativeName ?? localeInfo(selectedId as AppLocale).nativeName);
+      : (selected?.nativeName ?? localeInfo(selectedId as AppLocale)?.nativeName ?? selectedId);
 
   const close = () => {
     setOpen(false);
