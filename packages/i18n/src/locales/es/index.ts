@@ -1550,6 +1550,7 @@ sklm: {
     "capabilityFilterProject": "Proyecto",
     "clearSearch": "Borrar búsqueda",
     "capabilityNoMatches": "No hay capacidades coincidentes",
+    "capabilityLoadFailed": "No se pudo cargar la lista.",
     "capabilityRefreshing": "Actualizando...",
     "capabilityDeleted": "Eliminado {{name}}",
     "capabilityRemoveConfirm": "Haga clic nuevamente para eliminar",

@@ -17,6 +17,7 @@ import {
   CapabilityButton,
   CapabilityEmpty,
   CapabilityGroupHeader,
+  CapabilityLoadError,
   CapabilityPanel,
   CapabilityRow,
   CapabilityRowMenu,
@@ -115,6 +116,7 @@ export function AgentSkillsPage() {
     setData: setSkills,
     loading,
     refreshing,
+    error,
     reload: load,
   } = useHostCollection(fetchSkills, EMPTY_SKILL_COLLECTION, (error) =>
     showToast(error instanceof Error ? error.message : String(error), { variant: "error" }),
@@ -716,6 +718,13 @@ export function AgentSkillsPage() {
           />
         </div>
       </section>
+
+      {error ? (
+        <CapabilityLoadError
+          message={t("settings.capabilityLoadFailed")}
+          onRetry={() => void load()}
+        />
+      ) : null}
 
       <CapabilityPanel
         loading={loading}
