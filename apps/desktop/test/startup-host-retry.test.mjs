@@ -40,6 +40,14 @@ function startupFixture(startFailure, isQuitting = () => false) {
     async syncPluginDisplayLocale() {},
     getDisplayLocale: () => "en",
     async applyNetworkProxyFromAppSettings() {},
+    // The sidecar is lazy now: boot must not reach it, so the boundary moves
+    // to the first step that runs after the Host retry.
+    plugins: {
+      setServices() {
+        events.push("plugins");
+        throw sidecarBoundary;
+      },
+    },
     async startSidecar() {
       events.push("sidecar");
       throw sidecarBoundary;
@@ -48,10 +56,10 @@ function startupFixture(startFailure, isQuitting = () => false) {
   return { events, run: new Function(...Object.keys(deps), compiled)(...Object.values(deps)) };
 }
 
-test("cold desktop boot retries the Host once before starting the sidecar", async () => {
+test("cold desktop boot retries the Host once and leaves the sidecar lazy", async () => {
   const fixture = startupFixture((attempt) => attempt === 1 ? timeout : undefined);
   await assert.rejects(fixture.run(), sidecarBoundary);
-  assert.deepEqual(fixture.events, ["host", "host", "sidecar"]);
+  assert.deepEqual(fixture.events, ["host", "host", "plugins"]);
 });
 
 test("cold desktop boot stops after a second timeout, during quit or on other startup errors", async () => {
