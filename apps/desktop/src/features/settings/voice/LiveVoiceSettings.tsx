@@ -12,6 +12,13 @@ import { getLiveCallController } from "../../voice/live/live-call-controller";
 
 type Adapter = LiveBinding["adapterId"];
 
+/** Adapter defaults used when a binding is created and by "Restore defaults". */
+const ADAPTER_DEFAULTS = {
+  "codex-live": { voice: "cove" },
+  "gemini-live": { modelId: "gemini-3.8-live", voice: "Kore" },
+  "openai-realtime": { modelId: "gpt-realtime-2.1", voice: "marin" },
+} as const;
+
 export function LiveVoiceSettings({
   t,
   settings,
@@ -78,15 +85,15 @@ export function LiveVoiceSettings({
     const id = current?.id ?? `live-${adapter}-${crypto.randomUUID()}`;
     const currentModel = current && "modelId" in current ? current.modelId : undefined;
     const nextBinding: LiveBinding = adapter === "codex-live"
-      ? { id, adapterId: adapter, providerId, voice: patch.voice ?? (current?.voice || "cove") }
+      ? { id, adapterId: adapter, providerId, voice: patch.voice ?? (current?.voice || ADAPTER_DEFAULTS["codex-live"].voice) }
       : adapter === "gemini-live"
-        ? { id, adapterId: adapter, providerId, modelId: patch.modelId ?? (currentModel || "gemini-3.8-live"), voice: patch.voice ?? (current?.voice || "Kore") }
+        ? { id, adapterId: adapter, providerId, modelId: patch.modelId ?? (currentModel || ADAPTER_DEFAULTS["gemini-live"].modelId), voice: patch.voice ?? (current?.voice || ADAPTER_DEFAULTS["gemini-live"].voice) }
         : {
             id,
             adapterId: adapter,
             providerId,
-            modelId: patch.modelId ?? (currentModel || "gpt-realtime-2.1"),
-            voice: patch.voice ?? (current?.voice || "marin"),
+            modelId: patch.modelId ?? (currentModel || ADAPTER_DEFAULTS["openai-realtime"].modelId),
+            voice: patch.voice ?? (current?.voice || ADAPTER_DEFAULTS["openai-realtime"].voice),
             wireProfile: patch.wireProfile === "realtime-compat-v1" ? "realtime-compat-v1" : current?.adapterId === "openai-realtime" ? current.wireProfile : "realtime-ga",
           };
     const bindings = current
@@ -206,6 +213,27 @@ export function LiveVoiceSettings({
               ]}
               onChange={(wireProfile) => updateBinding(adapter, { wireProfile })}
             />
+          </SettingsRow>
+        ) : null}
+        {current ? (
+          <SettingsRow title={t("liveVoice.bindingDefaults")}>
+            <Button
+              variant="secondary"
+              disabled={saving || locked}
+              onClick={() =>
+                void updateBinding(
+                  adapter,
+                  adapter === "codex-live"
+                    ? { voice: ADAPTER_DEFAULTS[adapter].voice }
+                    : {
+                        modelId: ADAPTER_DEFAULTS[adapter].modelId,
+                        voice: ADAPTER_DEFAULTS[adapter].voice,
+                      },
+                )
+              }
+            >
+              {t("settings.shortcutResetAll")}
+            </Button>
           </SettingsRow>
         ) : null}
         {locked ? <SettingsRow title={t("liveVoice.bindingLocked")}>{t("liveVoice.bindingLockedDetail")}</SettingsRow> : null}

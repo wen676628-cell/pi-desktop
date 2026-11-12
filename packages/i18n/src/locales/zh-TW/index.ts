@@ -3148,6 +3148,7 @@ sklm: {
     profile: "協定設定檔",
     profiles: { "realtime-ga": "OpenAI Realtime GA", "realtime-compat-v1": "Realtime 相容版 v1" },
     useForNextCall: "用於下次通話",
+    bindingDefaults: "綁定預設值",
     bindingLocked: "通話進行中",
     bindingLockedDetail: "結束通話後才能套用此服務綁定的變更。",
     saveFailed: "無法儲存即時語音設定。",

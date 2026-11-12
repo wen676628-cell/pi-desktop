@@ -3177,6 +3177,7 @@ importConfirm: "Imported extensions run inside the agent process with the same a
     profile: "Protocol profile",
     profiles: { "realtime-ga": "OpenAI Realtime GA", "realtime-compat-v1": "Realtime compat v1" },
     useForNextCall: "Use for the next call",
+    bindingDefaults: "Binding defaults",
     bindingLocked: "Call in progress",
     bindingLockedDetail: "End the call to apply changes to this provider binding.",
     saveFailed: "Couldn't save Live voice settings.",
