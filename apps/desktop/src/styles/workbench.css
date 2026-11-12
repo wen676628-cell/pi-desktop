@@ -250,12 +250,13 @@
 }
 
 .thread-content {
-  padding-top: 36px;
+  padding-top: 28px;
 }
 
 .message-row.user .message-bubble {
   border: 0;
   background: var(--ds-front-user-bg);
+  padding: 11px 16px;
 }
 
 @media (max-width: 900px) {

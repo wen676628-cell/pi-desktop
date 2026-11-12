@@ -26,15 +26,15 @@ test("user turns keep a compact left-aligned plate", () => {
     stylesSource,
     /\.message-row\.user \.message-col \{[\s\S]*?width:\s*min\(max-content,\s*82%,\s*600px\);[\s\S]*?max-width:\s*min\(82%,\s*600px\);[\s\S]*?align-items:\s*flex-start;/,
   );
-  // The refresh layer is inlined last (globals.css import order), so its rule
-  // is the effective treatment: a soft plate with an accent-tinted hairline.
+  // The workbench layer is inlined last (globals.css import order), so its rule
+  // is the effective treatment: a soft borderless plate over the shared fill.
   const userBubbleRules = [
     ...stylesSource.matchAll(/\.message-row\.user \.message-bubble \{([^}]*)\}/g),
   ];
   assert.ok(userBubbleRules.length > 0);
   const effective = userBubbleRules.at(-1)?.[1] ?? "";
   assert.match(effective, /padding:\s*11px 16px;/);
-  assert.match(effective, /border:\s*1px solid var\(--ds-front-accent-soft\);/);
+  assert.match(effective, /border:\s*0;/);
   assert.match(effective, /background:\s*var\(--ds-front-user-bg\);/);
   assert.doesNotMatch(effective, /var\(--ds-accent\)/);
 });

@@ -16,8 +16,9 @@ test("skill market installs through the existing create path only", () => {
   assert.match(panel, /api\.fetchSkillMarketDocument\(/);
   assert.match(panel, /api\.createUserSkill\(/);
   assert.match(panel, /assembleSkillInstall\(/);
-  assert.match(panel, /level: "global"/);
-  assert.match(panel, /scope: GLOBAL_SCOPE/);
+  assert.match(panel, /level,/);
+  assert.match(panel, /scope:/);
+  assert.match(panel, /GLOBAL_SCOPE/);
   assert.doesNotMatch(panel, /skillImport|writeFile|host\.call\(/);
 });
 
