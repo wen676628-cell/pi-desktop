@@ -86,9 +86,10 @@ Each item below is a concrete proposal; decisions go to the decisions log.
 ### 3.1 Permission mode in the composer
 WorkBuddy puts the permission posture next to the send button. PI-Desktop
 exposes the same control as a composer chip (current effective mode:
-`Ask every time / Accept edits / Auto`) opening a small menu. The menu shows
-only those three modes and marks the effective selection directly; it does not
-surface global-default or inherit provenance. Choosing a mode creates a
+`Confirm before changes / Auto review / Full access`) opening a small menu. The
+menu shows only those three modes and marks the effective selection directly;
+it does not surface global-default or inherit provenance. Choosing a mode
+creates a
 per-session override. This complements, rather than replaces, the inline
 permission cards in [03-permission-ux](03-permission-ux.md) (D132).
 

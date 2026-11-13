@@ -45,8 +45,9 @@ MVP passes when:
 ### E. Tools and permissions
 - [x] Plan and Goal deny Write/Edit/plugin tools under every permission mode —
   auto:`test:e2e:plan` E2E-105 + host-core permission tests
-- [x] Plan and Goal Bash prompt under Ask/Accept edits and run without confirmation
-  under explicit Auto — auto:`test:e2e:plan` E2E-105 + host-core permission tests
+- [x] Plan and Goal Bash prompt under Confirm before changes/Auto review and run
+  without confirmation under explicit Full access — auto:`test:e2e:plan` E2E-105
+  + host-core permission tests
 - [x] Agent mode uses permission policy for Write/Edit/Bash — manual:M3
 - [x] Local permission cards remain pending until an explicit decision or
   cancellation; tool execution budgets remain enforced — unit/host-core: issue #1214 (D636)
@@ -71,8 +72,8 @@ MVP passes when:
   a unique `.pi/plan/*.md` artifact, keeps title/question structured in
   `plan_approvals`, and records path/hash/size — auto:`test:e2e:plan` E2E-106
 - [x] Approval offers only Approve/Reject; Approve requires an explicit
-  permission mode with Ask selected by default — auto:`test:e2e:plan-ui`
-  E2E-106/E2E-117
+  permission mode with Confirm before changes selected by default —
+  auto:`test:e2e:plan-ui` E2E-106/E2E-117
 - [x] The approval deadline is an absolute 30 minutes and stale responses fail
   closed — auto:`test:e2e:plan` E2E-107 + host-core late-expiry test
 - [x] Renderer retains the latest Plan/Goal proposal/execution snapshot only for the

@@ -22,10 +22,10 @@ Decision source: **D003/D189/D190/D195 (ADR 0057)**.
 
 Plan and Goal keep this permission-mode control visible. Plan exposes the
 effective permission choice; Goal shows the same chip geometry with a fixed
-Auto label in the Composer and does not open a menu. Goal's approval card is
-the separate place to choose the execution permission for the approved run.
+Full access label in the Composer and does not open a menu. Goal's approval card
+is the separate place to choose the execution permission for the approved run.
 They are contract intents, not strict read-only security profiles: a Bash
-command can mutate workspace or scratch state under Auto. Write/Edit/plugin
+command can mutate workspace or scratch state under Full access. Write/Edit/plugin
 tools are denied by the host before a permission card, regardless of grants or
 Auto.
 
@@ -153,9 +153,9 @@ The card shows only the structured title and an opener for the exact artifact
 path. It does not render the submitted question/description, status, or
 approval validity/deadline. It offers only:
 
-- **Approve** with an explicit target permission mode (`Ask`, `Accept edits`,
-  or `Auto`; the last selected mode is remembered on this device and is the
-  default for the next approval)
+- **Approve** with an explicit target permission mode (`Confirm before changes`,
+  `Auto review`, or `Full access`; the last selected mode is remembered on this
+  device and is the default for the next approval)
 - **Reject**, which stops the run and leaves the contract state active; a later
   turn must submit a new complete snapshot/artifact
 
@@ -178,8 +178,9 @@ after a full Host/app restart.
 ## 10. Acceptance
 
 1. Plan and Goal deny Write/Edit/plugins in every permission mode
-2. Plan and Goal Bash prompt under Ask and Accept edits and run without confirmation
-   under Auto, with the mutation tradeoff visible
+2. Plan and Goal Bash prompt under Confirm before changes and Auto review and
+   run without confirmation under Full access, with the mutation tradeoff
+   visible
 3. Agent mode uses the normal high-risk permission policy
 4. unanswered local permissions remain pending until an explicit decision or
    cancellation; execution timeouts remain enforced after approval

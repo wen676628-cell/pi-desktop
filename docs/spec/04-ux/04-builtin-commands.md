@@ -91,17 +91,19 @@ in the same registry that feeds palette search
 |---|---|
 | `/new` | `builtin.session.new` |
 | `/compact` | `builtin.agent.compact` |
-| `/agent-mode` | `builtin.mode.agent` |
-| `/plan-mode` | `builtin.mode.plan` |
-| `/goal-mode` | `builtin.mode.goal` |
+| `/agent` | `builtin.mode.agent` |
+| `/plan` | `builtin.mode.plan` |
+| `/goal` | `builtin.mode.goal` |
 | `/fast` | `builtin.session.fast` |
+
+`/agent-mode`, `/plan-mode`, and `/goal-mode` remain accepted as legacy aliases.
 
 Aliases share one namespace with template and plugin command names; builtin
 aliases win collisions, then project templates, then user templates, then
 plugin commands. Selecting an alias inserts `/alias `; sending `/new`,
 `/compact`, or `/fast` alone executes locally without creating an empty prompt. The
 Agent/Plan/Goal aliases also support a prompt body:
-`/agent-mode <prompt>`, `/plan-mode <prompt>`, or `/goal-mode <prompt>` switches
+`/agent <prompt>`, `/plan <prompt>`, or `/goal <prompt>` switches
 the idle session (or the next-session default) and sends `<prompt>` through the
 normal prompt path. A mode alias sent with no body remains a local mode switch.
 The prompt body remains the visible user turn; a failed dispatch does not clear

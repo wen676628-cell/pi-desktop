@@ -423,15 +423,15 @@ so no row repeats it.
 What a new conversation starts with, and what the agent may do while it runs.
 Card order is **Session defaults → Execution → Computer use**.
 
-- **Session defaults** card: the host-backed default operating mode (Agent /
-  Plan / Goal), the global permission mode (ask / accept-edits / auto) that
-  governs how autonomously the agent acts, and the command shell selection.
-  These are one card because they are the same decision asked three ways: what
-  a run begins with. The permission control is a menu select on the shared
+- **Session defaults** card: the global permission mode (confirm before
+  changes / auto review / full access) that governs how autonomously the agent
+  acts, and the command shell selection. Operating modes are slash commands
+  (`/agent`, `/plan`, `/goal`), so the card no longer carries a default-mode
+  selector. The permission control is a menu select on the shared
   anchored-menu surface rather than a platform-drawn `<select>` popup, so every
   Settings picker opens the same way. The closed trigger sizes to the current
   label, capped by the settings control column.
-- The **Goal budget** row sits under the default mode in Session defaults: two
+- The **Goal budget** row sits in Session defaults: two
   numeric fields (turns, tokens) persisted as optional
   `AppSettings.goalBudget { maxTurns, maxTokens }`. A field saves on blur or
   Enter; empty is unlimited and an out-of-range value (turns 1–10000, tokens
@@ -553,9 +553,9 @@ a usage tab.
   model ID beneath the Default model label. A quiet Change action opens the
   picker without duplicating the current value. The picker groups model-level
   options by provider, marks the exact current entry, and keeps its searchable
-  list bounded. Account labels are not appended to model IDs. Global operating
-  mode and command shell are owned by Behavior, and Enter-to-send by
-  Conversation.
+  list bounded. Account labels are not appended to model IDs. Global command
+  shell is owned by Behavior, and Enter-to-send by Conversation. Operating
+  modes are switched with the `/agent`, `/plan`, and `/goal` slash commands.
 - **Vendor accounts** card (D237/D240), between Defaults and Providers:
   - the card lists accounts, not vendors: one row per local OAuth provider row,
     including multiple rows for the same vendor. Its list surface uses the same
@@ -722,10 +722,10 @@ a usage tab.
 
 The permission-mode selector remains available in the composer while the
 session is in Agent, Plan, or Goal. In Plan and Goal it controls Bash
-confirmation only: Ask and Accept edits prompt, while Auto may run a mutating
-Bash command without confirmation. The Session defaults card must describe that
-both contract modes are intent boundaries, not strict read-only security
-profiles.
+confirmation only: Confirm before changes and Auto review prompt, while Full
+access may run a mutating Bash command without confirmation. The Session
+defaults card must describe that both contract modes are intent boundaries,
+not strict read-only security profiles.
 
 ### Jev classifier
 
@@ -1140,8 +1140,9 @@ system while preserving their different data ownership:
 18. Context management exposes no settings at all; protection is always on and
     its budgets scale with the active model's context window, so no persisted
     value can leave a small-window model uncompactable or the guard disabled
-19. The default operating-mode selector contains Agent, Plan, and Goal; legacy
-    Chat values migrate to Plan and do not reappear as a selectable option
+19. Operating modes are slash commands (`/agent`, `/plan`, `/goal`); Settings
+    does not expose a default-mode selector, and legacy Chat values migrate to
+    Plan without reappearing as a selectable option
 20. Command shell selection persists a platform-valid catalog ID, exposes
     status only when it adds information (default, unavailable, fallback, or no
     effective shell), and never authorizes a stale ID/dialect

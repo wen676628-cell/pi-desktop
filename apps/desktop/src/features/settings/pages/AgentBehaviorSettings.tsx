@@ -9,7 +9,7 @@
  */
 import type { AppSettings, GlobalPermissionMode } from "@pi-desktop/shared";
 import { useTranslation } from "react-i18next";
-import { SegmentedControl, SettingsToggle } from "../../../components/ui";
+import { SettingsToggle } from "../../../components/ui";
 import { SettingsMenuSelect } from "../../../components/settings/SettingsMenuSelect";
 import { ComputerUseSettings } from "../computer-use/ComputerUseSettings";
 import { GoalBudgetSettingsRow } from "../../modes/GoalBudgetSettingsRow";
@@ -29,19 +29,6 @@ export function AgentBehaviorSettings({
         title={t("settings.sessionDefaults")}
         caption={t("settings.sessionDefaultsCaption")}
       >
-        <SettingsRow title={t("settings.mode")} description={t("settings.modeDesc")}>
-          <SegmentedControl
-            value={settings.defaultMode ?? "agent"}
-            onChange={(value) => void saveSettings({ defaultMode: value })}
-            options={[
-              { value: "agent", label: t("settings.modeAgent") },
-              { value: "plan", label: t("settings.modePlan") },
-              { value: "goal", label: t("settings.modeGoal") },
-            ]}
-            label={t("settings.mode")}
-            role="group"
-          />
-        </SettingsRow>
         <GoalBudgetSettingsRow settings={settings} saveSettings={saveSettings} />
         <SettingsRow
           title={t("settings.permissionMode")}

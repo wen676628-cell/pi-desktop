@@ -6,9 +6,8 @@ const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 /*
  * Mode switching moved into the composer's built-in slash commands. The
- * toolbar no longer carries an agent-mode chip: `/agent-mode`, `/plan-mode`
- * and `/goal-mode` are the single entry point, and the plus button opens the
- * same list. This keeps the toolbar from advertising two duplicate doors to
+ * toolbar no longer carries an agent-mode chip: `/agent`, `/plan` and
+ * `/goal` are the single entry point, and the plus button opens the same list. This keeps the toolbar from advertising two duplicate doors to
  * the same state.
  */
 
@@ -18,9 +17,9 @@ const [builtins, toolbar] = await Promise.all([
 ]);
 
 test("built-in commands carry one slash alias per operating mode", () => {
-  assert.match(builtins, /slash: "agent-mode"/);
-  assert.match(builtins, /slash: "plan-mode"/);
-  assert.match(builtins, /slash: "goal-mode"/);
+  assert.match(builtins, /slash: "agent"/);
+  assert.match(builtins, /slash: "plan"/);
+  assert.match(builtins, /slash: "goal"/);
   assert.match(builtins, /title: "Switch to Agent mode"/);
   assert.match(builtins, /title: "Switch to Plan mode"/);
   assert.match(builtins, /title: "Switch to Goal mode"/);

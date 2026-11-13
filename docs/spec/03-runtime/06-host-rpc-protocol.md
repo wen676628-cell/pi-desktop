@@ -1423,7 +1423,8 @@ Agent mode advertises on-demand ScheduledTaskList, ScheduledTaskCreate,
 ScheduledTaskUpdate and ScheduledTaskDelete tools. They run through
 `tools.execute`, including existing permissions and audit records, and reuse
 the scheduled RPC domain handlers. List is low risk; mutations require normal
-approval in Ask/Accept Edits. Plan/Goal deny all four even under Auto.
+approval in Confirm before changes/Auto review. Plan/Goal deny all four even
+under Full access.
 
 `AppSettings.scheduledTasksEnabled` is an optional boolean, enabled when absent.
 When false, `tools.list` omits all four tools and stale calls are rejected.

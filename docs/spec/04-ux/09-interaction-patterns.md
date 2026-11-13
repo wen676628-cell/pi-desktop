@@ -1152,7 +1152,7 @@ may be retained while exactly one workspace supplies the visible shell context.
 ### 5.1 Flow sequence
 
 ```text
-Agent calls a permission-gated tool (including Plan/Goal Bash under Ask or Accept edits)
+Agent calls a permission-gated tool (including Plan/Goal Bash under Confirm before changes or Auto review)
   → PermissionCard inserted inline in transcript
   → Composer disabled (cannot send new prompt)
   → User responds: Allow once / Allow session / Deny
@@ -1197,10 +1197,11 @@ Agent calls a permission-gated tool (including Plan/Goal Bash under Ask or Accep
    The opener hands that path to the bundled file view when it is launchable and to
    the host file tab otherwise, so the artifact opens beside the conversation in the
    same view the user's other project files use (D452).
-4. Approve requires Ask / Accept edits / Auto selection. The renderer remembers
-   the last selected mode on this device and uses it as the next approval's
-   default. Host-core commits the approval, `mode = agent`, permission mode,
-   and `queued` state atomically; the same Agent continues on a fresh turn with
+4. Approve requires Confirm before changes / Auto review / Full access
+   selection. The renderer remembers the last selected mode on this device and
+   uses it as the next approval's default. Host-core commits the approval,
+   `mode = agent`, permission mode, and `queued` state atomically; the same
+   Agent continues on a fresh turn with
    Agent tools.
 5. Reject stops the pending run and keeps the durable session in its contract
    mode. The live state returns to editable planning; revisions are new-turn

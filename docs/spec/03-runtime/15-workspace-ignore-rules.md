@@ -100,7 +100,8 @@ UI can show “hidden by ignore rules” counts for Glob/Grep optionally later.
 
 ## 8. Acceptance criteria
 
-- [x] outside paths require permission in non-auto modes and are allowed in Auto
+- [x] outside paths require permission in Confirm before changes and Auto
+  review, and are allowed under Full access
 - [x] default ignores hide node_modules from Glob/Grep
 - [x] workspace ignore file honored
 - [x] security denylist cannot be disabled from UI in MVP

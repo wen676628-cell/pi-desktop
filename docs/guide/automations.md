@@ -27,8 +27,9 @@ New tasks start in Manual. Choose a recurring cadence to enable automation.
 
 Daily and weekly schedules use the computer's local timezone. Choose the project,
 permission mode and model in the task form. These choices are saved only for that
-task, so changing another task or the app default does not retarget it. Auto can
-run restricted actions without asking; use it only for tasks you trust.
+task, so changing another task or the app default does not retarget it. Full
+access can run restricted actions without asking; use it only for tasks you
+trust.
 
 Keep PI-Desktop running. Quitting the app stops scheduling. Missed occurrences
 are skipped; startup never launches a backlog. A task does not overlap its own

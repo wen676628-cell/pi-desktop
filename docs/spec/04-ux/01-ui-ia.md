@@ -387,7 +387,8 @@ subsequent foreground project changes do not retarget it. This includes Manual
 tasks and tasks saved without a project: Run now, renaming, and cadence changes
 preserve that binding, including after restart. Only legacy tasks without a saved
 binding capture the current project on their first explicit configuration. Legacy automatic
-runs without a saved permission mode use Ask and may wait for input in their conversation.
+runs without a saved permission mode use Confirm before changes and may wait for
+input in their conversation.
 New tasks default to Agent. A migrated Plan or Goal task is allowed to remain
 stored, but an unattended run is explicitly rejected before provider, artifact,
 or queue work with `PLAN_REQUIRES_INTERACTIVE_SESSION`; it cannot display or

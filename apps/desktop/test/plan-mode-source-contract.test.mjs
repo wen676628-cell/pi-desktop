@@ -44,8 +44,8 @@ test("renderer exposes Agent, Plan, and Goal as the only operating modes", () =>
   assert.match(composerSource, /settings\.modeGoal/);
   assert.match(composerSource, /IconListChecks/);
   assert.match(composerSource, /IconTarget/);
-  assert.match(settingsSource, /value: "plan", label: t\("settings\.modePlan"\)/);
-  assert.match(settingsSource, /value: "goal", label: t\("settings\.modeGoal"\)/);
+  assert.doesNotMatch(settingsSource, /value: "plan", label:/);
+  assert.doesNotMatch(settingsSource, /value: "goal", label:/);
   assert.match(commandsSource, /case "builtin\.mode\.plan"/);
   assert.match(commandsSource, /case "builtin\.mode\.goal"/);
   for (const source of [composerSource, settingsSource, commandsSource]) {
@@ -269,12 +269,12 @@ test("Plan approval labels and remembered modes are locale-backed", () => {
   assert.match(chineseSource, /approvalRegion: "规划审批"/);
   assert.match(englishSource, /approvalRegion: "Goal approval"/);
   assert.match(chineseSource, /approvalRegion: "目标审批"/);
-  assert.match(englishSource, /approveAuto: "Approve \(Auto\)"/);
-  assert.match(chineseSource, /approveAuto: "批准（全自动）"/);
+  assert.match(englishSource, /approveAuto: "Approve \(Full access\)"/);
+  assert.match(chineseSource, /approveAuto: "批准（完全权限）"/);
   assert.doesNotMatch(englishSource, /expiresAt:/);
   assert.doesNotMatch(chineseSource, /expiresAt:/);
-  assert.match(englishSource, /autoWarning: "Auto runs Bash without asking and may change files\."/);
-  assert.match(chineseSource, /autoWarning: "自动模式会直接运行 Bash，且可能修改文件。"/);
+  assert.match(englishSource, /autoWarning: "Full access runs Bash without asking and may change files\."/);
+  assert.match(chineseSource, /autoWarning: "完全权限会直接运行 Bash，且可能修改文件。"/);
   assert.doesNotMatch(englishSource, new RegExp(legacyModeKey));
   assert.doesNotMatch(chineseSource, new RegExp(legacyModeKey));
 });

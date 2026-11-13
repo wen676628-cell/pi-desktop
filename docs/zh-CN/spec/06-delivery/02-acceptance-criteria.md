@@ -48,8 +48,8 @@ MVP 在以下情况下通过：
 ### E. 工具和权限
 - [x] Plan 和 Goal 在每种权限模式下拒绝 Write/Edit/plugin 工具 —
   auto:`test:e2e:plan` E2E-105 + host-core 权限测试
-- [x] Plan 和 Goal Ask/Accept 下的 Bash 提示编辑并运行而无需确认
-  在显式 Auto — auto:`test:e2e:plan` E2E-105 + host-core 权限测试下
+- [x] Plan 和 Goal 在变更前确认/自动审查下为 Bash 请求确认，仅在显式完全权限下
+  不确认运行 — auto:`test:e2e:plan` E2E-105 + host-core 权限测试
 - [x] Agent 模式使用 Write/Edit/Bash 的权限策略 — 手册：M3
 - [x] 本地权限卡片会一直保持待处理，直到明确决定或取消；批准后的工具执行预算仍然生效 — 单元/host-core：issue #1214 (D636)
 - [x] Read/Glob/Grep 在项目内部工作 — auto:`test:e2e`（glob 工具）
@@ -73,7 +73,7 @@ MVP 在以下情况下通过：
   独特的 `.pi/plan/*.md` 工件，使 title/question 保持结构化
   `plan_approvals`，并记录 path/hash/size — auto:`test:e2e:plan` E2E-106
 - [x] 批准仅提供 Approve/Reject；批准需要明确
-  默认情况下选择“询问”的权限模式 — auto:`test:e2e:plan-ui`
+  默认选择“变更前确认”的权限模式 — auto:`test:e2e:plan-ui`
   E2E-106/E2E-117
 - [x] 批准截止日期绝对是 30 分钟，陈旧的回复会失败
   已关闭 — auto:`test:e2e:plan` E2E-107 + host-core 过期测试
