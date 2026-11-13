@@ -2,6 +2,24 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const frEntries: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-11-08",
+    highlights: [
+      "Utilisez le moteur Pi 1.5 et consultez les coûts par tour et par session dans les vues d’utilisation.",
+      "Stabilisez les longues conversations grâce à une compression du contexte, un traitement des images et une exécution des outils plus sûrs.",
+      "Restaurez la disposition des projets et les éditeurs de tâches planifiées, et enregistrez les configurations MCP dans le projet sélectionné.",
+      "Laissez l’agent contrôler les applications de bureau via l’utilisation de l’ordinateur, avec autorisations explicites et curseur visible.",
+      "Lancez les applications installées et les commandes de plugins depuis un lanceur groupé, et épinglez les applications fréquentes.",
+      "Gardez les longues conversations lisibles en repliant les activités terminées et en revenant plus fluidement aux messages récents pendant le chargement de l’historique.",
+      "Collez des dossiers dans le champ de rédaction comme références et ouvrez les liens de répertoire directement dans le gestionnaire de fichiers.",
+      "Choisissez vos modèles dans un sélecteur repensé à deux volets, avec un accès direct aux réglages du fournisseur.",
+      "Orientez une demande vers un sous-agent nommé avec une mention @agent.",
+      "Les extensions de confiance peuvent enregistrer des raccourcis clavier exécutés depuis le bureau.",
+      "L’application démarre plus vite : le sidecar de l’agent ne démarre qu’au premier appel d’agent ou d’extension.",
+      "Actions étiquetées Nouvelle tâche, tâches planifiées et extensions dans la barre latérale, avec une nouvelle icône géométrique.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-24",
     highlights: [
