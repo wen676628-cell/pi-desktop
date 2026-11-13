@@ -57,6 +57,9 @@ export type { WindowsDistribution } from "./update-policy";
 
 const { NsisUpdater, autoUpdater } = electronUpdaterPkg;
 
+/** A repository with no releases yet is not a failed check. */
+const NO_PUBLISHED_RELEASE = /No published versions on GitHub/i;
+
 /** Windows NSIS updater with a caller-selected cache base. */
 class RelocatedNsisUpdater extends NsisUpdater {
   constructor(baseCachePath: string) {
@@ -568,6 +571,11 @@ export class AppUpdaterController {
       // Auto checks fail quietly (offline, private repo, rate limits);
       // the renderer only surfaces errors when `manual` is set.
       this.logger.app("updater", "warn", "updater error", { data: String(error) });
+      if (NO_PUBLISHED_RELEASE.test(error.message)) {
+        // The fork has not published a release yet; there is nothing newer.
+        this.setState({ status: "up-to-date", error: undefined });
+        return;
+      }
       this.setState({ status: "error", error: error.message });
     });
   }
@@ -639,8 +647,11 @@ export class AppUpdaterController {
         return this.state;
       }
       // The 'error' listener already recorded state; rethrow for manual
-      // callers so the invoke rejects and the UI can toast it.
-      if (options.manual) throw error;
+      // callers so the invoke rejects and the UI can toast it. A repository
+      // with no releases is a valid "nothing to update to" answer.
+      if (options.manual && !NO_PUBLISHED_RELEASE.test(error instanceof Error ? error.message : String(error))) {
+        throw error;
+      }
     }
     return this.state;
   }

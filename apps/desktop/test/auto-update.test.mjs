@@ -144,6 +144,7 @@ test("updater gates delivery mode by platform and delivery policy", () => {
     /github\.com\/wen676628-cell\/pi-desktop\/releases/,
     "releases fallback URL",
   );
+  assert.match(updaterSource, /No published versions on GitHub/);
   assert.match(
     updaterSource,
     /formatChangelogNotes/,
