@@ -2,6 +2,24 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const deEntries: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-11-08",
+    highlights: [
+      "Nutzen Sie die Pi-1.5-Agent-Engine und prüfen Sie Runden- und Sitzungskosten in den Nutzungsansichten.",
+      "Stabilere lange Gespräche durch sicherere Kontextkomprimierung, Bildverarbeitung und Werkzeugausführung.",
+      "Projektlayout und Editoren geplanter Aufgaben zuverlässig wiederherstellen und MCP-Konfigurationen im ausgewählten Projekt speichern.",
+      "Lassen Sie den Agenten Desktop-Apps über die Computersteuerung mit ausdrücklicher Freigabe und sichtbarem Cursor bedienen.",
+      "Starten Sie installierte Apps und Plugin-Befehle in einem gruppierten Launcher und heften Sie häufig genutzte Apps an.",
+      "Abgeschlossene Aktivitäten einklappen und beim Laden älterer Nachrichten flüssiger zu den neuesten zurückkehren.",
+      "Fügen Sie Ordner als Verzeichnisverweise in den Composer ein und öffnen Sie Verzeichnislinks direkt im Dateimanager.",
+      "Wählen Sie Modelle in einer überarbeiteten zweigeteilten Auswahl mit direktem Zugriff auf die Anbietereinstellungen.",
+      "Leiten Sie eine Anfrage mit einer @agent-Erwähnung an einen benannten Unteragenten weiter.",
+      "Vertrauenswürdige Erweiterungen können Tastenkürzel registrieren, die direkt im Desktop ausgeführt werden.",
+      "Die App startet schneller: Der Agent-Sidecar startet erst beim ersten Agent- oder Erweiterungsaufruf.",
+      "Beschriftete Aktionen für neue Aufgabe, geplante Aufgaben und Erweiterungen in der Seitenleiste sowie ein neues geometrisches App-Symbol.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-24",
     highlights: [

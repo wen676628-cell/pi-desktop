@@ -2,6 +2,24 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const ptBREntries: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-11-08",
+    highlights: [
+      "Use o mecanismo de agentes Pi 1.5 e consulte os custos por turno e sessão nas telas de uso.",
+      "Mantenha conversas longas estáveis com compactação de contexto, processamento de imagens e execução de ferramentas mais seguros.",
+      "Recupere o layout dos projetos e os editores de tarefas agendadas e salve as configurações MCP no projeto selecionado.",
+      "Deixe o agente controlar aplicativos da área de trabalho pelo uso do computador, com permissões explícitas e cursor visível.",
+      "Abra aplicativos instalados e comandos de plugins em um único iniciador agrupado e fixe os aplicativos mais usados.",
+      "Mantenha conversas longas mais claras recolhendo atividades concluídas e voltando com fluidez às mensagens recentes enquanto o histórico anterior carrega.",
+      "Cole pastas no campo de composição como referências de diretório e abra links de diretório diretamente no gerenciador de arquivos.",
+      "Escolha modelos em um seletor redesenhado de dois painéis com acesso direto às configurações do provedor.",
+      "Direcione um prompt a um subagente específico usando uma menção @agent.",
+      "Extensões confiáveis podem registrar atalhos de teclado e executá-los na área de trabalho.",
+      "O aplicativo abre mais rápido: o sidecar do agente inicia na primeira chamada de agente ou extensão.",
+      "Ações rotuladas de nova tarefa, tarefas agendadas e extensões na barra lateral, com o novo ícone geométrico.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-24",
     highlights: [

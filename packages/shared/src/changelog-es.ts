@@ -2,6 +2,24 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const esEntries: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-11-08",
+    highlights: [
+      "Usa el motor de agentes Pi 1.5 y consulta los costes por turno y sesión en las vistas de uso.",
+      "Mantén estables las conversaciones largas con una compresión del contexto, gestión de imágenes y ejecución de herramientas más seguras.",
+      "Recupera la distribución de proyectos y los editores de tareas programadas, y guarda las configuraciones MCP en el proyecto seleccionado.",
+      "Deja que el agente controle aplicaciones de escritorio mediante el uso del ordenador, con permisos explícitos y un cursor visible.",
+      "Abre aplicaciones instaladas y comandos de plugins desde un único lanzador agrupado y fija las aplicaciones frecuentes.",
+      "Mantén las conversaciones largas más claras plegando la actividad completada y volviendo con fluidez a los mensajes recientes mientras carga el historial anterior.",
+      "Pega carpetas en el cuadro de composición como referencias y abre enlaces a directorios directamente en el gestor de archivos.",
+      "Elige modelos en un selector rediseñado de dos paneles con acceso directo a los ajustes del proveedor.",
+      "Dirige una solicitud a un subagente concreto con una mención @agent.",
+      "Las extensiones de confianza pueden registrar atajos de teclado y ejecutarlos desde el escritorio.",
+      "La aplicación abre más rápido: el sidecar del agente arranca en la primera llamada al agente o a una extensión.",
+      "Acciones etiquetadas de nueva tarea, tareas programadas y extensiones en la barra lateral, con un nuevo icono geométrico.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-24",
     highlights: [

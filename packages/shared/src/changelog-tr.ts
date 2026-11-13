@@ -2,6 +2,24 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const trEntries: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-11-08",
+    highlights: [
+      "Pi 1.5 aracı motorunu kullanın ve kullanım alanlarında tur ile oturum maliyetlerini inceleyin.",
+      "Daha güvenli bağlam sıkıştırma, görüntü işleme ve araç yürütmeyle uzun konuşmaları kararlı tutun.",
+      "Proje düzenini ve zamanlanmış görev düzenleyicilerini güvenilir biçimde kurtarın; MCP yapılandırmalarını seçili projeye kaydedin.",
+      "Açık izinler ve görünür imleçle bilgisayar kullanımı üzerinden masaüstü uygulamalarını aracıya kontrol ettirin.",
+      "Yüklü uygulamaları ve eklenti komutlarını tek, gruplandırılmış başlatıcıdan açın; sık kullandıklarınızı sabitleyin.",
+      "Tamamlanan etkinlikleri daraltın; eski geçmiş yüklenirken en yeni iletilere daha akıcı biçimde dönün.",
+      "Klasörleri Composer'a dizin referansları olarak yapıştırın ve dizin bağlantılarını doğrudan dosya yöneticisinde açın.",
+      "Yeniden tasarlanan iki panelli model seçicisinde model seçin ve sağlayıcı ayarlarına doğrudan geçin.",
+      "@agent etiketiyle bir istemi adlandırılmış bir alt ajana yönlendirin.",
+      "Güvenilir uzantılar klavye kısayolları kaydedebilir ve bunlar masaüstünden çalıştırılabilir.",
+      "Uygulama daha hızlı açılır: agent sidecar, açılışta değil ilk Agent veya uzantı çağrısında başlar.",
+      "Kenar çubuğunda Yeni görev, zamanlanmış görevler ve uzantılar için etiketli girişler ve yeni geometrik uygulama simgesi.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-24",
     highlights: [
