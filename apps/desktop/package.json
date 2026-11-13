@@ -4,7 +4,7 @@
   "desktopName": "pi-desktop.desktop",
   "private": true,
   "description": "PI-Desktop Electron application",
-  "homepage": "https://github.com/vastsa/PI-Desktop",
+  "homepage": "https://github.com/wen676628-cell/pi-desktop",
   "author": {
     "name": "vastsa",
     "email": "hhxk666@gmail.com"
@@ -105,8 +105,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "vastsa",
-        "repo": "PI-Desktop"
+        "owner": "wen676628-cell",
+        "repo": "pi-desktop"
       }
     ],
     "extraMetadata": {

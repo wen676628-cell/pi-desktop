@@ -1,4 +1,10 @@
-export const GITHUB_REPO = "vastsa/PI-Desktop";
+/** Project repository: feedback issues and the in-app release link. */
+export const GITHUB_REPO = "wen676628-cell/pi-desktop";
+/**
+ * The `pi-host` bundle still comes from the upstream release train; this fork
+ * does not publish `pi-host-*.tar.gz` assets yet.
+ */
+export const PI_HOST_RELEASE_REPO = "vastsa/PI-Desktop";
 export const GITHUB_BUG_TEMPLATE = "bug_report.yml";
 export const GITHUB_ISSUE_ORIGIN = "https://github.com";
 
