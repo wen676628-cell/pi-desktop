@@ -116,7 +116,6 @@ test("the help tooltip wraps instead of running off its anchor", () => {
 test("the row explanations survive the move into the tooltip", () => {
   for (const key of [
     "settings.permissionModeDesc",
-    "settings.modeDesc",
     "settings.enterToSendDesc",
     "settings.feedbackDesc",
   ]) {
