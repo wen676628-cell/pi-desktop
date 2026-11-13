@@ -10,6 +10,93 @@
 - **Acceptance:** Both themes and narrow layout remain readable; existing composer interaction and transcript semantics are unchanged.
 - **Milestone:** Maintenance. **Status:** Source contracts automated; Electron visual capture exercised locally.
 
+### E2E-FILE-INDEX-git-deadline
+
+Drive `getWorkspaceFileIndex` and `searchWorkspaceFiles` against real fixture
+files. Hold Git's close event beyond its deadline: both calls return the bounded
+filesystem listing. Coverage: `fs-index-git-deadline.test.mjs`. Existing index
+tests cover Git ignore semantics, Unicode chunk boundaries and deep search.
+
+### E2E-QUEUE-late-read-after-event
+
+Render two queued prompts, hold a production refresh, deliver a queueChanged event removing the first prompt, then return the old read. Only the second remains visible; a later authoritative refresh still applies. `queue-refresh-event-order.test.mjs` covers event/read order, reversed reads and session independence; `e2e-queue-refresh-event-order.mjs` renders production ComposerStatus/useAppStore in real Electron. No prompt is dispatched to a provider.
+
+### E2E-TRANSCRIPT-window-cache-edit-race
+
+Hold a bounded production session read, publish an idle edit cache with a different history window, then return the older window. Navigate/render from cache and observe the edited content. Also cover unchanged hydration and running live-tail merge. `session-window-cache-race.test.mjs` exercises the runtime API; `e2e-session-window-cache-race.mjs` renders the recovered snapshot through production MessageRow in real Electron. The API is controlled and no provider executes.
+
+### E2E-MODEL-idle-write-order
+
+Hold the first idle configuration response, select a second model, then release
+both responses. Assert a single in-flight write and the final newest model.
+Coverage: `session-model-write-order.test.mjs`, using real slice/coordination
+with only Host API controlled. Running-turn configuration remains queued.
+
+### E2E-EXTENSION-thinking-request-state
+
+Set high thinking through the production extension bridge, send a prompt and
+capture the provider stream options. The actual Agent loop sends high, matching
+the extension getter. `runtime.test.ts` mocks only the provider stream.
+
+### E2E-TRANSCRIPT-full-read-cache-race
+
+Hold a full-history read, publish a newer streaming snapshot, then resolve the
+old read. The caller receives history while the session cache keeps the newer
+snapshot. Coverage: `full-transcript-refresh-race.test.mjs` plus existing
+session-runtime update regressions. No provider execution is required.
+
+### E2E-SESSION-metadata-reads-skip-transcript
+
+Seed real host-core with a ~40 MB transcript beside a short session. A
+`messageLimit: 1` `session.get` must return the same project, worktree, mode
+and model metadata as an unbounded read. Then launch the built desktop app on
+that data and drive composer paste and Browser navigate through the real
+preload IPC on both sessions: the long session may not add half an unbounded
+read's time to either call. Coverage: `pnpm test:e2e:session-metadata-reads`
+(`scripts/e2e-session-metadata-reads.mjs`). No provider execution is required.
+
+### E2E-SESSION-rejected-stop-state
+
+Reject a remote Stop at the API boundary: the production session slice keeps
+its running state and rethrows the error. Retry successfully: both the active
+indicator and owning session running entry clear. Coverage:
+`failed-session-stop-state.test.mjs`, without provider execution.
+
+### E2E-SUBAGENT-system-notice-reconstruction
+
+Reconstruct a transcript with a running Task followed by a system notice.
+The production entry builder, live-delegation selector and outcome resolver
+keep the Task running. End the session or add a new ordinary prompt and verify
+that historical Tasks are no longer live. Coverage:
+`live-delegation-system-row.test.mjs`; `turn-process.test.mjs` checks the
+matching turn boundary and `turn-process-header.test.mjs` the rendered labels.
+
+### E2E-STEERING-recovery-reply-order
+
+Feed consumed steering between an earlier reply and the next recovery response.
+The earlier reservation settles and the next reply gets a new ID. Cover
+provider, overflow, silent and progress recovery in `runtime.test.ts`.
+`e2e-transcript-render.mjs` verifies production event projection and the
+existing one-bubble overflow recovery when no steering is consumed.
+
+### E2E-COMPOSER-screenshot-without-directory-scan
+
+Paste a native folder, then a synthetic screenshot through real Composer,
+preload IPC and the bounded scratch writer in `e2e-composer-paste.mjs`.
+Run with `--screenshot-only` to verify the folder and screenshot route while
+excluding unrelated MP4 preview. Screenshot metadata never enters native
+directory discovery; scratch bytes are verified exactly in Main.
+`composer-directory-paste.test.mjs` verifies byte preservation and existing
+folder/mixed-selection behavior. No system clipboard contents are changed.
+
+### E2E-FILE-MANAGER-git-deadline
+
+`file-manager-git-timeout.test.mjs` drives actual bundled `fm.list` and `fm.read`
+against real fixture files with a controlled child-process boundary. Advance
+the Git deadline while the child never closes: entries and preview complete
+without Git metadata. Existing Electron directory-location and mutation
+journeys cover successful reads, saves and directory browsing.
+
 ## E2E-SCHEDULED-independent-loading-and-route-return
 
 - **Preconditions:** Synthetic tasks; controllable task, latest-run, history and
@@ -66,6 +153,44 @@ being fetched on every subsequent poll.
   Structured status takes precedence and prose numbers are ignored.
 - **Automated coverage:** `agent-errors.test.ts` and `provider-retry.test.ts`.
 - **Specs:** `03-runtime/08-error-codes.md` §3.2.
+
+## E2E-PROVIDER-openai-error-code-status
+
+- **Preconditions:** Isolated Agent runtime classifier; no credentials, network,
+  or user history.
+- **Steps:** Classify messages that begin `Error code: 402`, `Error code: 401`,
+  `Error code: 429`, and `Error code: 404`, including a body that also contains
+  a parenthesized status. Also classify SiliconFlow-style `Error code: 30001`,
+  prose that only mentions `error code: 500`, a bare `code: 401`, and a Zhipu
+  `"code":1308` body.
+- **Expected:** `providerStatus` is the prefix and the status table applies:
+  402 is terminal `PROVIDER_ERROR`, 401 is `PROVIDER_UNAUTHORIZED`, 429 is
+  `PROVIDER_RATE_LIMITED`, and 404 is `MODEL_NOT_CONFIGURED`. The prefix wins
+  over a later parenthesized number. Business codes and prose do not become an
+  HTTP status; Zhipu `1308` stays terminal `PROVIDER_ERROR` without
+  `providerStatus`. A structured `status` field still wins over the prefix.
+- **Automated coverage:** `packages/agent-runtime/src/agent-errors.test.ts`.
+- **Specs:** `03-runtime/08-error-codes.md` §3.2.
+
+
+## E2E-PROVIDER-anthropic-oauth-claude-code-identity
+
+- **Preconditions:** Built desktop, isolated Host data directory and Electron
+  profile, and a seeded Claude (Anthropic OAuth) account row with a synthetic,
+  unexpired credential. Every `api.anthropic.com` / `platform.claude.com`
+  request from Electron main and the agent sidecar is redirected to a local
+  fixture; no real Anthropic request is made.
+- **Steps:** Launch the app, type a prompt in the Composer, and press Enter.
+  The fixture rejects Claude Code identities older than 2.1.290 with HTTP 400
+  `claude_code_version_too_old`, as Claude Pro/Max models do (issue #2239),
+  and otherwise streams a reply.
+- **Expected:** The model request carries the OAuth bearer token, `x-app: cli`
+  and a `claude-cli/<version>` User-Agent of at least 2.1.290. The chat shows
+  the streamed reply and no version rejection.
+- **Automated coverage:** `pnpm test:e2e:anthropic-oauth-identity`
+  (`scripts/e2e-anthropic-oauth-identity.mjs`) and
+  `packages/agent-runtime/src/anthropic-oauth-identity.test.ts`.
+- **Specs:** `03-runtime/12-provider-config-schema.md`.
 
 
 ## E2E-TASK-DOCK-tab-content-isolation
@@ -1514,10 +1639,11 @@ identify the platform validation still needed.
   `codesign --verify --deep --strict --verbose=2`,
   `spctl --assess --type execute --verbose=4`, and `xcrun stapler validate`
   against the app, including `Contents/Resources/bin/pi-desktop-host-core`.
-  4) Confirm the app stapler shim retries only `xcrun stapler staple` up to six
-  total attempts after the app submission is accepted, then confirm the
-  workflow's DMG step reported an Apple notary status of `Accepted` and run
-  `xcrun stapler validate` against the matching DMG.
+  4) Confirm the app stapler shim retries `xcrun stapler staple` and
+  `xcrun stapler validate` up to six total attempts after the app submission
+  is accepted, then confirm the workflow's DMG step reported an Apple notary
+  status of `Accepted` and stapled and validated the matching DMG. A transient
+  CloudKit lookup failure during validation is retried within the same bound.
   5) Download the DMG on a clean macOS profile, move the app to
   `/Applications`, and open it without clearing `com.apple.quarantine`.
 - **Expected**: Each macOS app passes signature integrity, Gatekeeper reports
@@ -1526,7 +1652,7 @@ identify the platform validation still needed.
   no ticket and fails `stapler staple` with error 65, so a tag build must never
   reach that state. The app opens normally; no `xattr` quarantine-removal
   command or Security & Privacy override is required. Missing secrets, a
-  rejected submission, or an exhausted staple retry fail the job.
+  rejected submission, or exhausted staple or validation retries fail the job.
 - **Specs linked**: `06-delivery/06-release-runbook.md`,
   `05-security/01-security.md`, ADR 0289
 - **Acceptance**: Quality, Security
@@ -2495,6 +2621,23 @@ identify the platform validation still needed.
 - **Status**: Unit-covered (`persistence-outbox.test.mjs` bounded retry,
   quarantine, dead-letter persistence and cap tests); desktop journey
   outstanding
+
+#### E2E-SESSION-outbox-empty-snapshot-is-atomic
+
+- **Preconditions**: An isolated profile has one queued append or dead letter.
+- **Steps**: Delete its session through `PersistenceOutbox.dropSession` and
+  terminate the writer after the empty write opens/truncates its target but
+  before writing the payload. Restart the outbox. Repeat with an injected
+  `EPERM` at rename, then clear normally and restart again.
+- **Expected**: Both failures preserve the previous committed bytes. A pending
+  append remains replayable; a dead letter remains readable without replay.
+  Rename failure rejects the caller. A successful clear commits `[]` and
+  remains readable on restart. Already-corrupt files still fail closed.
+- **Specs linked**: `03-runtime/04-data-storage.md`, ADR 0041
+- **Acceptance**: F (persistence)
+- **Status**: Process/filesystem regression coverage in
+  `persistence-outbox-atomic-clear.test.mjs`; full Electron and native Windows
+  force-close journeys not run.
 
 
 #### E2E-011: Switch between project and temporary sessions
@@ -3822,6 +3965,13 @@ identify the platform validation still needed.
 
 #### E2E-091: Appearance card selects searchable theme and language pickers
 
+macOS OS-event acceptance: `PI_E2E_SYSTEM_APPEARANCE=1 node scripts/e2e-browser-system-appearance.mjs`.
+The opt-in probe temporarily changes OS appearance and restores it in a finalizer.
+It mounts the bundled Browser with production lifecycle functions in sandboxed
+Electron, checks light/dark/light paint, fixed app/plugin palettes, view recreation,
+process restart and listener removal. Host/plugin-registry edges are synthetic;
+this does not claim an installed full-app settings journey.
+
 - **Preconditions**: App running on macOS; the harness can exercise English,
   Simplified Chinese, Traditional Chinese, Turkish, German, Spanish, French,
   Korean, and Brazilian Portuguese system locales.
@@ -3830,7 +3980,11 @@ identify the platform validation still needed.
   2) In the Appearance card, open the Theme picker. Confirm System, Light, and
      Dark are pinned at the top; select Dark and confirm the trigger shows Dark
      and the UI switches to dark.
-  3) Select Light and confirm the UI switches to light.
+  3) Select Light and confirm the UI switches to light. With a Browser tab open,
+     select System and change OS appearance light → dark → light. Confirm the
+     shell and Browser address/navigation toolbar update together without a
+     settings write or restart. Repeat with explicit Light and Dark: OS changes
+     must not override the selected app palette.
   4) In the Language row, open the searchable picker. Confirm Auto is pinned
      at the top with the detected native name and that English, 简体中文,
      繁體中文, Türkçe, Deutsch, Español, Français, 한국어, and Português (Brasil)
@@ -8189,7 +8343,9 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
     fixtures complete on their second request. A second opaque failure remains
     terminal. A 400/422 that names an output ceiling (`at most N completion
     tokens`, `max_tokens: N > M, which is the maximum allowed number of output
-    tokens`, or `expected a value <= N`) gets one silent repair that clamps
+    tokens`, `expected a value <= N`, `valid range of max_tokens is [1, N]`,
+    `Range of max_tokens should be [1, N]`, or `max_tokens must be less than
+    or equal to N`) gets one silent repair that clamps
     those fields to that ceiling instead of removing them. Credit exhaustion
     and context overflow do not take this repair.
   - If the turn is aborted after the first opaque failure, the repair request is
@@ -9354,7 +9510,11 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
     override so the next connection uses the default handshake timeout.
   - The broken command records `failed` with a message, contributes no tools,
      and is not re-dialled on the following session assembly; pressing Test
-     retries it.
+     retries it. After a transient failure in two projects, repair the stub
+     without editing its saved record and test the server. Both projects regain
+     tools on their next session without an enable toggle. Testing a selected
+     project uses that project's cwd and tool catalog; an active call or
+     handshake in another project completes without interruption.
    - A stopped HTTP server loses its `ready` status on settings refresh and
      reports `failed`; Test connection restores `ready` after it restarts.
 - **Specs linked**: `07-plugins/01-plugin-system.md` §12,
@@ -14628,13 +14788,15 @@ are withdrawn with ADR 0165.
   that matches nothing. On an HTML reference, open the Open with submenu and
   choose File Manager, built-in browser, and default browser; repeat for the
   scratch HTML file. 9) Use Copy full path and Copy relative path, then do the
-  same on a reference that resolves in the session scratch store.
+  same on a reference that resolves in the session scratch store. 10) Choose
+  Show in folder on a project file and on a scratch file.
 - **Expected**:
   - Right-clicking a file reference offers Copy full path and Copy relative
-    path on each transcript surface that names it. The transcript menu has no
-    Show in folder item. An unpositioned HTML reference also has a second-level
-    Open with submenu for File Manager, built-in browser, and default browser;
-    non-HTML references keep only the copy actions. Each open choice resolves
+    path on each transcript surface that names it, plus Show in folder in a
+    local session. An unpositioned HTML reference also has a second-level
+    Open with submenu for File Manager, built-in browser, and default browser.
+    Show in folder reveals the resolved file in the system file manager and a
+    missing reference reports itself instead. Each open choice resolves
     the reference first, and a missing reference reports itself without opening
     a same-named file elsewhere.
   - A copy writes exactly what it names: the absolute address for the full copy
@@ -20377,6 +20539,15 @@ Scenario: E2E-REVIEW-ROUNDS (local desktop, implemented)
   failures separately from protocol success.
 - Exercise a late stop with an already reaped child before the supervisor drains the pipes. Verify the original exit outcome, final output and stable elapsed time across reads. Stall capability discovery or the first Host observation to exercise the overall wait deadline. The Electron transcript fixture renders a pending Bash stop and a mixed job list.
 
+#### E2E-ISSUE-1953
+
+MCP All uses the selected project for create/import/install, falling back to Global only without a project. Explicit filters retain ownership and an opened editor pins its project. Verify create and market installation across all/project/global and missing-project cases with `mcp-market-owner-user-path.test.mjs`.
+
+Open an editor in project A, switch the page to B and wait for B's list. A/B
+same-name definitions with different IDs do not prevent saving to A. A real
+duplicate name or ID in A still blocks creation; a real duplicate name blocks
+editing. Cover both creating and editing before changing the page selection.
+
 #### E2E-ISSUE-1789
 
 Image-model marking explains chat/default-menu exclusion and distinguishes generation from image input. Collapsed model rows retain an image-model badge. Verify marking, help, collapsing, unmarking and restored chat eligibility through `image-model-disclosure-user-path.test.mjs`.
@@ -20393,6 +20564,49 @@ Bounded tail pages include compactions appended after the last message. Middle p
 
 While a checkpoint estimate supplies context occupancy, use its recorded provider/model capacity, or the current exact session binding for legacy checkpoints. Keep historical request usage unchanged. Unknown capacity is marked approximate. Verify 20,619 / 1,000,000 = 2%, unknown routes, legacy records and usage after a newer request with `compaction-context-usage.test.mjs`.
 
+
+## User-defined mode workflow acceptance
+
+Candidate command: `PI_DESKTOP_HOST_BIN=<candidate-host> node scripts/e2e-mode-definitions.mjs`
+with `PI_SCRATCH_DIR` set to an isolated test directory. No model API is called.
+
+1. Configure a session with a two-stage definition snapshot. Start a durable
+   turn and claim the first contract stage.
+2. Request completion without its required artifact; observe a failed gate.
+3. Supply the artifact through stage completion; verify its exact disk content
+   and the waiting-for-approval state.
+4. Settle the first turn, approve with the current revision and claim the next
+   stage with approval provenance.
+5. Submit the stage's command gate. A changed command must fail with
+   `MODE_GATE_MISMATCH` before execution.
+6. Execute the exact command through `tools.execute`; consume the Host-recorded
+   result and observe finished, no open run, and session mode Agent.
+
+Companion tests: `mode_runs::*` and `rpc::modes_rpc::tests::*` cover migration,
+recovery, CAS, budget and permission caps; desktop `mode-definitions-user-path`,
+`mode-definitions-renderer` and `mode-runs-main` cover source editing, selection,
+run controls and Main dispatch. Runtime `modes/*` covers stage completion and
+compaction injection.
+
+### Goal run controls with a live model (opt-in, paid)
+
+Command: `PI_LIVE_BASE_URL=<url> PI_LIVE_MODEL=<model> PI_LIVE_API_KEY=<key>
+PI_DESKTOP_HOST_BIN=<candidate-host> node scripts/e2e-goal-live.mjs` with
+`PI_SCRATCH_DIR` set (`PI_LIVE_SECRETS_DIR` + `PI_LIVE_SECRET_REF` may replace
+the key; only the machine key and that one secret file are copied). It calls a
+paid model API and needs the account owner's authorization. Real pieces: an
+isolated Host, the production runtime loop and Electron main's run coordinator.
+
+1. With `goalBudget { maxTurns: 6 }` set, a Goal run starts with 6 turns, does
+   the work, calls `CompleteStage` with the three-heading artifact, finishes,
+   and the session returns to Agent.
+2. During the first turn, Edit the objective and budget, then Pause: the turn
+   receives the closeout notice and ends within 3 more model requests; the run
+   stays paused and no turn starts. Resume starts an approval turn with the
+   edited objective, which the run meets before it finishes.
+3. During a turn, Remove: the turn is not interrupted, finishes in Agent
+   without `CompleteStage`, no Host-started turn follows, and no open run is
+   left.
 #### E2E-ISSUE-2173: Redundant delegation job selectors
 
 - Entry: build shared/agent-runtime/host-runtime and Host, then run
@@ -20409,3 +20623,29 @@ While a checkpoint estimate supplies context occupancy, use its recorded provide
 - Specs: `03-runtime/02-agent-runtime.md`, Session job controls.
 - Acceptance: wait, report re-read and running-delegate cancellation complete
   through the real tool loop. Milestone: maintenance. Status: automated.
+
+#### E2E-ISSUE-2086-fork-selection
+
+While the parent is revalidating, invoke sidebar forkSession and complete the Host response. The child becomes active/retained and selectingSessionId clears. If a newer selection supersedes a reply fork, its selection remains. Cover existing running-parent transcript and fork-error paths through session-fork-running.test.mjs.
+
+#### E2E-ISSUE-1707
+
+Use synthetic Darwin x64/arm64 uname responses through production SSH bootstrap, serialize its code/details as IPC does, and resolve the renderer error. The platform explanation appears, no checksum or upload occurs. Linux and other bootstrap failures keep existing messages. Coverage: remote-host-ssh-bootstrap.test.mjs and remote-host-errors.test.mjs.
+
+#### E2E-ISSUE-2184
+
+Load the actual bundled plugin in an isolated workspace. Create a file and Unicode directory, rename and move the file; verify disk entries and response metadata. Invalid create/rename names fail before writing, and duplicate destinations are refused. Coverage: apps/desktop/test/file-manager-mutations.test.mjs. Existing Electron directory-location path also passes.
+
+### E2E-NATIVE-workspace-file-routing
+
+Run `node scripts/e2e-native-workspace-files.mjs`: isolated Electron Main,
+production workspace IPC, synthetic sidecar session metadata and real fixture
+files. Select an unrelated Desktop workspace; list, read and resolve a native
+file, then reject a missing native session. The test asserts no native session
+or scratch RPC reaches Desktop storage. `native-workspace-files.test.mjs`
+additionally rejects replaced sidecars. No provider execution or native user
+session data is used.
+
+#### E2E-ISSUE-1926-scratch-prefix
+
+Build two actual runtimes with identical configuration and different scratch directories. Their leading runtime system sections match; each trailing context retains its own path. Check PowerShell/POSIX guidance and custom system prompt behavior. Coverage: runtime.test.ts. No paid provider requests or cache-hit claims.
