@@ -225,7 +225,7 @@ test("the task page reads facts, history, and the selected run in place", async 
     assert.match(html, /Last run[\s\S]*?Session error/, "the facts lead with the last outcome");
     assert.match(html, /1m 12s/);
     assert.match(html, /~/u, "the project path is shortened");
-    assert.match(html, /Auto/, "the task's own permission mode is shown");
+    assert.match(html, /Full access/, "the task's own permission mode is shown");
     assert.match(html, /Fixture provider \/ fixture/, "the model fact names the provider, not its id");
     assert.match(
       html,
