@@ -9,7 +9,7 @@
  * remote machine. Everything here is pure so the URL, target, and checksum
  * rules stay testable without a network or an SSH connection.
  */
-import { GITHUB_REPO } from "@pi-desktop/shared";
+import { PI_HOST_RELEASE_REPO } from "@pi-desktop/shared";
 
 /** Platforms the bootstrap can classify from `uname -s`. */
 export type PiHostPlatform = "linux" | "darwin";
@@ -92,7 +92,7 @@ export function piHostArtifactUrls(
   target: PiHostTarget,
 ): { tarball: string; checksum: string } {
   const name = piHostArtifactName(version, target);
-  const base = `https://github.com/${GITHUB_REPO}/releases/download/v${version}`;
+  const base = `https://github.com/${PI_HOST_RELEASE_REPO}/releases/download/v${version}`;
   return { tarball: `${base}/${name}`, checksum: `${base}/${name}.sha256` };
 }
 

@@ -1,4 +1,4 @@
 provider: github
-owner: vastsa
-repo: PI-Desktop
+owner: wen676628-cell
+repo: pi-desktop
 updaterCacheDirName: '@pi-desktopdesktop-updater'
