@@ -25,7 +25,7 @@ Read/Glob/Grep `allow` 单元格应用于会话工作空间内的路径
 
 Plan 和 Goal 使该权限模式控件保持可见。他们是契约者
 意图，而不是严格的只读安全配置文件：Bash 命令可能会发生变化
-当用户选择“自动”时，工作区或暂存状态。 Write/Edit/plugin 工具
+当用户选择“完全权限”时，工作区或暂存状态。 Write/Edit/plugin 工具
 在权限卡之前被主机拒绝，无论是授予还是自动。
 
 ## 3. 决策类型
@@ -149,8 +149,8 @@ Composer 停靠栏上，因此使用 `--ds-bg-composer` 加 `--ds-shadow-compose
 路径。它不会呈现提交的 question/description、状态或
 批准 validity/deadline。它仅提供：
 
-- **以明确的目标权限模式批准**（`Ask`、`Accept edits`、
-  或 `Auto`；该设备会记住最后选择的模式，并且是
+- **以明确的目标权限模式批准**（`变更前确认`、`自动审查`、
+  或 `完全权限`；该设备会记住最后选择的模式，并且是
   默认为下次审批）
 - **拒绝**，停止运行并使合约状态保持活动状态；稍后
   轮流必须提交新的完整 snapshot/artifact

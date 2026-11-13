@@ -46,7 +46,7 @@ test("both shipped locales provide welcome, command, file, and shortcut guidance
 });
 
 test("the slash hint keeps the core session command aliases available", () => {
-  for (const alias of ["new", "compact", "agent-mode", "plan-mode", "goal-mode"]) {
+  for (const alias of ["new", "compact", "agent", "plan", "goal"]) {
     assert.match(builtinCommands, new RegExp(`slash: "${alias}"`), alias);
   }
 });

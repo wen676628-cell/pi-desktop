@@ -20,7 +20,8 @@ const coreIds = [
   "builtin.session.fast",
 ];
 
-const coreAliases = ["new", "compact", "agent-mode", "plan-mode", "goal-mode", "fast"];
+const coreAliases = ["new", "compact", "agent", "plan", "goal", "fast"];
+const legacyAliases = ["agent-mode", "plan-mode", "goal-mode"];
 
 const removedIds = [
   "builtin.session.delete",
@@ -56,6 +57,9 @@ test("builtin registry exposes exactly the six core commands and aliases", () =>
     const pattern = new RegExp("`/" + alias + "`");
     assert.match(specEn, pattern);
     assert.match(specZh, pattern);
+  }
+  for (const alias of legacyAliases) {
+    assert.match(registry, new RegExp(`slashAliases: \[[^\]]*"${alias}"`), alias);
   }
   for (const id of removedIds) {
     const pattern = new RegExp("`" + id + "`");

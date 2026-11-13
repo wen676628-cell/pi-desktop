@@ -93,8 +93,8 @@ Plan 本身并不是工作区安全边界。主机核解决了
 在权限模式、授予、插件风险或 renderer/sidecar 状态之前。 Plan
 拒绝 Write/Edit/plugin/unknown 工具，而 BrowserPreview 是显式的
 只读 UI 检查异常（它打开随应用打包的 `pi.browser` chrome；原始
-CDP 插件工具在 Plan 中仍被拒绝）。 Bash 在 Plan 中仍然可用：询问并
-接受编辑提示，自动运行而无需确认，并且可能会改变
+CDP 插件工具在 Plan 中仍被拒绝）。 Bash 在 Plan 中仍然可用：变更前确认并
+自动审查提示，完全权限运行而无需确认，并且可能会改变
 工作区或临时目录。用户界面必须说明这种权衡。 `SubmitPlan`
 在新的唯一 `<workspaceRoot>/.pi/plan/*.md` 中保留精确的 Markdown 字节
 通过 host-core 文件，验证根内工件路径，计算 SHA-256
@@ -233,9 +233,9 @@ MCP 市场只接受无凭据的公网 HTTPS 源和目录端点。Main 在每一�
 ## 11. 安检门
 
 1. Renderer 不能 `require('fs')`（沙箱 + 无节点集成） — 已验证
-2. Plan Write/Edit/plugin 调用不能在任何权限模式下运行；重击是
-   在 Ask/Accept 编辑下确认，并且只能在不确认的情况下运行
-   显式自动
+2. Plan Write/Edit/plugin 调用不能在任何权限模式下运行；Bash 是
+   在变更前确认/自动审查下确认，并且只能在显式完全权限下
+   不确认运行
 3.在工作区外写入失败——已验证（主机测试）
 4. 默认情况下，API 密钥永远不会以明文形式出现在 exports/logs 中 — 已验证
 5. 非白名单的 IPC 通道被拒绝 — 已验证 (M1)

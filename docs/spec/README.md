@@ -85,9 +85,10 @@ docs/spec/
 4. pi agent engine in Node sidecar
 5. Host RPC = stdio JSON-RPC NDJSON
 6. SQLite owned by Rust only
-7. Default mode = Agent; operating selector = Agent | Plan | Goal. Plan and Goal
-   are contract states of the same Agent and are not strict read-only security
-   profiles because Bash follows the selected permission mode
+7. Default mode = Agent; `/agent`, `/plan`, and `/goal` switch the session's
+   operating mode. Plan and Goal are contract states of the same Agent and are
+   not strict read-only security profiles because Bash follows the selected
+   permission mode
 8. SubmitPlan writes exact Markdown bytes to a new host-owned
    `.pi/plan/*.md` artifact; title/question stay structured in
    `plan_approvals`, approval opens the artifact, is approve/reject only, and

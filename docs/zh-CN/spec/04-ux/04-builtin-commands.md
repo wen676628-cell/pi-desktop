@@ -78,18 +78,19 @@ type CommandExecutionResult =
 |---|---|
 | `/new` | `builtin.session.new` |
 | `/compact` | `builtin.agent.compact` |
-| `/agent-mode` | `builtin.mode.agent` |
-| `/plan-mode` | `builtin.mode.plan` |
-| `/goal-mode` | `builtin.mode.goal` |
+| `/agent` | `builtin.mode.agent` |
+| `/plan` | `builtin.mode.plan` |
+| `/goal` | `builtin.mode.goal` |
 | `/fast` | `builtin.session.fast` |
+
+`/agent-mode`、`/plan-mode`、`/goal-mode` 仍作为旧别名接受。
 
 别名与模板和插件命令名称共享一个命名空间；冲突时优先使用内置别名，其次是项目模板、
 用户模板和插件命令。选择别名会插入 `/alias `；单独发送 `/new`、`/compact` 或 `/fast` 时，
 会在本地执行，不会创建空提示。Agent/Plan/Goal 别名支持附带提示词：
-`/agent-mode <prompt>`、`/plan-mode <prompt>` 或 `/goal-mode <prompt>` 会切换空闲会话
+`/agent <prompt>`、`/plan <prompt>` 或 `/goal <prompt>` 会切换空闲会话
 （或下一个会话默认值），并通过正常提示路径发送 `<prompt>`。不带正文的模式别名仍然
 只执行本地切换。提示正文仍是可见的用户回合；dispatch 失败不会清除输入框草稿。
-旧的内置别名不再解析，除非由其他命令来源提供，否则会作为普通未知斜杠文本处理。
 
 命令完成时，只清除提交时的草稿，且前提是该草稿此后没有被编辑。之后发生的任何编辑都必须保留，
 即使文字或附件后来又恢复成与提交时完全相同的内容；用户在完成前切换会话也一样。未编辑的命令草稿

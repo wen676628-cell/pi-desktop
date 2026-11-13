@@ -85,7 +85,7 @@ docs/spec/
 4. Node sidecar 中的 pi 代理引擎
 5. 主机 RPC = stdio JSON-RPC NDJSON
 6. SQLite 仅由 Rust 拥有
-7. 默认模式=Agent；操作选择器 = Agent | Plan | Goal。 Plan 和 Goal
+7. 默认模式=Agent；`/agent`、`/plan`、`/goal` 切换会话运行模式。Plan 和 Goal
    是相同 Agent 的合约状态，并且不是严格的只读安全性
    配置文件，因为 Bash 遵循所选的权限模式
 8. SubmitPlan 将精确的 Markdown 字节写入新的主机拥有的

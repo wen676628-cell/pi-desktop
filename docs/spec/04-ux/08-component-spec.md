@@ -3035,8 +3035,9 @@ is rejected and resubmitted.
 | Rejected | no actions | run stops and session remains in its contract mode |
 | Expired / Interrupted | no actions | failed closed; a new contract must be submitted unless approval already committed, in which case session remains Agent |
 
-Approve opens the explicit Ask / Accept edits / Auto choice with the last selected
-mode remembered on this device. Reject carries no permission mode. The renderer keeps the latest proposal/execution snapshot per
+Approve opens the explicit Confirm before changes / Auto review / Full access
+choice with the last selected mode remembered on this device. Reject carries no
+permission mode. The renderer keeps the latest proposal/execution snapshot per
 session only for the current renderer lifetime from live Host events, while only
 a pending snapshot has actions or gates the Composer. Renderer reload calls
 `plans.pending` and restores a still-pending row with its original deadline while
@@ -3111,11 +3112,11 @@ reasoning-level control.
   in-flight turn actually projects `planning`.
 - The permission chip remains visible in Agent, Plan, and Goal for a stable
   toolbar rhythm. Agent and Plan expose the effective selectable permission;
-  Goal displays the localized Auto label as a disabled, non-opening chip while
-  the approval card remains the separate place for choosing execution policy.
-  The permission menu stays 120px wide; its Chinese Composer short label for
-  Accept edits is `允许编辑` / `允許編輯` so the option remains single-line
-  beside its selection indicator.
+  Goal displays the localized Full access label as a disabled, non-opening chip
+  while the approval card remains the separate place for choosing execution
+  policy. The permission menu stays 120px wide; its Chinese Composer short
+  label for Auto review is `自动审查` / `自動審查` so the option remains
+  single-line beside its selection indicator.
 - The right toolbar owns the remaining-capacity context inspector (when the
   newest assistant turn has usage) immediately left of one combined model ×
   reasoning-level chip. Explicitly installed plugins may add user-invoked
@@ -3465,9 +3466,10 @@ reasoning-level control.
   Up/Down moves the highlighted row, Enter selects from the model search/list,
   and Left returns to the root.
 - The permission chip remains visible beside the mode selector. Agent and Plan
-  show the effective Ask / Accept edits / Auto posture. Goal keeps the same
-  geometry but is fixed to the localized Auto label and cannot open a menu;
-  its approval card remains the separate place for choosing execution policy.
+  show the effective Confirm before changes / Auto review / Full access posture.
+  Goal keeps the same geometry but is fixed to the localized Full access label
+  and cannot open a menu; its approval card remains the separate place for
+  choosing execution policy.
   The control does not imply that Write/Edit/plugin tools are available.
 - Goal shares the Plan approval surface (D198). The bar reads its copy from the
   proposal's `kind`, so a goal contract shows the matching approval label and

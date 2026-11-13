@@ -3299,8 +3299,8 @@ identify the platform validation still needed.
   until the destination commits, the only wait affordance is the thin progress
   track, nothing is dimmed, and prompt submission stays inert until the visible
   pane is the active session, so a prompt cannot reach the session being left.
-  In zh-CN/zh-TW, the Composer permission menu renders the Accept edits option
-  as `允许编辑` / `允許編輯` and keeps it on one line.
+  In zh-CN/zh-TW, the Composer permission menu renders the Auto review option
+  as `自动审查` / `自動審查` and keeps it on one line.
 - **Specs linked**: `04-ux/08-component-spec.md` (§11),
   `04-ux/09-interaction-patterns.md` (§5A), ADR 0137
 - **Acceptance**: C (new project/session composer)
@@ -3644,15 +3644,16 @@ identify the platform validation still needed.
 
 #### E2E-018: Plan denies workspace mutation and plugin tools
 
-- **Preconditions**: Plan mode active with Auto selected and a plugin agent tool registered.
+- **Preconditions**: Plan mode active with Full access selected and a plugin agent tool registered.
 - **Steps**: 1) Ask the Agent to call Write, Edit, and the plugin tool. 2) Ask it
   to run a Bash command that creates a marker file. 3) Repeat the Bash call
-  with Ask selected and inspect the permission card.
+  with Confirm before changes selected and inspect the permission card.
 - **Expected**: Write, Edit, and the plugin tool are not visible and direct
   attempts return `WRITE_DISABLED_IN_PLAN`, `EDIT_DISABLED_IN_PLAN`, or
   `PLUGIN_DISABLED_IN_PLAN`; no file is changed by those tools. Bash runs
-  without a confirmation under Auto and may mutate; under Ask it waits for the
-  ordinary permission card. No Chat-mode error or command exists.
+  without a confirmation under Full access and may mutate; under Confirm before
+  changes it waits for the ordinary permission card. No Chat-mode error or
+  command exists.
 - **Specs linked**: `03-runtime/03-tools-and-permissions.md`
 - **Acceptance**: E (Plan policy)
 - **Milestone**: M3
@@ -3662,16 +3663,17 @@ identify the platform validation still needed.
 
 - **Preconditions**: Agent or Plan mode; project open; a readable file exists
   outside both the session project and scratch roots.
-- **Steps**: 1) With Ask selected, ask the agent to `Read` the external file and
-  observe the inline permission card. 2) Deny once and verify no content is
-  returned. 3) Repeat and allow once; verify the tool result carries
-  `root: "external"` and the canonical absolute path. 4) Switch to Auto and
-  repeat with `Grep` or `Glob`; verify no card appears and the bounded result
-  returns. 5) Repeat with Accept edits; verify the external read/search still
-  asks for permission.
+- **Steps**: 1) With Confirm before changes selected, ask the agent to `Read`
+  the external file and observe the inline permission card. 2) Deny once and
+  verify no content is returned. 3) Repeat and allow once; verify the tool
+  result carries `root: "external"` and the canonical absolute path. 4) Switch
+  to Full access and repeat with `Grep` or `Glob`; verify no card appears and
+  the bounded result returns. 5) Repeat with Auto review; verify the external
+  read/search still asks for permission.
 - **Expected**: An explicit outside path never hard-fails before the user can
-  decide. Ask and Accept edits request permission; Auto executes. Denial,
-  timeout, or cancellation returns `TOOL_DENIED` and performs no operation.
+  decide. Confirm before changes and Auto review request permission; Full
+  access executes. Denial, timeout, or cancellation returns `TOOL_DENIED` and
+  performs no operation.
 - **Specs linked**: `03-runtime/03-tools-and-permissions.md`,
   `03-runtime/15-workspace-ignore-rules.md`, `04-ux/03-permission-ux.md`
 - **Acceptance**: E (workspace-outside permission policy)
@@ -3734,7 +3736,7 @@ identify the platform validation still needed.
 #### E2E-019c: Permission modes govern high-risk approval (D115/D132)
 
 - **Preconditions**: Agent mode; project open; global default `ask`.
-- **Steps**: 1) With a newly inherited session and global default Ask every time, open the composer menu — expect Ask every time to be selected with no global-default/inherit label — then ask the Agent to write a workspace file and expect a permission card. 2) Switch the session chip to Accept edits; repeat — expect no card for Write/Edit but still a card for Bash. 3) Switch to Auto — expect no card for Bash either. 4) Create another inherited session after setting the global default to Accept edits in Settings — expect the composer chip and menu selection to display Accept edits directly and Write/Edit to be auto-allowed. 5) Switch the session to Plan, then Goal, with Auto set — expect Write/Edit/plugin denied but Bash allowed without confirmation.
+- **Steps**: 1) With a newly inherited session and global default Confirm before changes, open the composer menu — expect Confirm before changes to be selected with no global-default/inherit label — then ask the Agent to write a workspace file and expect a permission card. 2) Switch the session chip to Auto review; repeat — expect no card for Write/Edit but still a card for Bash. 3) Switch to Full access — expect no card for Bash either. 4) Create another inherited session after setting the global default to Auto review in Settings — expect the composer chip and menu selection to display Auto review directly and Write/Edit to be auto-allowed. 5) Switch the session to Plan, then Goal, with Full access set — expect Write/Edit/plugin denied but Bash allowed without confirmation.
 - **Expected**: Effective mode = session override → global default → ask; Plan and Goal Write/Edit/plugin hard denies outrank every mode while their Bash follows the selected mode; the composer chip and menu always display the effective mode without default/inherit provenance.
 - **Specs linked**: `03-runtime/03-tools-and-permissions.md §6`, `03-runtime/04-data-storage.md`, `08-meta/decisions-log.md` (D115/D132)
 - **Acceptance**: E (permission modes resolve and enforce host-side)
@@ -8507,7 +8509,7 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 - **Steps**: 1) Inspect visible Plan tools. 2) Use Read/Glob/Grep and
   BrowserPreview. 3) Attempt Write, Edit, plugin, and
   unknown tools through the host with every permission mode. 4) Run Bash under
-  Ask, Accept edits, and Auto.
+  Confirm before changes, Auto review, and Full access.
 - **Expected**: Plan denies Write/Edit/plugin/unknown tools regardless of the
   forged mode, grants, or Auto; Bash follows the selected permission mode. The
   runtime remains one pi Agent and all denials are audited.
@@ -8551,7 +8553,7 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   proposal. 6) Confirm durable mode is Plan, live state is editable `planning`,
   the approval gate is cleared, and a later prompt is accepted. 7) Let the
   Agent revise and call `SubmitPlan` once in that new turn with a complete
-  snapshot. 8) Approve the second proposal with the remembered Auto mode.
+  snapshot. 8) Approve the second proposal with the remembered Full access mode.
 - **Expected**: Host preserves the exact submitted Markdown bytes in a new
   unique artifact, records its relative path/hash/size with structured
   title/question, and never lets the renderer or sidecar write or replace it.
@@ -8566,7 +8568,8 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   live state to editable planning. The later prompt/resubmission creates a
   second complete Markdown snapshot and a different `.pi/plan/*.md` artifact;
   the first artifact bytes remain unchanged. Approving the second proposal with
-  the remembered Auto mode still changes the same Agent to Agent and queues execution.
+  the remembered Full access mode still changes the same Agent to Agent and
+  queues execution.
 - **Specs linked**: `03-runtime/01-ipc-protocol.md`,
   `03-runtime/02-agent-runtime.md`, `03-runtime/04-data-storage.md`,
   `03-runtime/06-host-rpc-protocol.md`, `04-ux/03-permission-ux.md`,
@@ -8663,8 +8666,8 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 
 #### E2E-109: Approved Plan execution is not replayed after restart
 
-- **Preconditions**: A Plan request has been approved with Ask and is captured
-  once in `queued` and once in `running` state.
+- **Preconditions**: A Plan request has been approved with Confirm before changes
+  and is captured once in `queued` and once in `running` state.
 - **Steps**: 1) Restart the host during each state. 2) Inspect the
   `plan_approvals.execution_state` and turn records after startup. 3) Observe
   provider/tool invocations and session mode. 4) Start a new user turn
@@ -8944,9 +8947,9 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   by E2E-108 and E2E-109.
 - **Expected**: Agent is the default; the left-of-input Composer chip is the
   sole active-session Agent/Plan/Goal control; Plan and Goal show
-  Ask/Accept edits/Auto, the submitted title, an artifact opener,
-  remembered approval mode, approve/reject only, shell catalog/fallback status,
-  and localized failed-closed states. No
+  Confirm before changes/Auto review/Full access, the submitted title, an
+  artifact opener, remembered approval mode, approve/reject only, shell
+  catalog/fallback status, and localized failed-closed states. No
   Chat mode, `/chat-mode`, request-changes action, inline Markdown/hash/size
   requirement, or stale actionable queue is exposed; terminal checkpoint
   metadata may remain non-actionable only for the current renderer lifetime,
@@ -10415,8 +10418,9 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   exact Markdown bytes in the new `.pi/goal/*.md` artifact and the matching
   `plan_approvals` row. 3) Confirm the shared approval card exposes only
   Approve/Reject and that Goal denies Write/Edit/plugin tools while Bash follows
-  the selected permission mode. 4) Approve with Ask and observe the same Agent
-  resume in Agent mode. 5) Inspect the final response for criterion-by-criterion
+  the selected permission mode. 4) Approve with Confirm before changes and
+  observe the same Agent resume in Agent mode. 5) Inspect the final response for
+  criterion-by-criterion
   verification or an explicit boundary, then reload the session.
 - **Expected**: Goal uses the Plan approval pipeline without a second planner;
   the artifact is immutable and the row records `kind = goal`, path, hash,
@@ -12360,8 +12364,9 @@ This test plan spec is accepted when:
   and permission controls, send button, and composer shell do not move or
   resize.
 - In Goal, expect the permission chip to remain visible with the same geometry,
-  show Full auto / 全自动, and stay disabled without opening a permission menu.
-  The Plan/Goal approval card remains the separate execution-policy control.
+  show Full access / 完全权限, and stay disabled without opening a permission
+  menu. The Plan/Goal approval card remains the separate execution-policy
+  control.
 - **Specs linked**: `04-ux/08-component-spec.md` §11.3
 - **Milestone**: M5
 - **Status**: Partially automated (renderer style/source contract)

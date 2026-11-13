@@ -172,8 +172,10 @@ test("settings destinations own one subject each", () => {
   assert.doesNotMatch(conversationSource, /defaultMode: value/);
   assert.doesNotMatch(conversationSource, /defaultPermissionMode/);
 
-  // Agent behavior owns what a run starts with and what it may do.
-  assert.match(behaviorSource, /defaultMode: value/);
+  // Agent behavior owns what a run starts with and what it may do. Operating
+  // modes are slash commands, so the page no longer carries a default-mode
+  // selector.
+  assert.doesNotMatch(behaviorSource, /defaultMode: value/);
   assert.match(behaviorSource, /settings\.sessionDefaults/);
   assert.match(behaviorSource, /settings\.execution/);
   assert.match(behaviorSource, /CommandShellRow/);

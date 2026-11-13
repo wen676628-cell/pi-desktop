@@ -1299,14 +1299,14 @@ task-candidate E2E 从请求工作树运行，但使用主工作区已经准备�
 
 #### E2E-018：Plan 否认工作区突变和插件工具
 
-- **先决条件**：Plan 模式处于活动状态，选择“自动”并注册插件代理工具。
+- **先决条件**：Plan 模式处于活动状态，选择“完全权限”并注册插件代理工具。
 - **步骤**： 1) 要求 Agent 调用 Write、Edit 和插件工具。 2）询问
   运行创建标记文件的 Bash 命令。 3) 重复 Bash 调用
-  选择询问并检查许可卡。
+  选择“变更前确认”并检查许可卡。
 - **预期**：写入、编辑和插件工具不可见且不直接
   尝试返回 `WRITE_DISABLED_IN_PLAN`、`EDIT_DISABLED_IN_PLAN` 或
-  `PLUGIN_DISABLED_IN_PLAN`；这些工具不会更改任何文件。重击运行
-  未经自动确认，可能会发生变异；在“询问”下等待
+  `PLUGIN_DISABLED_IN_PLAN`；这些工具不会更改任何文件。Bash 在
+  “完全权限”下不确认运行，可能会发生变异；在“变更前确认”下等待
 普通许可卡。不存在聊天模式错误或命令。
 - **链接规格**：`03-runtime/03-tools-and-permissions.md`
 - **接受**：E（Plan 政策）
@@ -1317,15 +1317,15 @@ task-candidate E2E 从请求工作树运行，但使用主工作区已经准备�
 
 - **先决条件**：Agent 或 Plan 模式；项目开放；存在可读文件
   在会话项目和暂存根之外。
-- **步骤**：1) 选择“询问”后，要求客服人员 `Read` 外部文件并
+- **步骤**：1) 选择“变更前确认”后，要求 Agent `Read` 外部文件并
   观察内联许可卡。 2) 拒绝一次并确认没有内容
   回来了。 3）重复并允许一次；验证工具结果携带
-  `root: "external"` 和规范的绝对路径。 4) 切换到自动和
+  `root: "external"` 和规范的绝对路径。 4) 切换到“完全权限”和
   重复 `Grep` 或 `Glob`；验证没有卡片出现以及有界结果
-  返回。 5) 重复接受编辑；仍然验证外部 read/search
+  返回。 5) 重复“自动审查”；仍然验证外部 read/search
   请求许可。
 - **预期**：在用户可以之前，显式外部路径永远不会发生硬故障
-  决定。询问并接受编辑请求权限；自动执行。否认，
+  决定。变更前确认和自动审查请求权限；完全权限执行。否认，
   超时或取消返回 `TOOL_DENIED` 并且不执行任何操作。
 - **链接规格**：`03-runtime/03-tools-and-permissions.md`，
   `03-runtime/15-workspace-ignore-rules.md`、`04-ux/03-permission-ux.md`
@@ -1387,7 +1387,7 @@ task-candidate E2E 从请求工作树运行，但使用主工作区已经准备�
 #### E2E-019c：权限模式管理高风险批准 (D115/D132)
 
 - **先决条件**：Agent 模式；项目开放；全局默认`ask`。
-- **步骤**： 1) 使用新继承的会话和全局默认“每次询问”，打开编写器菜单 - 期望“每次询问”都被选中，且没有 global-default/inherit 标签 - 然后要求 Agent 写入工作区文件并期望获得权限卡。 2) 将会话芯片切换为接受编辑；重复一下——预计 Write/Edit 不会出现任何卡，但 Bash 仍然会出现卡。 3) 切换到“自动”——预计 Bash 也不会卡。 4) 在设置中将全局默认值设置为接受编辑后创建另一个继承会话 - 期望输入框芯片和菜单选择直接显示接受编辑并且自动允许 Write/Edit。 5) 将会话切换到 Plan，然后切换到 Goal，并设置自动 — 预计 Write/Edit/plugin 会被拒绝，但 Bash 会允许而无需确认。
+- **步骤**： 1) 使用新继承的会话和全局默认“变更前确认”，打开编写器菜单 - 期望“变更前确认”被选中，且没有 global-default/inherit 标签 - 然后要求 Agent 写入工作区文件并期望获得权限卡。 2) 将会话芯片切换为“自动审查”；重复一下——预计 Write/Edit 不会出现任何卡，但 Bash 仍然会出现卡。 3) 切换到“完全权限”——预计 Bash 也不会卡。 4) 在设置中将全局默认值设置为“自动审查”后创建另一个继承会话 - 期望输入框芯片和菜单选择直接显示“自动审查”并且自动允许 Write/Edit。 5) 将会话切换到 Plan，然后切换到 Goal，并设置“完全权限” — 预计 Write/Edit/plugin 会被拒绝，但 Bash 会允许而无需确认。
 - **预期**：有效模式=会话覆盖→全局默认→询问； Plan 和 Goal Write/Edit/plugin 硬否认超越每种模式，而他们的 Bash 遵循所选模式；输入框芯片和菜单始终显示有效模式，无需 default/inherit 出处。
 - **链接规格**：`03-runtime/03-tools-and-permissions.md §6`、`03-runtime/04-data-storage.md`、`08-meta/decisions-log.md` (D115/D132)
 - **接受**：E（权限模式解析并强制主机端）
@@ -1535,7 +1535,7 @@ palettes remain fixed across OS changes; repeat after shutdown/restart.
 - **步骤**：
   1) 打开设置 → 外观，展开主题和语言选择器，记下药丸触发器与展开后的表面。
   2) 打开「行为」。
-  3) 展开权限卡的权限模式控件，依次选择询问、接受编辑、自动。
+  3) 展开权限卡的权限模式控件，依次选择变更前确认、自动审查、完全权限。
   4) 展开默认项卡的命令 Shell 控件；查看不可用条目并选择一个可用的 Shell。
   5) 先用 Escape、再用外部点击分别关闭打开的菜单。
   6) 关闭设置后重新打开，读取这两行。
@@ -4578,9 +4578,9 @@ eleven-tool-round desktop paths are verified by
 - **步骤**：1) 检查可见的 Plan 工具。 2) 使用 Read/Glob/Grep 和
   BrowserPreview。 3) 尝试编写、编辑、插入和
   各种权限模式下通过主机的未知工具。 4) 在下面运行 Bash
-  询问、接受编辑和自动。
+  变更前确认、自动审查和完全权限。
 - **预期**：Plan 拒绝 Write/Edit/plugin/unknown 工具，无论
-  伪造模式、补助金或自动； Bash 遵循所选的权限模式。的
+  伪造模式、补助金或完全权限； Bash 遵循所选的权限模式。的
   运行时仍为 1 pi Agent 并且所有拒绝都会经过审核。
 - **链接规格**：`03-runtime/02-agent-runtime.md`，
   `03-runtime/03-tools-and-permissions.md`、`03-runtime/05-host-core-rust.md`、
@@ -4605,7 +4605,7 @@ eleven-tool-round desktop paths are verified by
   提案。 6) 确认持久模式为Plan，实时状态为可编辑`planning`，
   批准门已清除，并接受稍后的提示。 7）让
   Agent 在新回合中修改并调用 `SubmitPlan` 一次，并带有完整的
-  快照。 8) 使用记住的自动模式批准第二个提案。
+  快照。 8) 使用记住的完全权限模式批准第二个提案。
 - **预期**：主机将准确提交的 Markdown 字节保留在新的文件中
   独特的神器，记录其相关的 path/hash/size 与结构化
   title/question，并且绝不让渲染器或 sidecar 写入或替换它。
@@ -4618,8 +4618,8 @@ eleven-tool-round desktop paths are verified by
   第一行的拒绝是终止的，离开持久模式 Plan，并返回
   实时状态到可编辑规划。后来的 prompt/resubmission 创建了一个
   第二个完整的 Markdown 快照和不同的 `.pi/plan/*.md` 工件；
-  第一个工件字节保持不变。批准第二项提案
-记住的自动模式仍然将相同的 Agent 更改为 Agent 并排队执行。
+  第一个工件字节保持不变。使用记住的完全权限模式批准第二项提案
+  仍然将相同的 Agent 更改为 Agent 并排队执行。
 - **链接规格**：`03-runtime/01-ipc-protocol.md`，
   `03-runtime/02-agent-runtime.md`、`03-runtime/04-data-storage.md`、
   `03-runtime/06-host-rpc-protocol.md`、`04-ux/03-permission-ux.md`、
@@ -4925,7 +4925,7 @@ eleven-tool-round desktop paths are verified by
   控件。Host/app 重启恢复由 E2E-108 和 E2E-109 分别执行。
 - **预期**：Agent 是默认值；输入左侧的 Composer 芯片是
   唯一的活动会话 Agent/Plan/Goal 控制； Plan 和 Goal 展示
-  Ask/Accept edits/Auto，提交的标题，工件开启器，
+  变更前确认/自动审查/完全权限，提交的标题，工件开启器，
   记住批准模式，仅限 approve/reject，shell catalog/fallback 状态，
   和局部失败关闭状态。否
   聊天模式，`/chat-mode`，请求更改操作，内联 Markdown/hash/size

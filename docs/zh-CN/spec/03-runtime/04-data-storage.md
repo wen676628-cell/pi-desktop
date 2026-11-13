@@ -1504,5 +1504,5 @@ Gate results record the stage, action, outcome and bounded evidence. At most
 one open run exists per session. Restart clears in-flight claims and pauses
 those runs without replaying work. Deleting a session cascades its run records.
 
-Host-started turns evaluate Auto as Accept edits. A run's original snapshot
+Host-started turns evaluate `auto` as `accept-edits`. A run's original snapshot
 remains authoritative even when its source file changes.
