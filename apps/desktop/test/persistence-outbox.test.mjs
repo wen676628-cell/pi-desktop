@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -550,6 +550,91 @@ test("quarantined appends survive a restart without being replayed (#1560)", asy
   assert.deepEqual(
     dead.map((entry) => entry.key),
     ["message:s1:torn"],
+  );
+});
+
+test("a failed dead-letter write keeps the append in the queue", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-outbox-"));
+  const now = { value: 0 };
+  const logs = [];
+  const outbox = new PersistenceOutbox(
+    dir,
+    (level, message, data) => {
+      logs.push({ level, message, data });
+    },
+    { now: () => now.value },
+  );
+  const host = mockHost(async (_method, params) => {
+    if (params.message.id === "torn") {
+      throw new Error("Error: stream did not contain valid UTF-8");
+    }
+  });
+  // Force the dead-letter temp write to fail with EISDIR.
+  await mkdir(join(dir, `${DEAD_LETTER_FILE}.tmp`));
+  await outbox.enqueue(
+    { key: "message:s1:torn", sessionId: "s1", message: { id: "torn" } },
+    () => host,
+  );
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    now.value += 60_000;
+    await outbox.flush(() => host).catch(() => undefined);
+  }
+
+  assert.equal(outbox.size(), 1, "the append stays queued when its dead letter cannot be written");
+  const queued = JSON.parse(await readFile(join(dir, "session-message-outbox.json"), "utf8"));
+  assert.deepEqual(
+    queued.map((entry) => entry.key),
+    ["message:s1:torn"],
+    "the queue file still holds the only durable copy",
+  );
+  await assert.rejects(
+    readFile(join(dir, DEAD_LETTER_FILE), "utf8"),
+    (error) => error?.code === "ENOENT",
+  );
+
+  // Once the dead-letter write can land, the entry moves and leaves the queue.
+  await rm(join(dir, `${DEAD_LETTER_FILE}.tmp`), { recursive: true, force: true });
+  now.value += 60_000;
+  await outbox.flush(() => host);
+  assert.equal(outbox.size(), 0);
+  const dead = JSON.parse(await readFile(join(dir, DEAD_LETTER_FILE), "utf8"));
+  assert.deepEqual(
+    dead.map((entry) => entry.key),
+    ["message:s1:torn"],
+  );
+});
+
+test("a restart drops a queue entry already present in the dead-letter file", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-outbox-"));
+  const key = "message:s1:torn";
+  const entry = { key, sessionId: "s1", message: { id: "torn" } };
+  await writeFile(
+    join(dir, "session-message-outbox.json"),
+    JSON.stringify([entry]),
+  );
+  await writeFile(
+    join(dir, DEAD_LETTER_FILE),
+    JSON.stringify([
+      {
+        ...entry,
+        quarantinedAt: "2026-11-14T00:00:00.000Z",
+        reason: "fixture",
+      },
+    ]),
+  );
+
+  const calls = [];
+  const outbox = new PersistenceOutbox(dir, silent);
+  await outbox.loaded;
+  assert.equal(outbox.size(), 0, "the dead letter wins over the duplicate queue row");
+  await outbox.flush(() => mockHost(async (_method, params) => {
+    calls.push(params);
+  }));
+  assert.equal(calls.length, 0, "the quarantined append is not replayed");
+  assert.deepEqual(
+    JSON.parse(await readFile(join(dir, "session-message-outbox.json"), "utf8")),
+    [],
+    "the startup rewrite clears the duplicate from the queue file",
   );
 });
 
