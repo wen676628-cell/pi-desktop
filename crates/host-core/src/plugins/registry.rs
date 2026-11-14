@@ -57,6 +57,7 @@ impl PluginManager {
             locale: "en".into(),
         };
         let _ = mgr.ensure_dirs();
+        let _ = mgr.cleanup_review_stages();
         let _ = mgr.ensure_default_catalog();
         let _ = mgr.reload_from_disk();
         let _ = mgr.sync_builtin(builtin_plugins_dir().as_deref());
@@ -217,6 +218,33 @@ impl PluginManager {
         self.data_dir.join("plugins/data").join(sanitize_id(id))
     }
 
+    /// Private staging directory named by an install review token.
+    ///
+    /// The token is validated before this path is built, so a caller cannot
+    /// escape the plugin cache with `..` or a path separator.
+    pub(crate) fn review_dir(&self, token: &str) -> PathBuf {
+        self.data_dir
+            .join("plugins/cache/download")
+            .join(format!("review-{token}"))
+    }
+
+    /// Remove review stages left behind by a previous host process.
+    ///
+    /// A review cannot survive a restart — its token only exists in the
+    /// renderer that requested it — so every `review-*` directory is stale at
+    /// boot. Removing them here keeps cancelled reviews from accumulating.
+    pub(crate) fn cleanup_review_stages(&self) {
+        let dir = self.data_dir.join("plugins/cache/download");
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().starts_with("review-") {
+                let _ = fs::remove_dir_all(entry.path());
+            }
+        }
+    }
+
     pub fn list(&self) -> Vec<PluginSummary> {
         self.runtime
             .iter()
@@ -278,22 +306,35 @@ impl PluginManager {
     }
 
     pub(crate) fn save(&self) -> Result<()> {
+        self.save_runtime(&self.runtime)
+    }
+
+    /// Write a complete registry snapshot before exposing it to readers.
+    ///
+    /// The temp file plus rename keeps a failed or interrupted save from
+    /// leaving a half-written registry; callers that change the in-memory list
+    /// only assign it after this succeeds.
+    fn save_runtime(&self, runtime: &[PluginSummary]) -> Result<()> {
         let path = self.registry_path();
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(path, serde_json::to_string_pretty(&self.runtime)?)?;
+        let temp = path.with_extension("json.tmp");
+        fs::write(&temp, serde_json::to_string_pretty(runtime)?)?;
+        fs::rename(&temp, &path)?;
         Ok(())
     }
 
     pub(crate) fn upsert_summary(&mut self, summary: PluginSummary) -> Result<PluginSummary> {
-        self.runtime.retain(|p| p.id != summary.id);
+        let mut next = self.runtime.clone();
+        next.retain(|p| p.id != summary.id);
         // The row is stored as the author wrote it and localized on the way
         // out, so every reader of this summary gets the same treatment as
         // `list()` and `get()`.
         let response = summary.localized(&self.locale);
-        self.runtime.push(summary);
-        self.save()?;
+        next.push(summary);
+        self.save_runtime(&next)?;
+        self.runtime = next;
         Ok(response)
     }
 

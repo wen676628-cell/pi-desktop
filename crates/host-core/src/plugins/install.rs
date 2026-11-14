@@ -18,9 +18,10 @@ impl PluginManager {
         fs::create_dir_all(&stage)?;
         let cleanup_stage = stage.clone();
         let result = (|| -> Result<InstallResult> {
-            let extracted_root = if source.is_dir() {
-                copy_dir_filtered(&source, &stage.join("content"))?;
-                stage.join("content")
+            let plugin_root = if source.is_dir() {
+                let root = stage.join("plugin");
+                copy_dir_filtered(&source, &root)?;
+                root
             } else {
                 let bytes = fs::read(&source)
                     .with_context(|| format!("read package {}", source.display()))?;
@@ -39,57 +40,72 @@ impl PluginManager {
                 find_plugin_root(&extract_dir)?
             };
 
-            let manifest = Self::read_manifest(&extracted_root)?;
+            let manifest = Self::read_manifest(&plugin_root)?;
             let existing = self.get(&manifest.id);
             let upgraded = existing
                 .as_ref()
-                .map(|p| p.version != manifest.version)
+                .map(|plugin| plugin.version != manifest.version)
                 .unwrap_or(false);
             let permission_diff = permission_diff(
                 existing
                     .as_ref()
-                    .map(|p| p.permissions.as_slice())
+                    .map(|plugin| plugin.permissions.as_slice())
                     .unwrap_or(&[]),
                 &manifest.permissions,
             );
 
-            if upgraded {
-                if let Some(prev) = &existing {
-                    if let Some(prev_path) = prev.path.as_ref() {
-                        let backup = self
-                            .data_dir
-                            .join("plugins/cache/backup")
-                            .join(sanitize_id(&prev.id))
-                            .join(&prev.version);
-                        let _ = fs::remove_dir_all(&backup);
-                        if PathBuf::from(prev_path).exists() {
-                            copy_dir_filtered(Path::new(prev_path), &backup)?;
-                        }
-                    }
-                }
-            }
-
-            let target = self.installed_dir(&manifest.id);
-            if target.exists() {
-                fs::remove_dir_all(&target)?;
-            }
-            if let Some(parent) = target.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            copy_dir_filtered(&extracted_root, &target)?;
-            fs::create_dir_all(self.data_dir_for(&manifest.id))?;
-
-            let now = Utc::now().to_rfc3339();
-            let granted = opts
-                .granted_permissions
-                .clone()
-                .unwrap_or_else(|| manifest.permissions.clone());
+            // The answer is checked before anything on disk changes. A refused
+            // upgrade must leave the installed bytes and registry row intact.
+            let granted = opts.granted_permissions.clone().unwrap_or_default();
             for required in &manifest.permissions {
-                if !granted.iter().any(|g| g == required) {
+                if !granted.iter().any(|value| value == required) {
                     bail!("PLUGIN_PERMISSION_DENIED: missing grant for {required}");
                 }
             }
 
+            // Plugin data is not versioned; prepare it before the swap so a
+            // failure here cannot strand the previous install.
+            fs::create_dir_all(self.data_dir_for(&manifest.id))?;
+            let target = self.installed_dir(&manifest.id);
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            // Move the previous version aside instead of deleting it. Every
+            // failure path below restores this backup.
+            let backup = if target.exists() {
+                let backup = self
+                    .data_dir
+                    .join("plugins/cache/backup")
+                    .join(sanitize_id(&manifest.id))
+                    .join(format!(
+                        "{}-{}",
+                        existing
+                            .as_ref()
+                            .map(|plugin| plugin.version.as_str())
+                            .unwrap_or("previous"),
+                        uuid::Uuid::new_v4()
+                    ));
+                if let Some(parent) = backup.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                fs::rename(&target, &backup)
+                    .with_context(|| format!("move previous install to {}", backup.display()))?;
+                Some(backup)
+            } else {
+                None
+            };
+
+            if let Err(error) = fs::rename(&plugin_root, &target) {
+                if let Some(backup) = &backup {
+                    let _ = fs::rename(backup, &target);
+                }
+                return Err(error).with_context(|| {
+                    format!("publish plugin {} to {}", manifest.id, target.display())
+                });
+            }
+
+            let now = Utc::now().to_rfc3339();
             let summary = PluginSummary {
                 id: manifest.id.clone(),
                 name: manifest.name.clone(),
@@ -99,7 +115,7 @@ impl PluginManager {
                 // back to every project.
                 scope: existing
                     .as_ref()
-                    .map(|p| p.scope.clone())
+                    .map(|plugin| plugin.scope.clone())
                     .unwrap_or_default(),
                 source: opts.source.clone(),
                 bundled: self.bundled_ids.contains(&manifest.id),
@@ -109,25 +125,26 @@ impl PluginManager {
                     "disabled".into()
                 },
                 error_message: None,
-                permissions: granted,
+                permissions: manifest.permissions.clone(),
                 path: Some(target.to_string_lossy().to_string()),
                 capabilities: derive_capabilities(&manifest),
                 description: manifest.description.clone(),
                 author: manifest.author.clone(),
                 installed_at: existing
                     .as_ref()
-                    .and_then(|p| p.installed_at.clone())
+                    .and_then(|plugin| plugin.installed_at.clone())
                     .or_else(|| Some(now.clone())),
                 updated_at: Some(now),
-                marketplace: opts
-                    .marketplace
-                    .clone()
-                    .or_else(|| existing.as_ref().and_then(|p| p.marketplace.clone())),
+                marketplace: opts.marketplace.clone().or_else(|| {
+                    existing
+                        .as_ref()
+                        .and_then(|plugin| plugin.marketplace.clone())
+                }),
                 auto_update: Some(
                     opts.auto_update
                         || existing
                             .as_ref()
-                            .and_then(|p| p.auto_update)
+                            .and_then(|plugin| plugin.auto_update)
                             .unwrap_or(false),
                 ),
                 update_available: None,
@@ -137,12 +154,31 @@ impl PluginManager {
                 settings: derive_settings(&manifest),
                 i18n: manifest.i18n.clone(),
             };
-            let plugin = self.upsert_summary(summary)?;
-            Ok(InstallResult {
-                plugin,
-                upgraded,
-                permission_diff,
-            })
+
+            match self.upsert_summary(summary) {
+                Ok(plugin) => {
+                    if let Some(backup) = &backup {
+                        let _ = fs::remove_dir_all(backup);
+                    }
+                    Ok(InstallResult {
+                        plugin,
+                        upgraded,
+                        permission_diff,
+                    })
+                }
+                Err(error) => {
+                    let _ = fs::remove_dir_all(&target);
+                    if let Some(backup) = &backup {
+                        if let Err(restore) = fs::rename(backup, &target) {
+                            return Err(error).context(format!(
+                                "restore previous install from {} failed: {restore}",
+                                backup.display()
+                            ));
+                        }
+                    }
+                    Err(error)
+                }
+            }
         })();
 
         let _ = fs::remove_dir_all(cleanup_stage);

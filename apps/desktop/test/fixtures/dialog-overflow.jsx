@@ -96,7 +96,7 @@ window.dialogFixture = {
     if (kind === "delete") component = <ProjectDeleteDialog {...props} runningSessionIds={[]} onDeleted={() => {}} />;
     if (kind === "install") component = <PluginInstallDialog job={{ ...newInstallJob({ id: "fixture", name: long, grantedPermissions: [], autoUpdate: false }), status: "failed", error: long }} onCancel={close} onRetry={() => {}} onClose={close} />;
     if (kind === "plugin-settings") component = <PluginSettingsSheet plugin={{ id: "fixture", name: long, settings: [] }} platform="win32" onClose={close} onSaved={() => {}} />;
-    if (kind === "plugin-review") component = <PluginDialogs t={i18n.t.bind(i18n)} pendingInstall={{ id: "fixture", name: long, permissions: [] }} setPendingInstall={close} confirmInstall={close} autoUpdate={false} setAutoUpdate={() => {}} />;
+    if (kind === "plugin-review") component = <PluginDialogs t={i18n.t.bind(i18n)} pendingInstall={{ id: "fixture", name: long, permissions: [] }} confirmInstall={close} dismissPendingInstall={close} autoUpdate={false} setAutoUpdate={() => {}} />;
     if (kind === "oauth") component = <OAuthLoginDialog vendor={{ id: "fixture", name: "Fixture" }} onClose={close} onDone={close} session={{
       subscribe(listener) { queueMicrotask(() => listener({ kind: "authUrl", url: "https://example.invalid/" + long, instructions: "Open the sign-in URL", opened: false })); return () => {}; },
       cancel: async () => {},

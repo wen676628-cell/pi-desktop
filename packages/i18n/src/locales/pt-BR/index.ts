@@ -2549,6 +2549,7 @@ export const ptBR = {
     devReviewLoading: "Carregando…",
     permissionReviewTitle: "Instalar {{name}}?",
     permissionReviewBody: "Revise o que este plugin pode fazer. Permissões de maior risco permanecem bloqueadas até você aceitá-las.",
+    installNativeRisk: "Um plugin é executado como código nativo nesta máquina. As permissões declaradas limitam a API do plugin, não o que o próprio código Node dele pode alcançar. Instale apenas código em que você confia.",
     acceptInstall: "Aceitar e instalar",
     cancel: "Cancelar",
     viewDetailsOf: "Ver detalhes de {{name}}",

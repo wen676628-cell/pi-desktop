@@ -113,6 +113,25 @@ export type PluginPermissionReview = {
    */
   addedPermissions: string[];
 };
+
+/**
+ * A local plugin package or folder staged for a permission decision.
+ *
+ * The token names bytes the host has already extracted into its private
+ * cache; confirming installs those exact bytes. Nothing is registered and the
+ * installed version is untouched until then.
+ */
+export type PluginInstallReview = {
+  reviewToken: string;
+  id: string;
+  name: string;
+  version: string;
+  /** Every permission the manifest declares. */
+  permissions: string[];
+  /** Permissions the installed version did not already carry. */
+  addedPermissions: string[];
+  upgraded: boolean;
+};
 /**
  * One plugin-contributed work panel view, resolved for the current window.
  *

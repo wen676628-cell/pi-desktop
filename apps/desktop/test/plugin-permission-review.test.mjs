@@ -180,9 +180,63 @@ test("the renderer holds the declaration until the user answers", () => {
   assert.match(dialogs, /t\("plugins\.devReviewAccept"\)/);
 });
 
+test("a local package is staged and reviewed before anything is installed", () => {
+  const pick = slice(
+    mainSrc,
+    "handle(IPC.invoke.pluginInstallFromPackage,",
+    "handle(\n    IPC.invoke.pluginInstallConfirm",
+  );
+  // The picker stages bytes and returns a review. It must not install, load,
+  // register, or announce a change before the user answers.
+  assert.match(pick, /host\.call<\{ review: any \}>\("plugins\.reviewInstall", \{/);
+  assert.match(pick, /return \{ canceled: false, review: reviewed\.review \}/);
+  assert.doesNotMatch(pick, /plugins\.installFromPackage/);
+  assert.doesNotMatch(pick, /plugins\.confirmInstall/);
+  assert.doesNotMatch(pick, /loadFromPath/);
+  assert.doesNotMatch(pick, /drainToasts/);
+
+  const confirm = slice(
+    mainSrc,
+    "IPC.invoke.pluginInstallConfirm",
+    "IPC.invoke.pluginInstallCancelReview",
+  );
+  assert.match(confirm, /host\.call<\{ result: any \}>\("plugins\.confirmInstall", \{/);
+  assert.match(confirm, /reviewToken/);
+  assert.match(confirm, /grantedPermissions: granted/);
+  assert.match(
+    confirm,
+    /await plugins\.loadFromPath\([\s\S]*?installed\.result\.plugin\.permissions/,
+  );
+  assert.match(confirm, /reason: "install"/);
+});
+
+test("the renderer holds a local install review until the user answers it", () => {
+  const pick = slice(pluginsUiSrc, "const installPackage = () =>", "const createFromTemplate = async");
+  assert.match(pick, /const result = await api\.installPluginFromPackage\(\)/);
+  assert.match(pick, /if \(result\.canceled \|\| !result\.review\) return/);
+  assert.match(pick, /reviewToken: review\.reviewToken/);
+  assert.doesNotMatch(pick, /installPackageDone/);
+
+  const confirm = slice(pluginsUiSrc, "const confirmInstall = async () =>", "/** Ask the host to stop");
+  assert.match(confirm, /if \(pending\.reviewToken\) \{/);
+  assert.match(confirm, /await api\.confirmPluginInstall\(\{/);
+  assert.match(confirm, /grantedPermissions: pending\.permissions/);
+  assert.match(confirm, /plugins\.installPackageDone/);
+
+  const dismiss = slice(pluginsUiSrc, "const dismissPendingInstall = () =>", "const confirmInstall = async");
+  assert.match(dismiss, /void api\s*\.cancelPluginInstallReview\(\{ reviewToken: review\.reviewToken \}\)/);
+});
+
 test("the review contract is shared, not re-declared on each side", () => {
   assert.match(sharedTypesSrc, /export type PluginPermissionReview = \{/);
   assert.match(sharedTypesSrc, /kind: "load" \| "reload"/);
+  assert.match(sharedTypesSrc, /export type PluginInstallReview = \{/);
+  assert.match(sharedTypesSrc, /reviewToken: string/);
   assert.match(protocolSrc, /pluginLoadDevConfirm: "pi-desktop\/plugin\/loadDevConfirm"/);
   assert.match(protocolSrc, /pluginReloadConfirm: "pi-desktop\/plugin\/reloadConfirm"/);
+  assert.match(protocolSrc, /pluginInstallConfirm: "pi-desktop\/plugin\/installConfirm"/);
+  assert.match(
+    protocolSrc,
+    /pluginInstallCancelReview: "pi-desktop\/plugin\/installCancelReview"/,
+  );
 });

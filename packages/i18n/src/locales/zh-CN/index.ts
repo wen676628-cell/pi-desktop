@@ -2578,6 +2578,7 @@ sklm: {
     devReviewLoading: "加载中…",
     permissionReviewTitle: "安装 {{name}}？",
     permissionReviewBody: "请确认此插件可以执行的操作。高风险权限在你同意前会保持禁用。",
+    installNativeRisk: "插件以本机原生代码运行。声明的权限约束插件 API，而不是插件自身 Node 代码能访问的范围。只安装你信任的代码。",
     acceptInstall: "同意并安装",
     cancel: "取消",
     viewDetailsOf: "查看 {{name}} 的详情",

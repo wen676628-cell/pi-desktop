@@ -2594,6 +2594,7 @@ importConfirm: "İçe aktarılan uzantılar ajan sürecinde, ajanın kendi araç
     devReviewLoading: "Yükleniyor…",
     permissionReviewTitle: "{{name}} kurulsun mu?",
     permissionReviewBody: "Bu eklentinin neler yapabileceğini inceleyin. Daha yüksek riskli izinler kabul edene kadar bloklu kalır.",
+    installNativeRisk: "Bir eklenti bu makinede yerel kod olarak çalışır. Bildirilen izinler eklenti API'sini sınırlar; eklentinin kendi Node kodunun erişebileceği alanı sınırlamaz. Yalnızca güvendiğiniz kodu yükleyin.",
     acceptInstall: "Kabul et ve kur",
     cancel: "İptal",
     viewDetailsOf: "{{name}} ayrıntılarını görüntüle",

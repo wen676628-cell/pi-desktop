@@ -56,8 +56,14 @@ registrations, rather than the conceptual services above, define what is callabl
   permissions and refresh the development-plugin permission ceiling
 - `plugin/createFromTemplate` — scaffold files and return the same load review;
   scaffolding does not grant permission to load the plugin
-- `plugin/installFromPath` ✅
-- `plugin/installFromPackage` ✅
+- `plugin/installFromPath` — open the folder picker, stage a copy, and return
+  the install permission review; nothing is registered or loaded
+- `plugin/installFromPackage` — open the package picker and return the same
+  install review for the staged `.piplug`/`.zip` bytes
+- `plugin/installConfirm` — the answer to an install review: publish the exact
+  staged bytes with the accepted permissions, or leave the installed version
+  untouched when the grant is refused
+- `plugin/installCancelReview` — drop a staged install review the user declined
 - `plugin/enable`
 - `plugin/disable`
 - `plugin/setScope`

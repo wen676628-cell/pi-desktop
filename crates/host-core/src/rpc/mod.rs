@@ -5444,6 +5444,60 @@ async fn handle_request(
                 "permissions": plugin.map(|p| p.permissions).unwrap_or_default()
             }))
         }
+        "plugins.reviewInstall" => {
+            let path = params
+                .get("path")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| rpc_err(1002, "path required", "INVALID_PARAMS"))?;
+            let mut st = state.lock().await;
+            let review = st.plugins.review_install(path).map_err(plugin_err)?;
+            Ok(json!({ "review": review }))
+        }
+        "plugins.confirmInstall" => {
+            let review_token = params
+                .get("reviewToken")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| rpc_err(1002, "reviewToken required", "INVALID_PARAMS"))?;
+            let enable = params
+                .get("enable")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
+            // Missing grants are refused, not treated as consent for every
+            // declared permission.
+            let granted = params
+                .get("grantedPermissions")
+                .cloned()
+                .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
+                .unwrap_or_default();
+            let mut st = state.lock().await;
+            let result = st
+                .plugins
+                .install_from_review(
+                    review_token,
+                    crate::plugins::InstallOptions {
+                        source: "installed".into(),
+                        enable,
+                        marketplace: None,
+                        expected_shasum: None,
+                        auto_update: false,
+                        granted_permissions: Some(granted),
+                    },
+                )
+                .map_err(plugin_err)?;
+            Ok(json!({ "result": result }))
+        }
+        "plugins.cancelInstallReview" => {
+            let review_token = params
+                .get("reviewToken")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| rpc_err(1002, "reviewToken required", "INVALID_PARAMS"))?;
+            let st = state.lock().await;
+            let cancelled = st
+                .plugins
+                .cancel_install_review(review_token)
+                .map_err(plugin_err)?;
+            Ok(json!({ "cancelled": cancelled }))
+        }
         "plugins.installFromPath" => {
             let path = params
                 .get("path")

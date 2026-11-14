@@ -26,7 +26,6 @@ function PluginModalBlockingHost({ children }: { children: ReactNode }) {
 export function PluginDialogs({
   t,
   pendingInstall,
-  setPendingInstall,
   pendingReview,
   setPendingReview,
   confirmReview,
@@ -34,6 +33,7 @@ export function PluginDialogs({
   setAutoUpdate,
   isPluginBusy,
   confirmInstall,
+  dismissPendingInstall,
   installJob,
   cancelInstallDownload,
   retryInstall,
@@ -137,18 +137,23 @@ export function PluginDialogs({
                 permissions={pendingInstall.permissions}
                 newPermissions={pendingInstall.newPermissions}
               />
+              {pendingInstall.reviewToken ? (
+                <p className="plugins-modal-lede">{t("plugins.installNativeRisk")}</p>
+              ) : null}
             </div>
 
-            <div className="plugins-switch-row">
-              <SettingsToggle
-                checked={autoUpdate}
-                label={t("plugins.enableAutoUpdateOnInstall")}
-                onChange={() => setAutoUpdate((on) => !on)}
-              />
-            </div>
+            {pendingInstall.reviewToken ? null : (
+              <div className="plugins-switch-row">
+                <SettingsToggle
+                  checked={autoUpdate}
+                  label={t("plugins.enableAutoUpdateOnInstall")}
+                  onChange={() => setAutoUpdate((on) => !on)}
+                />
+              </div>
+            )}
 
             <div className="plugins-modal-actions">
-              <Button variant="secondary" onClick={() => setPendingInstall(null)}>
+              <Button variant="secondary" onClick={dismissPendingInstall}>
                 {t("plugins.cancel")}
               </Button>
               <Button

@@ -456,6 +456,8 @@ export const MCP_CONTROL_BLOCKED_CHANNEL_KEYS = [
   "pluginCreateFromTemplate",
   "pluginInstallFromPath",
   "pluginInstallFromPackage",
+  "pluginInstallConfirm",
+  "pluginInstallCancelReview",
   "pluginLauncherDismiss",
   "skillImport",
   "composerPickFiles",

@@ -358,8 +358,16 @@ export const IPC = {
     /** Commits a reviewed widening for an already-loaded development plugin. */
     pluginReloadConfirm: "pi-desktop/plugin/reloadConfirm",
     pluginCreateFromTemplate: "pi-desktop/plugin/createFromTemplate",
+    /**
+     * Stages a local folder or package and returns its permission review.
+     * Picking the path is a request; `pluginInstallConfirm` is the answer.
+     */
     pluginInstallFromPath: "pi-desktop/plugin/installFromPath",
     pluginInstallFromPackage: "pi-desktop/plugin/installFromPackage",
+    /** Commits the exact bytes a review staged, with the accepted grants. */
+    pluginInstallConfirm: "pi-desktop/plugin/installConfirm",
+    /** Drops a staged review the user declined. */
+    pluginInstallCancelReview: "pi-desktop/plugin/installCancelReview",
     pluginEnable: "pi-desktop/plugin/enable",
     pluginDisable: "pi-desktop/plugin/disable",
     pluginSetScope: "pi-desktop/plugin/setScope",

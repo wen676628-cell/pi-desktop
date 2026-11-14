@@ -74,6 +74,8 @@ export function usePluginsPage() {
     permissions: string[];
     newPermissions: string[];
     version?: string;
+    /** Present when the host staged a local package or folder for review. */
+    reviewToken?: string;
   } | null>(null);
   /**
    * A development plugin whose folder was chosen but not yet granted. Loading a
@@ -519,9 +521,20 @@ export function usePluginsPage() {
 
   const installPackage = () =>
     run(async () => {
-      await api.installPluginFromPackage();
-      await refreshPlugins();
-      showToast(t("plugins.installPackageDone"), { variant: "success" });
+      const result = await api.installPluginFromPackage();
+      if (result.canceled || !result.review) return;
+      const review = result.review;
+      // The host only staged the bytes; nothing is installed until the user
+      // answers the permission review below.
+      setPendingInstall({
+        id: review.id,
+        name: review.name,
+        version: review.version,
+        permissions: orderPermissions(review.permissions),
+        newPermissions: orderPermissions(review.addedPermissions),
+        reviewToken: review.reviewToken,
+      });
+      setAutoUpdate(false);
     });
 
   const createFromTemplate = async (template: TemplateId) => {
@@ -698,14 +711,49 @@ export function usePluginsPage() {
     }
   };
 
+  /**
+   * Close the review and drop its staged bytes. A marketplace review has no
+   * stage to drop; a local package or folder does.
+   */
+  const dismissPendingInstall = () => {
+    const review = pendingInstall;
+    setPendingInstall(null);
+    if (review?.reviewToken) {
+      void api
+        .cancelPluginInstallReview({ reviewToken: review.reviewToken })
+        .catch(() => undefined);
+    }
+  };
+
   const confirmInstall = async () => {
-    if (!pendingInstall) return;
+    const pending = pendingInstall;
+    if (!pending) return;
+    if (pending.reviewToken) {
+      if (!rowBusy.begin(pending.id)) return;
+      // The host consumes the staged bytes on this call, so the dialog closes
+      // even on failure; the user picks the package again to retry.
+      setPendingInstall(null);
+      try {
+        await api.confirmPluginInstall({
+          reviewToken: pending.reviewToken,
+          grantedPermissions: pending.permissions,
+          enable: true,
+        });
+        await refreshPlugins();
+        showToast(t("plugins.installPackageDone"), { variant: "success" });
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : String(e), { variant: "error" });
+      } finally {
+        rowBusy.end(pending.id);
+      }
+      return;
+    }
     const request: PluginInstallRequest = {
-      id: pendingInstall.id,
-      name: pendingInstall.name,
-      version: pendingInstall.version,
+      id: pending.id,
+      name: pending.name,
+      version: pending.version,
       autoUpdate,
-      grantedPermissions: pendingInstall.permissions,
+      grantedPermissions: pending.permissions,
     };
     // The review is answered, so it steps aside for the install it approved.
     setPendingInstall(null);
@@ -831,6 +879,7 @@ export function usePluginsPage() {
     applyAutoUpdates,
     queueInstall,
     confirmInstall,
+    dismissPendingInstall,
     installJob,
     cancelInstallDownload,
     retryInstall,
