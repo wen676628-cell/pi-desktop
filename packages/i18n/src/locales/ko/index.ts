@@ -1127,7 +1127,7 @@ sklm: {
     pluginProviderManaged:
       "이 프로바이더는 플러그인 “{{plugin}}”에서 제공하며 엔드포인트와 모델도 함께 제공합니다. “확장 기능” 페이지에서 켜거나 끌 수 있습니다.",
     pluginProviderKey: "API 키",
-    pluginProviderKeyHint: "PI-Desktop에 저장되고 런타임에서 사용됩니다. 플러그인은 이 키를 받지 않습니다.",
+    pluginProviderKeyHint: "PI-Desktop에 저장되고 런타임이 사용합니다. 키는 플러그인 API를 통해 반환되지 않습니다.",
     pluginProviderKeyRemove: "키 제거",
     pluginProviderKeySaved: "API 키가 저장됨",
     pluginProviderKeyRemoved: "API 키 제거됨",
@@ -2761,7 +2761,7 @@ importConfirm: "가져온 확장은 에이전트 프로세스 안에서 에이�
       "clipboard.write": "현재 클립보드 내용을 바꿀 수 있습니다.",
       notify: "앱 내 토스트와 가능한 경우 네이티브 알림을 표시할 수 있습니다.",
       "fs.read":
-        "플러그인이 선언한 경로로 제한된 읽기 전용 접근입니다. 자격 증명과 저장소 내부 정보는 포함되지 않습니다.",
+        "호스트 파일 API를 통한 읽기 전용 접근으로, 플러그인이 선언한 경로로 제한됩니다. 이는 플러그인 API를 제한할 뿐 플러그인 내부의 raw Node 코드를 제한하지 않으므로, 신뢰하는 코드에만 권한을 부여하세요.",
       "fs.write":
         "플러그인이 선언한 경로로 제한된 파일 생성 및 변경 권한입니다. 그 외 작업은 먼저 확인을 요청합니다.",
       "fs.delete":
@@ -2774,7 +2774,7 @@ importConfirm: "가져온 확장은 에이전트 프로세스 안에서 에이�
       "agent.tool.register": "AI가 이 플러그인이 제공하는 추가 도구를 호출할 수 있습니다.",
       "agent.prompt.inject": "AI 에이전트에 전송되는 지침을 변경할 수 있습니다.",
       "agent.complete":
-        "모델 할당량을 사용해 일회성 완성을 실행할 수 있습니다. 플러그인은 API 키를 받지 않습니다.",
+        "모델 할당량을 일회성 완성에 사용할 수 있습니다. API 키는 호스트 측에 유지되며 플러그인 API를 통해 반환되지 않지만, 플러그인 프로세스 자체는 OS 샌드박스가 아닙니다.",
       "composer.transform": "작성기에서 직접 선택한 텍스트를 변환하도록 허용합니다. 플러그인은 초안과 선택된 모델 키만 받으며 대화 기록이나 첨부 파일은 받지 않습니다.",
       "composer.suggest": "초안이 비어 있는 동안 작성기 자리 표시자에 무시할 수 있는 한 줄을 표시하도록 허용합니다. Tab을 눌러야만 초안에 들어가며, 플러그인이 대신 전송할 수 없고 입력을 시작하면 사라집니다.",
       "agent.extension": "ExtensionAPI 모듈을 에이전트 프로세스 안에서 에이전트 자체 도구와 같은 권한으로 실행합니다. 신뢰하는 코드만 켜세요.",

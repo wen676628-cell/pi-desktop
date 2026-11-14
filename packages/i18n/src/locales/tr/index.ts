@@ -1127,7 +1127,7 @@ sklm: {
     pluginProviderManaged:
       "Bu servis, uç noktasını ve modellerini sağlayan “{{plugin}}” eklentisinden gelir. “Uzantılar” sayfasından açıp kapatabilirsiniz.",
     pluginProviderKey: "API anahtarı",
-    pluginProviderKeyHint: "PI-Desktop’ta saklanır ve çalışma zamanı tarafından kullanılır. Eklenti bu anahtarı asla almaz.",
+    pluginProviderKeyHint: "PI-Desktop’ta saklanır ve çalışma zamanı tarafından kullanılır. Anahtarlar eklenti API’si üzerinden döndürülmez.",
     pluginProviderKeyRemove: "Anahtarı kaldır",
     pluginProviderKeySaved: "API anahtarı kaydedildi",
     pluginProviderKeyRemoved: "API anahtarı kaldırıldı",
@@ -2755,7 +2755,7 @@ importConfirm: "İçe aktarılan uzantılar ajan sürecinde, ajanın kendi araç
       "clipboard.write": "Panonuzdaki geçerli içeriğin yerini alabilir.",
       notify: "Uygulama içi bildirimler ve mümkünse yerel bildirimler gösterebilir.",
       "fs.read":
-        "Eklentinin bildirdiği yollarla sınırlı salt okunur erişim. Kimlik bilgileri ve depo içleri asla dahil edilmez.",
+        "Host dosya API’si üzerinden salt okunur erişim, eklentinin bildirdiği yollarla sınırlıdır. Bu, eklenti API’sini sınırlar; eklenti içindeki ham Node kodunu sınırlamaz. Yalnızca güvendiğiniz koda izin verin.",
       "fs.write":
         "Eklentinin bildirdiği yollarla sınırlı dosya oluşturabilir veya değiştirebilir. Başka her şey önce size sorar.",
       "fs.delete":
@@ -2768,7 +2768,7 @@ importConfirm: "İçe aktarılan uzantılar ajan sürecinde, ajanın kendi araç
       "agent.tool.register": "AI’nin bu eklentinin sağladığı ek araçları çağırmasını sağlar.",
       "agent.prompt.inject": "AI ajanına gönderilen yönergeleri değiştirebilir.",
       "agent.complete":
-        "Model kotanızı tek seferlik bir tamamlatma için harcayabilir. Eklenti API anahtarlarınızı almaz.",
+        "Model kotanızı tek seferlik bir tamamlama için harcayabilir. API anahtarları host tarafında kalır ve eklenti API’si üzerinden döndürülmez; eklenti süreci kendisi bir işletim sistemi sanal alanı değildir.",
       "composer.transform": "Eklentinin Oluşturucu'da açıkça seçtiğiniz metni dönüştürmesine izin verir. Eklenti yalnızca taslağı ve seçili model anahtarını alır; konuşma geçmişini veya ekleri almaz.",
       "composer.suggest": "Taslak boşken Oluşturucu yer tutucusunda yok sayılabilir tek bir satır göstermesine izin verir. Satır yalnızca Tab ile taslağa girer, eklenti onu kendi gönderemez ve yazmaya başlayınca kaybolur.",
       "agent.extension": "ExtensionAPI modüllerini ajan sürecinde, ajanın kendi araçlarıyla aynı erişimle çalıştırır. Yalnızca güvendiğiniz kodu etkinleştirin.",

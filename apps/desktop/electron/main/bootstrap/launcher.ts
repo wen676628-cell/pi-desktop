@@ -12,6 +12,7 @@ import {
 } from "@pi-desktop/shared";
 import type { HostProcess } from "../host-process";
 import type { Logger } from "../logger";
+import { registerTrustedRenderer } from "../ipc/trusted-renderers";
 import type { WindowLifecycleState } from "./window";
 import { suppressLinuxFramelessSystemMenu } from "../frameless-system-menu";
 import {
@@ -153,6 +154,9 @@ export function createLauncher({
         },
       });
       state.pluginLauncherWindow = window;
+      // The launcher loads the general preload bridge, so its surface is a
+      // trusted sender like the main window's.
+      registerTrustedRenderer(window.webContents);
       suppressLinuxFramelessSystemMenu(window);
 
       if (process.platform === "darwin") {

@@ -29,8 +29,13 @@
   `data:` 和自定义 URI scheme 不会到达 `shell.openExternal`。
   `will-navigate` 由各自的界面实施策略；内置浏览器允许 HTTP(S)、工作区内文件链接，
   以及从已加载本地文件发起的本地文件导航，其他 scheme 仍会被阻止。
-- 预加载仅公开经过白名单检查的 ADR/../03-runtime/09-logging-and-observability.md 桥
-  （`IPC_WHITELIST` 在 preload 和主侧均强制执行）
+- 预加载仅暴露经过白名单检查的 `invoke`/`on` IPC 桥
+  （`IPC_WHITELIST` 在 preload 和主进程两侧均强制执行）
+- 主进程侧 sender 门禁（纵深防御）：通过 IPC registrar 注册的每个通道，
+  只应答注册为受信任第一方 renderer 的 webContents（主窗口、Live Voice
+  widget、插件启动器——加载通用 preload 的三个表面）。插件面板与停靠视图
+  使用窄插件桥，永远过不了该门禁；Browser 表面不带桥。webContents 销毁时
+  注销注册，关闭后的残留窗口无法继续调用
 
 ### 内容安全政策
 
@@ -53,7 +58,12 @@
 
 ### 未来强化（跟踪、MVP 后）
 
-- 封装时 Electron 熔断器（`runAsNode`、`nodeCliInspect` 关闭）
+- 封装时的 Electron 熔断器是明确权衡而非疏漏：`runAsNode` 保持**开启**，因为
+  发行版 sidecar 通过 `ELECTRON_RUN_AS_NODE=1` 运行在 Electron 二进制上
+  （D008，进程模型 §6）——关闭后 agent 无法启动；`enableEmbeddedAsarIntegrityValidation`
+  保持**关闭**，因为本项目不做签名而该熔断器在 Windows 上依赖有效签名。
+  `nodeCliInspect`、`nodeOptions`、`cookieEncryption` 按打包硬化决策设置。
+  未签名二进制可被本地重新打包；不要宣称安装包"防篡改"。
 - 自动安全 e2e 中的 `webSecurity` 断言
 
 远程控制的安全边界是独立的 MVP 后规格：见

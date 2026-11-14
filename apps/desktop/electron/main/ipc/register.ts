@@ -45,6 +45,7 @@ import type { LiveCallService } from "../live-voice/call-service";
 import type { ComposerSuggestionAnswer } from "../services/composer-suggestion";
 import type { LiveVoiceWidget } from "../live-voice/widget-window";
 import type { IpcRegistrar } from "./types";
+import { isTrustedRenderer } from "./trusted-renderers";
 import type { createTraySessions } from "../tray-sessions";
 import type { createTaskbarUnreadBadge } from "../taskbar-unread-badge";
 
@@ -218,6 +219,20 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
 
 
   const ipcHandlers = new Map<string, (...args: any[]) => Promise<any>>();
+  /**
+   * Main-process defense in depth for the general bridge: every registered
+   * invoke channel answers only senders that registered as trusted first-party
+   * renderers. Plugin panels and Browser surfaces use the narrow plugin bridge
+   * and never pass this check; internal callers (scheduled prompts, the MCP
+   * control server) invoke the stored handler directly and carry no event.
+   */
+  const assertTrustedSender = (event: IpcMainInvokeEvent): void => {
+    if (!isTrustedRenderer(event.sender)) {
+      throw Object.assign(new Error("sender is not a trusted renderer"), {
+        errorCode: "PERMISSION_DENIED",
+      });
+    }
+  };
   const handle = (channel: string, fn: (...args: any[]) => Promise<any>) => {
     const handler = async (...args: any[]) => {
       const result = await fn(...args);
@@ -230,8 +245,9 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     // session is owned by a paired remote host is served over RACP-WS; every
     // other call (and every internal invoke, which never reaches this wrapper)
     // runs the existing local handler byte-for-byte unchanged.
-    ipcMain.handle(channel, async (_event, ...args) =>
+    ipcMain.handle(channel, async (event, ...args) =>
       wrap(async () => {
+        assertTrustedSender(event);
         const router = getBackendRouter?.();
         if (router) {
           const outcome = await router.route(channel, args);
@@ -246,7 +262,10 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>,
   ) => {
     ipcMain.handle(channel, async (event, ...args) =>
-      wrap(() => fn(event, ...args)),
+      wrap(async () => {
+        assertTrustedSender(event);
+        return fn(event, ...args);
+      }),
     );
   };
   const assertMainWindowSender = (event: IpcMainInvokeEvent): void => {
