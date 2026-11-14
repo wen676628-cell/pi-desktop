@@ -540,7 +540,10 @@ Current enforcement:
    closed Shadow DOM, and routes only a fixed sender-validated window-action
    tuple without adding window primitives to `window.pluginBridge`
 4. Secrets / host DB remain inaccessible to plugins
-5. Marketplace/package install requires explicit permission acceptance in UI
+5. Marketplace/package install requires explicit permission acceptance in UI.
+   A local folder or package is staged first; the host publishes only the
+   reviewed bytes with the accepted grants, and a refused upgrade leaves the
+   installed bytes and registry row unchanged
 6. Auto-update refuses silent permission expansion
 7. Plugin main runs in a dedicated `utilityProcess` per plugin (ADR 0008) with a
    minimal environment from the shared `child-process-env.ts` allowlist (PATH,
@@ -587,6 +590,7 @@ Not enforced yet:
 - Declared manifest permissions are granted as a whole. The install review has
   no per-permission toggle, and the installer refuses a grant that leaves out
   any declared permission (`PLUGIN_PERMISSION_DENIED: missing grant for
-  <permission>`); a load with no recorded grant takes the declared set
+  <permission>`). An install call with no grant list is refused the same way
+  instead of inheriting the manifest.
 - A `userSelected` root does not survive a restart, so a plugin has to ask again
   each session

@@ -99,6 +99,7 @@ import type {
   LauncherCatalog,
   LauncherOpenPluginRequest,
   PluginPermissionReview,
+  PluginInstallReview,
   PluginSettingDefinition,
   PluginServiceStatus,
   PluginProviderCatalogMeta,
@@ -1352,8 +1353,21 @@ export const api = {
       files?: string[];
       review?: PluginPermissionReview;
     }>(IPC.invoke.pluginCreateFromTemplate, { template }),
-  installPluginFromPath: () => invoke(IPC.invoke.pluginInstallFromPath),
-  installPluginFromPackage: () => invoke(IPC.invoke.pluginInstallFromPackage),
+  installPluginFromPath: () =>
+    invoke<{ canceled?: boolean; review?: PluginInstallReview }>(
+      IPC.invoke.pluginInstallFromPath,
+    ),
+  installPluginFromPackage: () =>
+    invoke<{ canceled?: boolean; review?: PluginInstallReview }>(
+      IPC.invoke.pluginInstallFromPackage,
+    ),
+  confirmPluginInstall: (input: {
+    reviewToken: string;
+    grantedPermissions: string[];
+    enable?: boolean;
+  }) => invoke(IPC.invoke.pluginInstallConfirm, input),
+  cancelPluginInstallReview: (input: { reviewToken: string }) =>
+    invoke<{ cancelled: boolean }>(IPC.invoke.pluginInstallCancelReview, input),
   enablePlugin: (id: string) => invoke(IPC.invoke.pluginEnable, id),
   disablePlugin: (id: string) => invoke(IPC.invoke.pluginDisable, id),
   uninstallPlugin: (id: string) => invoke(IPC.invoke.pluginUninstall, id),

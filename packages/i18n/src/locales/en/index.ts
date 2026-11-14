@@ -2604,6 +2604,7 @@ importConfirm: "Imported extensions run inside the agent process with the same a
     devReviewLoading: "Loading…",
     permissionReviewTitle: "Install {{name}}?",
     permissionReviewBody: "Review what this plugin can do. Higher-risk permissions stay blocked until you accept them.",
+    installNativeRisk: "A plugin runs as native code on this machine. Declared permissions bound the plugin API, not what its own Node code can reach. Install only code you trust.",
     acceptInstall: "Accept and install",
     cancel: "Cancel",
     viewDetailsOf: "View details for {{name}}",

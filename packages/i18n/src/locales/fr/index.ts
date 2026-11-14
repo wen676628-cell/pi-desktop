@@ -2583,6 +2583,7 @@ sklm: {
     "devReviewLoading": "Chargement…",
     "permissionReviewTitle": "Installer {{name}} ?",
     "permissionReviewBody": "Vérifiez ce que ce plugin peut faire. Les autorisations à plus haut risque restent bloquées jusqu'à ce que vous les acceptiez.",
+    "installNativeRisk": "Un plugin s'exécute comme code natif sur cette machine. Les autorisations déclarées limitent l'API du plugin, pas ce que son propre code Node peut atteindre. N'installez que du code auquel vous faites confiance.",
     "acceptInstall": "Accepter et installer",
     "cancel": "Annuler",
     "viewDetailsOf": "Afficher les détails pour {{name}}",

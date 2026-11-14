@@ -41,8 +41,9 @@ fn install_market_package_and_check_update_metadata() {
         let mut mgr = PluginManager::new(dir.path(), MarketChannel::Official, None);
         let search = mgr.market_search(Some("hello"), None).unwrap();
         assert!(!search.is_empty());
+        let permissions = mgr.market_get("demo.hello").unwrap().permissions;
         let installed = mgr
-            .install_from_market("demo.hello", None, true, true, None)
+            .install_from_market("demo.hello", None, true, true, Some(permissions))
             .unwrap();
         assert_eq!(installed.plugin.id, "demo.hello");
         assert!(installed.plugin.path.unwrap().contains("installed"));
@@ -130,6 +131,7 @@ fn marketplace_install_refreshes_catalog_before_checksum_verification() {
         let remote_version = &mut remote.plugins[0].versions[0];
         remote_version.url = format!("file://{}", package_path.to_string_lossy());
         remote_version.shasum = sha256_hex(&package_bytes);
+        let permissions = remote.plugins[0].versions[0].permissions.clone();
         let remote_catalog_path = dir.path().join("remote-catalog.json");
         fs::write(
             &remote_catalog_path,
@@ -162,7 +164,7 @@ fn marketplace_install_refreshes_catalog_before_checksum_verification() {
         }
 
         let installed = mgr
-            .install_from_market("demo.hello", None, true, false, None)
+            .install_from_market("demo.hello", None, true, false, Some(permissions))
             .expect("install should use the refreshed checksum");
         assert_eq!(installed.plugin.id, "demo.hello");
         assert_eq!(installed.plugin.version, "0.2.0");
@@ -326,7 +328,8 @@ fn announced_version_without_a_package_is_visible_but_not_installable() {
             std::env::set_var("PI_DESKTOP_DATA_DIR", dir.path());
         }
         let mut mgr = PluginManager::new(dir.path(), MarketChannel::Official, None);
-        mgr.install_from_market("demo.hello", None, true, true, None)
+        let permissions = mgr.market_get("demo.hello").unwrap().permissions;
+        mgr.install_from_market("demo.hello", None, true, true, Some(permissions))
             .unwrap();
 
         // The publisher announced 0.9.0 but has not uploaded its package.
@@ -383,7 +386,8 @@ fn silent_update_check_uses_cached_catalog_without_refreshing_remote() {
             std::env::set_var("PI_DESKTOP_DATA_DIR", dir.path());
         }
         let mut mgr = PluginManager::new(dir.path(), MarketChannel::Official, None);
-        mgr.install_from_market("demo.hello", None, true, false, None)
+        let permissions = mgr.market_get("demo.hello").unwrap().permissions;
+        mgr.install_from_market("demo.hello", None, true, false, Some(permissions))
             .unwrap();
 
         let mut cached = built_in_catalog_at(dir.path());
@@ -458,6 +462,247 @@ fn package_path_traversal_rejected() {
 }
 
 #[test]
+fn a_refused_upgrade_keeps_the_previous_install() {
+    let data = tempdir().unwrap();
+    let sources = tempdir().unwrap();
+    let manifest = |version: &str, permissions: serde_json::Value| {
+        json!({
+            "schemaVersion": 1,
+            "id": "demo.upgrade",
+            "name": "Upgrade",
+            "version": version,
+            "main": "main.js",
+            "permissions": permissions,
+        })
+    };
+
+    let v1 = sources.path().join("v1");
+    write_plugin(&v1, manifest("1.0.0", json!([])), &[]);
+    let mut mgr = PluginManager::new(data.path(), MarketChannel::Official, None);
+    let installed = mgr
+        .install_from_path(
+            v1.to_str().unwrap(),
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let target = PathBuf::from(installed.plugin.path.clone().unwrap());
+
+    let v2 = sources.path().join("v2");
+    write_plugin(&v2, manifest("1.0.1", json!(["clipboard.read"])), &[]);
+    let error = mgr
+        .install_from_path(
+            v2.to_str().unwrap(),
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("PLUGIN_PERMISSION_DENIED"), "{error}");
+
+    let on_disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(target.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        on_disk["version"], "1.0.0",
+        "the old bytes must survive a refusal"
+    );
+    let row = mgr.get("demo.upgrade").unwrap();
+    assert_eq!(row.version, "1.0.0");
+    assert!(
+        row.permissions.is_empty(),
+        "the refused grant is not recorded"
+    );
+}
+
+#[test]
+fn review_install_publishes_nothing_until_approved() {
+    let data = tempdir().unwrap();
+    let sources = tempdir().unwrap();
+    let manifest = |version: &str, permissions: serde_json::Value| {
+        json!({
+            "schemaVersion": 1,
+            "id": "demo.reviewed",
+            "name": "Reviewed",
+            "version": version,
+            "main": "main.js",
+            "permissions": permissions,
+        })
+    };
+
+    let v1 = sources.path().join("v1");
+    write_plugin(&v1, manifest("1.0.0", json!([])), &[]);
+    let mut mgr = PluginManager::new(data.path(), MarketChannel::Official, None);
+    let installed = mgr
+        .install_from_path(
+            v1.to_str().unwrap(),
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let target = PathBuf::from(installed.plugin.path.clone().unwrap());
+
+    let v2 = sources.path().join("v2");
+    write_plugin(&v2, manifest("1.0.1", json!(["clipboard.read"])), &[]);
+    let review = mgr.review_install(v2.to_str().unwrap()).unwrap();
+    let stage = data
+        .path()
+        .join("plugins/cache/download")
+        .join(format!("review-{}", review.review_token));
+    assert_eq!(review.version, "1.0.1");
+    assert_eq!(review.added_permissions, ["clipboard.read"]);
+    assert!(review.upgraded);
+    assert!(stage.join("plugin/manifest.json").is_file());
+    let on_disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(target.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(on_disk["version"], "1.0.0", "reviewing does not publish");
+    assert_eq!(mgr.get("demo.reviewed").unwrap().version, "1.0.0");
+
+    let refused = mgr
+        .install_from_review(
+            &review.review_token,
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(refused.contains("PLUGIN_PERMISSION_DENIED"), "{refused}");
+    assert!(!stage.exists(), "a consumed review stage is removed");
+    assert_eq!(mgr.get("demo.reviewed").unwrap().version, "1.0.0");
+
+    let review = mgr.review_install(v2.to_str().unwrap()).unwrap();
+    let installed = mgr
+        .install_from_review(
+            &review.review_token,
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(vec!["clipboard.read".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(installed.plugin.version, "1.0.1");
+    assert_eq!(installed.plugin.permissions, ["clipboard.read"]);
+}
+
+#[test]
+fn cancelling_an_install_review_drops_its_staging() {
+    let data = tempdir().unwrap();
+    let sources = tempdir().unwrap();
+    let plugin = sources.path().join("plugin");
+    write_plugin(
+        &plugin,
+        json!({
+            "schemaVersion": 1,
+            "id": "demo.cancelled",
+            "name": "Cancelled",
+            "version": "1.0.0",
+            "main": "main.js",
+            "permissions": ["clipboard.read"],
+        }),
+        &[],
+    );
+    let mut mgr = PluginManager::new(data.path(), MarketChannel::Official, None);
+    let review = mgr.review_install(plugin.to_str().unwrap()).unwrap();
+    let stage = data
+        .path()
+        .join("plugins/cache/download")
+        .join(format!("review-{}", review.review_token));
+    assert!(stage.is_dir());
+    assert!(mgr.cancel_install_review(&review.review_token).unwrap());
+    assert!(!stage.exists());
+    assert!(!mgr.cancel_install_review(&review.review_token).unwrap());
+    let expired = mgr
+        .install_from_review(
+            &review.review_token,
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(vec!["clipboard.read".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(expired.contains("PLUGIN_REVIEW_EXPIRED"), "{expired}");
+}
+
+#[test]
+fn a_failed_registry_commit_restores_the_previous_install() {
+    let data = tempdir().unwrap();
+    let sources = tempdir().unwrap();
+    let manifest = |version: &str| {
+        json!({
+            "schemaVersion": 1,
+            "id": "demo.rollback",
+            "name": "Rollback",
+            "version": version,
+            "main": "main.js",
+            "permissions": [],
+        })
+    };
+
+    let v1 = sources.path().join("v1");
+    write_plugin(&v1, manifest("1.0.0"), &[]);
+    let mut mgr = PluginManager::new(data.path(), MarketChannel::Official, None);
+    let installed = mgr
+        .install_from_path(
+            v1.to_str().unwrap(),
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let target = PathBuf::from(installed.plugin.path.clone().unwrap());
+
+    // Make the atomic registry rename impossible: the destination is a
+    // directory, so the commit fails after the new bytes are in place.
+    let registry = data.path().join("plugins/registry.json");
+    let saved = data.path().join("plugins/registry.json.saved");
+    fs::rename(&registry, &saved).unwrap();
+    fs::create_dir(&registry).unwrap();
+
+    let v2 = sources.path().join("v2");
+    write_plugin(&v2, manifest("1.0.1"), &[]);
+    let error = mgr
+        .install_from_path(
+            v2.to_str().unwrap(),
+            InstallOptions {
+                source: "installed".into(),
+                enable: true,
+                granted_permissions: Some(Vec::new()),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(!error.is_empty());
+    assert_eq!(mgr.get("demo.rollback").unwrap().version, "1.0.0");
+    let on_disk: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(target.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(on_disk["version"], "1.0.0", "the old install is restored");
+}
+
+#[test]
 fn high_risk_permissions_roundtrip_on_notes_plugin() {
     with_local_market(|| {
         let dir = tempdir().unwrap();
@@ -470,8 +715,9 @@ fn high_risk_permissions_roundtrip_on_notes_plugin() {
             let _ = fs::remove_dir_all(&packages_dir);
         }
         let mut mgr = PluginManager::new(dir.path(), MarketChannel::Official, None);
+        let permissions = mgr.market_get("demo.workspace-notes").unwrap().permissions;
         let installed = mgr
-            .install_from_market("demo.workspace-notes", None, true, false, None)
+            .install_from_market("demo.workspace-notes", None, true, false, Some(permissions))
             .unwrap();
         assert!(installed
             .plugin
@@ -1058,7 +1304,7 @@ fn install_from_package_accepts_a_package_relative_theme_asset() {
                     marketplace: None,
                     expected_shasum: None,
                     auto_update: false,
-                    granted_permissions: None,
+                    granted_permissions: Some(vec!["ui.theme".into()]),
                 },
             )
             .unwrap();
@@ -1310,6 +1556,7 @@ fn a_bundled_plugin_keeps_the_update_the_user_installed() {
             InstallOptions {
                 source: "marketplace".into(),
                 enable: true,
+                granted_permissions: Some(vec!["ui.panel".into()]),
                 ..Default::default()
             },
         )
@@ -1370,6 +1617,7 @@ fn a_newer_shipped_version_replaces_an_older_user_install() {
         InstallOptions {
             source: "marketplace".into(),
             enable: true,
+            granted_permissions: Some(vec!["ui.panel".into()]),
             ..Default::default()
         },
     )
@@ -1414,6 +1662,7 @@ fn a_plugin_a_build_stops_shipping_is_no_longer_bundled() {
         InstallOptions {
             source: "marketplace".into(),
             enable: true,
+            granted_permissions: Some(vec!["ui.panel".into()]),
             ..Default::default()
         },
     )
@@ -2528,8 +2777,16 @@ fn an_install_reports_progress_and_honours_a_cancel() {
         }
 
         let mut log = InstallLog::default();
+        let permissions = mgr.market_get("demo.workspace-notes").unwrap().permissions;
         let installed = mgr
-            .install_from_market_observed("demo.workspace-notes", None, true, false, None, &mut log)
+            .install_from_market_observed(
+                "demo.workspace-notes",
+                None,
+                true,
+                false,
+                Some(permissions),
+                &mut log,
+            )
             .expect("the fixture package installs");
         assert_eq!(installed.plugin.id, "demo.workspace-notes");
         // The fixture catalog serves a local package, so resolution is skipped

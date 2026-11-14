@@ -2583,6 +2583,7 @@ sklm: {
     "devReviewLoading": "Cargando…",
     "permissionReviewTitle": "¿Instalar {{name}}?",
     "permissionReviewBody": "Revise lo que puede hacer este complemento. Los permisos de mayor riesgo permanecen bloqueados hasta que los acepte.",
+    "installNativeRisk": "Un complemento se ejecuta como código nativo en este equipo. Los permisos declarados limitan la API del complemento, no lo que su propio código Node puede alcanzar. Instala solo código en el que confíes.",
     "acceptInstall": "Aceptar e instalar",
     "cancel": "Cancelar",
     "viewDetailsOf": "Ver detalles de {{name}}",

@@ -52,8 +52,13 @@ PluginManager
   则返回审核信息，否则直接在 Electron 主进程中重新加载
 - `plugin/reloadConfirm` — 确认审核结果：按用户批准的权限重新加载，并更新开发插件的权限上限
 - `plugin/createFromTemplate` — 生成脚手架文件，并返回相同的加载审核信息；生成文件本身不授予加载权限
-- `plugin/installFromPath` ✅
-- `plugin/installFromPackage` ✅
+- `plugin/installFromPath` — 打开文件夹选择器，复制到暂存目录并返回安装权限审核；
+  此时不会注册或加载任何插件
+- `plugin/installFromPackage` — 打开安装包选择器，对暂存的 `.piplug`/`.zip`
+  字节返回同样的安装审核
+- `plugin/installConfirm` — 确认安装审核：按用户批准的权限发布暂存的原始字节；
+  权限被拒绝时保持已安装版本不变
+- `plugin/installCancelReview` — 丢弃用户拒绝的安装审核暂存内容
 - `plugin/enable`
 - `plugin/disable`
 - `plugin/setScope`

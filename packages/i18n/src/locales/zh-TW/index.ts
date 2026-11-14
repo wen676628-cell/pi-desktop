@@ -2578,6 +2578,7 @@ sklm: {
     devReviewLoading: "載入中…",
     permissionReviewTitle: "安裝 {{name}}？",
     permissionReviewBody: "請確認此外掛可以執行的操作。高風險許可權在你同意前會保持停用。",
+    installNativeRisk: "外掛以本機原生程式碼執行。宣告的許可權約束外掛 API，而不是外掛自身 Node 程式碼能存取的範圍。只安裝你信任的程式碼。",
     acceptInstall: "同意並安裝",
     cancel: "取消",
     viewDetailsOf: "檢視 {{name}} 的詳情",

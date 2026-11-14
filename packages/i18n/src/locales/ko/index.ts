@@ -2600,6 +2600,7 @@ importConfirm: "가져온 확장은 에이전트 프로세스 안에서 에이�
     devReviewLoading: "불러오는 중…",
     permissionReviewTitle: "{{name}}을(를) 설치할까요?",
     permissionReviewBody: "이 플러그인이 할 수 있는 작업을 검토하세요. 더 높은 위험의 권한은 승인할 때까지 차단됩니다.",
+    installNativeRisk: "플러그인은 이 컴퓨터에서 네이티브 코드로 실행됩니다. 선언된 권한은 플러그인 API를 제한할 뿐, 플러그인 자체 Node 코드가 접근할 수 있는 범위를 제한하지 않습니다. 신뢰하는 코드만 설치하세요.",
     acceptInstall: "동의하고 설치",
     cancel: "취소",
     viewDetailsOf: "{{name}} 세부 정보 보기",

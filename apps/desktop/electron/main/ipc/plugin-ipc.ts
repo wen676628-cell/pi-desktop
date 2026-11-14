@@ -316,25 +316,12 @@ export function registerPluginIpc({
     if (result.canceled || !result.filePaths[0]) {
       return { canceled: true };
     }
-    const path = result.filePaths[0];
-    const installed = await host.call<{ result: any }>("plugins.installFromPath", {
-      path,
-      enable: true,
+    // Choosing the folder only stages it. The renderer shows the declaration,
+    // and `pluginInstallConfirm` is what publishes it.
+    const reviewed = await host.call<{ review: any }>("plugins.reviewInstall", {
+      path: result.filePaths[0],
     });
-    if (installed.result?.plugin?.enabled && installed.result?.plugin?.path) {
-      await plugins.loadFromPath(
-        installed.result.plugin.path,
-        installed.result.plugin.permissions ?? [],
-      );
-    }
-    for (const toast of plugins.drainToasts()) {
-      sendToRenderer(IPC.event.toast, { message: toast });
-    }
-    sendToRenderer(IPC.event.pluginChanged,{
-      reason: "install",
-      pluginId: installed.result?.plugin?.id,
-    });
-    return installed;
+    return { canceled: false, review: reviewed.review };
   });
 
   handle(IPC.invoke.pluginInstallFromPackage, async () => {
@@ -348,26 +335,62 @@ export function registerPluginIpc({
     if (result.canceled || !result.filePaths[0]) {
       return { canceled: true };
     }
-    const path = result.filePaths[0];
-    const installed = await host.call<{ result: any }>("plugins.installFromPackage", {
-      path,
-      enable: true,
+    const reviewed = await host.call<{ review: any }>("plugins.reviewInstall", {
+      path: result.filePaths[0],
     });
-    if (installed.result?.plugin?.enabled && installed.result?.plugin?.path) {
-      await plugins.loadFromPath(
-        installed.result.plugin.path,
-        installed.result.plugin.permissions ?? [],
-      );
-    }
-    for (const toast of plugins.drainToasts()) {
-      sendToRenderer(IPC.event.toast, { message: toast });
-    }
-    sendToRenderer(IPC.event.pluginChanged,{
-      reason: "install",
-      pluginId: installed.result?.plugin?.id,
-    });
-    return installed;
+    return { canceled: false, review: reviewed.review };
   });
+
+  handle(
+    IPC.invoke.pluginInstallConfirm,
+    async (input: {
+      reviewToken?: unknown;
+      grantedPermissions?: unknown;
+      enable?: unknown;
+    }) => {
+      if (!host) throw new Error("host unavailable");
+      const reviewToken =
+        typeof input?.reviewToken === "string" ? input.reviewToken : "";
+      if (!reviewToken) throw new Error("INVALID_PARAMS: reviewToken required");
+      const granted = Array.isArray(input?.grantedPermissions)
+        ? input.grantedPermissions.filter(
+            (permission): permission is string => typeof permission === "string",
+          )
+        : [];
+      const installed = await host.call<{ result: any }>("plugins.confirmInstall", {
+        reviewToken,
+        grantedPermissions: granted,
+        enable: input?.enable !== false,
+      });
+      if (installed.result?.plugin?.enabled && installed.result?.plugin?.path) {
+        await plugins.loadFromPath(
+          installed.result.plugin.path,
+          installed.result.plugin.permissions ?? [],
+        );
+      }
+      for (const toast of plugins.drainToasts()) {
+        sendToRenderer(IPC.event.toast, { message: toast });
+      }
+      sendToRenderer(IPC.event.pluginChanged, {
+        reason: "install",
+        pluginId: installed.result?.plugin?.id,
+      });
+      return installed;
+    },
+  );
+
+  handle(
+    IPC.invoke.pluginInstallCancelReview,
+    async (input: { reviewToken?: unknown }) => {
+      if (!host) throw new Error("host unavailable");
+      const reviewToken =
+        typeof input?.reviewToken === "string" ? input.reviewToken : "";
+      if (!reviewToken) throw new Error("INVALID_PARAMS: reviewToken required");
+      return host.call<{ cancelled: boolean }>("plugins.cancelInstallReview", {
+        reviewToken,
+      });
+    },
+  );
 
   handle(IPC.invoke.pluginEnable, async (id: string) => {
     if (!host) throw new Error("host unavailable");

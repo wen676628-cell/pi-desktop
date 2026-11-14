@@ -492,6 +492,24 @@ pub struct InstallOptions {
     pub granted_permissions: Option<Vec<String>>,
 }
 
+/// A staged local plugin waiting for the user to approve its permissions.
+///
+/// The token names a private staging directory under the plugin cache; the
+/// renderer sees only this snapshot and the token. Nothing is registered, and
+/// the installed directory is untouched, until the token is confirmed with an
+/// explicit grant.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallReview {
+    pub review_token: String,
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub permissions: Vec<String>,
+    pub added_permissions: Vec<String>,
+    pub upgraded: bool,
+}
+
 impl Default for InstallOptions {
     fn default() -> Self {
         Self {

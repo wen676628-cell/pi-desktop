@@ -464,9 +464,12 @@ bytes against that catalog checksum.
 `.piplug` packages are now producible locally: `pnpm pi-plugin pack <dir>`
 (equally, the `PluginPack` agent tool) writes `dist/<id>-<version>.piplug` and
 prints its sha256, and the plugins page installs that file through the same
-validation and permission review as a marketplace download. Distribution through
-the marketplace is therefore optional — a plugin written for personal use never
-has to leave the machine. See
+validation and permission review as a marketplace download. The host extracts
+the package into a private staging directory, returns the declared permissions,
+and installs those exact bytes only after the user accepts them; declining
+removes the staging directory and leaves any installed version untouched.
+Distribution through the marketplace is therefore optional — a plugin written
+for personal use never has to leave the machine. See
 [Plugin developer experience](10-plugin-devex.md).
 
 A catalog entry whose plugin declares `contributes.skills` must also declare
