@@ -163,10 +163,10 @@ impl MarketDownloadContext {
         report: &mut DownloadReport<'_>,
         tried: &mut Vec<TriedMirror>,
     ) -> Result<(PathBuf, String)> {
-        let catalog_url = &self.catalog_url;
+        let catalog_url = self.catalog_url.clone();
         let device_id = super::device::device_id(&self.data_dir);
         let resolved =
-            super::resolve::request(catalog_url, &device_id, &info.plugin_id, &info.version)?;
+            super::resolve::request(&catalog_url, &device_id, &info.plugin_id, &info.version)?;
         let expected = resolved.sha256.trim().to_ascii_lowercase();
         let attempts = resolved.downloads.len() as u32;
         let mut last_error: Option<anyhow::Error> = None;
@@ -181,7 +181,7 @@ impl MarketDownloadContext {
             // Resolve mirrors are hosts the platform named, not local catalog
             // fixtures: file:// and bare paths skip the allowlist on the
             // backup path and must not do so here.
-            if let Err(error) = super::package_host_allowed(url, catalog_url) {
+            if let Err(error) = super::package_host_allowed(url, &catalog_url) {
                 tracing::warn!(
                     source = %mirror.source,
                     %url,
@@ -244,6 +244,7 @@ impl MarketDownloadContext {
         if let Some(parent) = cache.parent() {
             fs::create_dir_all(parent)?;
         }
+        let catalog_url = self.catalog_url.clone();
         let bytes = if let Some(path) = url.strip_prefix("file://") {
             let bytes = fs::read(path).with_context(|| format!("read market package {path}"))?;
             report.bytes(bytes.len() as u64, expected_size.max(bytes.len() as u64));
@@ -251,13 +252,8 @@ impl MarketDownloadContext {
         } else if url.starts_with("http://") || url.starts_with("https://") {
             // Refuse an off-allowlist host before any request leaves the
             // machine, then hold the redirect chain to the same rule.
-            super::package_host_allowed(url, &self.catalog_url)?;
-            super::install::download_url_observed(
-                url,
-                Some(&self.catalog_url),
-                expected_size,
-                report,
-            )?
+            super::package_host_allowed(url, &catalog_url)?;
+            super::install::download_url_observed(url, Some(&catalog_url), expected_size, report)?
         } else {
             // Allow bare local paths in catalogs.
             let bytes = fs::read(url).with_context(|| format!("read market package {url}"))?;
