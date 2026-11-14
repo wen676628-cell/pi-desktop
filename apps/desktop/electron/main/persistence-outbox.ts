@@ -270,11 +270,12 @@ export class PersistenceOutbox {
 
   /** Move a head the host keeps refusing into the dead-letter file. */
   private async quarantine(entry: MessageAppend, attempts: number, error: unknown): Promise<void> {
-    this.deadLetters.push({
+    const quarantined = {
       ...entry,
       quarantinedAt: new Date(this.now()).toISOString(),
       reason: String(error),
-    });
+    };
+    this.deadLetters.push(quarantined);
     while (this.deadLetters.length > this.maxDeadLetters) {
       const dropped = this.deadLetters.shift();
       this.logger("warn", "session persistence outbox dead letter discarded", {
@@ -291,15 +292,50 @@ export class PersistenceOutbox {
       file: this.deadLetterPath,
       data: String(error),
     });
+    // The dead-letter file is the durable copy. Only after it lands may the
+    // queue entry be removed: a failure before that leaves the append in the
+    // queue file, and a failure after it leaves a duplicate that load() drops.
+    try {
+      await this.persistDeadLetters();
+    } catch (deadLetterError) {
+      const index = this.deadLetters.lastIndexOf(quarantined);
+      if (index >= 0) this.deadLetters.splice(index, 1);
+      throw deadLetterError;
+    }
     if (this.entries[0] === entry) this.entries.shift();
     this.headRetry = null;
-    await this.persist();
-    await this.persistDeadLetters();
+    try {
+      await this.persist();
+    } catch (queueError) {
+      // The dead letter is already on disk. The queue file may still contain
+      // the same key, which load() dedupes on the next boot instead of
+      // replaying it.
+      this.logger("error", "session persistence outbox queue write after quarantine failed", {
+        key: entry.key,
+        sessionId: entry.sessionId,
+        file: this.path,
+        data: String(queueError),
+      });
+      throw queueError;
+    }
   }
 
   private async load(): Promise<void> {
     await this.loadEntries();
     await this.loadDeadLetters();
+    // A process killed between the dead-letter write and the queue rewrite
+    // leaves the same key in both files. The dead letter wins: replaying a
+    // quarantined append is exactly what the dead-letter file exists to stop.
+    const quarantined = new Set(this.deadLetters.map((entry) => entry.key));
+    if (quarantined.size === 0) return;
+    const kept = this.entries.filter((entry) => !quarantined.has(entry.key));
+    if (kept.length === this.entries.length) return;
+    this.entries = kept;
+    try {
+      await this.persist();
+    } catch (error: unknown) {
+      this.logger("warn", "session persistence outbox dedupe write failed", String(error));
+    }
   }
 
   private async quarantineCorruptFile(path: string, error: unknown): Promise<void> {
