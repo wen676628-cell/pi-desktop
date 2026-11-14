@@ -124,9 +124,9 @@ impl CancelToken {
 
 /// Slot the cancel RPC flips without taking the AppState lock.
 ///
-/// `market.install` holds that lock for the whole download, so a cancel that
-/// waited on it would only run after the install finished. The token is an
-/// `Arc`, so this is a second handle to the same flag.
+/// `market.install` downloads without the lock, but the final publish does take
+/// it; a cancel that waited on that lock could only run after the install
+/// finished. The token is an `Arc`, so this is a second handle to the same flag.
 static ACTIVE_CANCEL: OnceLock<Mutex<Option<CancelToken>>> = OnceLock::new();
 
 fn active_cancel_slot() -> &'static Mutex<Option<CancelToken>> {

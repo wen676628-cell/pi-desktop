@@ -817,7 +817,11 @@ against a live host, and replaying one after the final row would be wrong.
 - `market.refresh` — fetch and cache the catalog from the configured URL
 - `market.search` / `market.getDetail`
 - `market.install` — download, verify (`PLUGIN_INTEGRITY`,
-  `PLUGIN_MARKET_*`), and install one catalog release
+  `PLUGIN_MARKET_*`), and install one catalog release. The catalog decision is
+  snapshotted under the AppState lock, which is then released for resolve,
+  download, and digest verification; only the final publish reacquires it.
+  `market.cancelInstall` flips the armed token without that lock, so cancel and
+  health requests do not queue behind a slow download.
 - `market.checkUpdates` / `market.applyUpdates`
 
 ### Providers and models

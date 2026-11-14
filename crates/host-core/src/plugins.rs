@@ -21,6 +21,7 @@ mod device;
 mod install;
 mod install_review;
 mod manifest;
+mod market_download;
 pub mod marketplace;
 mod model;
 mod permissions;
@@ -34,6 +35,7 @@ pub(crate) mod reviews;
 mod validation;
 
 pub use manifest::PluginManifest;
+pub(crate) use market_download::{MarketDownloadContext, MarketInstallCommit, MarketInstallPlan};
 pub use marketplace::{market_channel_from_settings, MarketChannel, OFFICIAL_CHANNEL_CATALOG_URL};
 pub use model::{
     InstallOptions, InstallResult, InstallReview, MarketDownloadInfo, MarketPluginDetail,

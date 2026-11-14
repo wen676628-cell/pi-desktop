@@ -5957,29 +5957,73 @@ async fn handle_request(
                 .get("grantedPermissions")
                 .cloned()
                 .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok());
+            // Build the plan and snapshot the channel under the state lock, then
+            // drop it: resolving and downloading must not hold AppState, or
+            // health and cancel requests wait behind the network.
+            let plan = {
+                let mut st = state.lock().await;
+                st.plugins
+                    .market_install_plan(id, version)
+                    .map_err(plugin_err)?
+            };
             // An install outlives one request from the interface's point of
             // view: it resolves where the package is, downloads it from one
             // mirror after another, verifies it and registers it. Every one of
             // those steps is worth showing, which is what the observer does,
             // and the token is what the cancel channel flips.
             let cancel = crate::plugins::CancelToken::default();
-            // Armed outside AppState: cancelInstall must flip this flag while
-            // install still holds the state lock for the download.
             crate::plugins::progress::arm_active_cancel(&cancel);
-            let mut observer = RpcInstallObserver {
+            let mut observer = Some(RpcInstallObserver {
                 tx: tx.clone(),
                 cancel: cancel.clone(),
                 last: None,
                 last_phase: None,
+            });
+            // The transfer is blocking (curl/read + digest); run it on a
+            // blocking worker so even a single-worker runtime keeps answering
+            // health and cancel requests.
+            let fetched = {
+                let download_plan = plan.clone();
+                let mut download_observer = observer.take().expect("install observer");
+                match tokio::task::spawn_blocking(move || {
+                    let mut download_report = crate::plugins::DownloadReport::new(
+                        &mut download_observer,
+                        &download_plan.info.plugin_id,
+                        &download_plan.info.version,
+                    );
+                    let fetched = download_plan
+                        .download
+                        .fetch(&download_plan.info, &mut download_report);
+                    (fetched, download_observer)
+                })
+                .await
+                {
+                    Ok((fetched, download_observer)) => {
+                        observer = Some(download_observer);
+                        fetched
+                    }
+                    Err(error) => Err(anyhow!("PLUGIN_MARKET_DOWNLOAD_TASK: {error}")),
+                }
+            };
+            let (package_path, shasum) = match fetched {
+                Ok(value) => value,
+                Err(error) => {
+                    crate::plugins::progress::disarm_active_cancel();
+                    return Err(plugin_err(error));
+                }
             };
             let mut st = state.lock().await;
+            let mut observer = observer.take().expect("install observer");
             st.plugins.set_install_cancel(Some(cancel));
-            let outcome = st.plugins.install_from_market_observed(
-                id,
-                version,
-                enable,
-                auto_update,
-                granted,
+            let outcome = st.plugins.install_from_downloaded_market_package(
+                &plan,
+                &package_path,
+                &shasum,
+                crate::plugins::MarketInstallCommit {
+                    enable,
+                    auto_update,
+                    granted_permissions: granted,
+                },
                 &mut observer,
             );
             // Whatever happened, nothing is cancellable any more: a token left
@@ -6078,7 +6122,7 @@ async fn handle_request(
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::io::{self, Write};
+    use std::io::{self, Read, Write};
     use std::path::{Path, PathBuf};
     use std::sync::Arc;
 
@@ -6097,6 +6141,177 @@ mod tests {
     use crate::sessions;
     use crate::state::AppState;
     use std::time::Duration;
+
+    // The process-global market override must stay pinned for the whole test,
+    // including the download awaits; the other market tests use the same lock.
+    #[allow(clippy::await_holding_lock)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn market_install_does_not_hold_state_lock_while_downloading() {
+        // The marketplace source is process-global; serialize with the plugin
+        // market tests, which repoint the same override.
+        let _env = crate::plugins::tests::MARKET_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let data_dir = tempfile::tempdir().unwrap();
+        let package = crate::plugins::bundled_package_bytes("demo.hello", "0.2.0").unwrap();
+        let shasum = crate::plugins::sha256_hex(&package);
+        // Point the catalog at the slow loopback server before the manager
+        // loads it. Rewriting the file after `AppState::open` would leave the
+        // in-memory catalog on the old URL.
+        let mut catalog = crate::plugins::built_in_catalog_at(data_dir.path());
+        for plugin in &mut catalog.plugins {
+            if plugin.id == "demo.hello" {
+                for version in &mut plugin.versions {
+                    if version.version == "0.2.0" {
+                        version.shasum = shasum.clone();
+                    }
+                }
+            }
+        }
+        let catalog_path = data_dir.path().join("plugins/market/catalog.json");
+        if let Some(parent) = catalog_path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        for plugin in &mut catalog.plugins {
+            if plugin.id == "demo.hello" {
+                for version in &mut plugin.versions {
+                    if version.version == "0.2.0" {
+                        version.url = format!("http://{address}/demo.piplug");
+                    }
+                }
+            }
+        }
+        let catalog_json = serde_json::to_string(&catalog).unwrap();
+        fs::write(&catalog_path, &catalog_json).unwrap();
+        let accepted = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let accepted_server = accepted.clone();
+        let server = std::thread::spawn(move || {
+            listener.set_nonblocking(true).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(3);
+            loop {
+                let mut stream = match listener.accept() {
+                    Ok((stream, _)) => stream,
+                    Err(error)
+                        if error.kind() == std::io::ErrorKind::WouldBlock
+                            && std::time::Instant::now() < deadline =>
+                    {
+                        std::thread::sleep(Duration::from_millis(10));
+                        continue;
+                    }
+                    _ => return,
+                };
+                let mut request = [0u8; 2048];
+                let read = stream.read(&mut request).unwrap_or(0);
+                let request = String::from_utf8_lossy(&request[..read]);
+                if request.contains("/catalog.json") {
+                    write!(
+                        stream,
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        catalog_json.len(),
+                        catalog_json
+                    )
+                    .unwrap();
+                    continue;
+                }
+                accepted_server.store(true, std::sync::atomic::Ordering::SeqCst);
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    package.len()
+                )
+                .unwrap();
+                stream.flush().unwrap();
+                // Hold the body long enough for the health request to arrive
+                // while the package transfer is still running.
+                std::thread::sleep(Duration::from_millis(700));
+                let _ = stream.write_all(&package);
+                return;
+            }
+        });
+        unsafe {
+            std::env::set_var(
+                "PI_DESKTOP_PLUGIN_MARKET_URL",
+                format!("http://{address}/catalog.json"),
+            );
+        }
+
+        let mut app = AppState::open(data_dir.path()).unwrap();
+        app.handshook = true;
+        let state = Arc::new(Mutex::new(app));
+
+        let install = tokio::spawn(handle_request(
+            state.clone(),
+            "market.install",
+            json!({
+                "id": "demo.hello",
+                "version": "0.2.0",
+                "enable": true,
+                "autoUpdate": false,
+                "grantedPermissions": [],
+            }),
+            mpsc::unbounded_channel().0,
+        ));
+        let started = tokio::time::timeout(Duration::from_secs(1), async {
+            while !accepted.load(std::sync::atomic::Ordering::SeqCst) {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await;
+        assert!(
+            started.is_ok(),
+            "the install never reached the download server"
+        );
+        let cancel = tokio::time::timeout(
+            Duration::from_millis(250),
+            handle_request(
+                state.clone(),
+                "market.cancelInstall",
+                json!({ "id": "demo.hello" }),
+                mpsc::unbounded_channel().0,
+            ),
+        )
+        .await;
+        assert!(
+            cancel.is_ok(),
+            "market.cancelInstall must answer while the download is still running"
+        );
+        // The multi-thread runtime keeps the download on one worker while this
+        // request runs on the other; the cancel flag must still be live.
+        assert_eq!(
+            cancel.unwrap().unwrap()["cancelled"],
+            true,
+            "the running download accepts the cancel"
+        );
+        let health = tokio::time::timeout(
+            Duration::from_millis(250),
+            handle_request(
+                state.clone(),
+                "app.health",
+                json!({}),
+                mpsc::unbounded_channel().0,
+            ),
+        )
+        .await;
+        assert!(
+            health.is_ok(),
+            "app.health must answer while the marketplace download is still running"
+        );
+        let outcome = install.await.unwrap();
+        assert!(
+            outcome.is_err(),
+            "the fixture install stops at the permission check after downloading"
+        );
+        unsafe {
+            std::env::remove_var("PI_DESKTOP_PLUGIN_MARKET_URL");
+        }
+        assert!(
+            accepted.load(std::sync::atomic::Ordering::SeqCst),
+            "the install never reached the download server"
+        );
+        server.join().unwrap();
+    }
 
     #[tokio::test]
     async fn bounded_history_mutation_rpcs_return_only_mutation_metadata() {

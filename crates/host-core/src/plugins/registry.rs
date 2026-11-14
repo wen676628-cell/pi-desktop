@@ -57,7 +57,7 @@ impl PluginManager {
             locale: "en".into(),
         };
         let _ = mgr.ensure_dirs();
-        let _ = mgr.cleanup_review_stages();
+        mgr.cleanup_review_stages();
         let _ = mgr.ensure_default_catalog();
         let _ = mgr.reload_from_disk();
         let _ = mgr.sync_builtin(builtin_plugins_dir().as_deref());
