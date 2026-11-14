@@ -1130,8 +1130,7 @@ sklm: {
     pluginProviderManaged:
       "This provider comes from the plugin \"{{plugin}}\", which supplies its endpoint and models. Enable or disable it on the Plugins page.",
     pluginProviderKey: "API key",
-    pluginProviderKeyHint:
-      "Stored in PI-Desktop and used by the runtime. The plugin never receives it.",
+    pluginProviderKeyHint: "Stored in PI-Desktop and used by the runtime. Keys are never returned through the plugin API.",
     pluginProviderKeyRemove: "Remove key",
     pluginProviderKeySaved: "API key saved",
     pluginProviderKeyRemoved: "API key removed",
@@ -2766,7 +2765,7 @@ importConfirm: "Imported extensions run inside the agent process with the same a
       "clipboard.write": "May replace whatever is currently on your clipboard.",
       notify: "Can show in-app Toasts and best-effort native notifications.",
       "fs.read":
-        "Read-only access, limited to the paths the plugin declares. Credentials and repository internals are never included.",
+        "Read-only access through the host file API, limited to the paths the plugin declares. This bounds the plugin API, not raw Node code inside the plugin; grant only to code you trust.",
       "fs.write":
         "Can create or change files, limited to the paths the plugin declares. Anything else asks you first.",
       "fs.delete":
@@ -2779,7 +2778,7 @@ importConfirm: "Imported extensions run inside the agent process with the same a
       "agent.tool.register": "Lets the AI call extra tools provided by this plugin.",
       "agent.prompt.inject": "Can change instructions sent to the AI agent.",
       "agent.complete":
-        "Can spend your model quota on a one-shot completion. The plugin never receives your API keys.",
+        "Can spend your model quota on a one-shot completion. API keys stay host-side and are never returned through the plugin API; the plugin process itself is not an OS sandbox.",
       "composer.transform":
         "Lets this plugin transform text you explicitly select in the Composer. It receives the draft and selected model key, but no conversation history or attachments.",
       "composer.suggest":

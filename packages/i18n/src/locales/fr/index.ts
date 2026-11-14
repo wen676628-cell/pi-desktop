@@ -1120,8 +1120,7 @@ sklm: {
     "pluginProviderManaged":
       "Ce fournisseur provient du plugin « {{plugin}} », qui fournit son point de terminaison et ses modèles. Activez-le ou désactivez-le dans la page « Extensions ».",
     "pluginProviderKey": "Clé API",
-    "pluginProviderKeyHint":
-      "Stockée dans PI-Desktop et utilisée par l'environnement d'exécution. Le plugin ne la reçoit jamais.",
+    "pluginProviderKeyHint": "Stockée dans PI-Desktop et utilisée par le runtime. Les clés ne sont jamais renvoyées via l’API du plugin.",
     "pluginProviderKeyRemove": "Supprimer la clé",
     "pluginProviderKeySaved": "Clé API enregistrée",
     "pluginProviderKeyRemoved": "Clé API supprimée",
@@ -2742,7 +2741,7 @@ sklm: {
       "clipboard.read": "Peut lire tout ce qui se trouve actuellement dans votre presse-papiers et l'historique conservé du presse-papiers.",
       "clipboard.write": "Peut remplacer tout ce qui se trouve actuellement dans votre presse-papiers.",
       "notify": "Peut afficher des toasts dans l'application et des notifications natives de meilleur effort.",
-      "fs.read": "Accès en lecture seule, limité aux chemins déclarés par le plugin. Les informations d’identification et les éléments internes du référentiel ne sont jamais inclus.",
+      "fs.read": "Accès en lecture seule via l'API de fichiers de l'hôte, limité aux chemins déclarés par le plugin. Cela borne l'API du plugin, pas le code Node brut à l'intérieur ; n'accordez qu'au code auquel vous faites confiance.",
       "fs.write": "Peut créer ou modifier des fichiers, limités aux chemins déclarés par le plugin. Tout le reste vous le demande en premier.",
       "fs.delete": "Peut supprimer les fichiers qu'il déclare ou qu'il a écrit lui-même. Les suppressions vont à la corbeille et tout le reste vous le demande en premier.",
       "fs.read.workspace": "Accès en lecture seule dans le projet en cours.",
@@ -2750,7 +2749,7 @@ sklm: {
       "fs.delete.workspace": "Déclaré avant que les étendues de fichiers n'existent, il ne peut donc désormais supprimer que les fichiers qu'il a lui-même écrits.",
       "agent.tool.register": "Permet à l'IA d'appeler des outils supplémentaires fournis par ce plugin.",
       "agent.prompt.inject": "Peut modifier les instructions envoyées à l'agent IA.",
-      "agent.complete": "Peut dépenser votre quota de modèle pour une réalisation unique. Le plugin ne reçoit jamais vos clés API.",
+      "agent.complete": "Peut dépenser votre quota de modèle pour une réalisation unique. Les clés API restent côté hôte et ne sont jamais renvoyées via l'API du plugin ; le processus du plugin n'est pas un bac à sable OS.",
       "composer.transform": "Permet à ce plugin de transformer le texte que vous sélectionnez explicitement dans le compositeur. Il reçoit le brouillon et la clé du modèle sélectionné, mais ni l'historique de la conversation ni les pièces jointes.",
       "composer.suggest": "Permet à ce plugin d'afficher une ligne ignorable dans le texte indicatif du compositeur tant que le brouillon est vide. Elle n'entre dans le brouillon qu'avec Tab, ne peut jamais être envoyée par le plugin et disparaît dès la frappe.",
       "agent.extension": "Exécute des modules ExtensionAPI dans le processus de l'agent avec le même accès que ses propres outils. N'activez que du code auquel vous faites confiance.",

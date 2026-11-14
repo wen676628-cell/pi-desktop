@@ -571,6 +571,10 @@ Current enforcement:
     OS-reserved, host-owned, or other-plugin accelerator, a shortcut can only
     run the owning plugin's own command, and every entry dies on the same
     teardown path as the plugin's commands and tools (§8.2)
+17. Permission help copy states what the host broker enforces for plugin API
+    calls — it never claims a process sandbox, and secret-handling copy says
+    keys are "not returned through the plugin API" rather than "unreachable"
+    (§1)
 
 `audio.capture.background` and `audio.playback.background` are declared and
 present in the plugin API: the methods are gated by those permissions and an

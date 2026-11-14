@@ -1118,7 +1118,7 @@ sklm: {
     pluginProviderManaged:
       "此服务来自插件“{{plugin}}”，接口地址和模型均由该插件提供。可在“扩展”页面启用或停用。",
     pluginProviderKey: "API 密钥",
-    pluginProviderKeyHint: "保存在 PI-Desktop 中，由运行时使用。插件拿不到此密钥。",
+    pluginProviderKeyHint: "保存在 PI-Desktop 中，由运行时使用。密钥不会经插件 API 返回。",
     pluginProviderKeyRemove: "移除密钥",
     pluginProviderKeySaved: "API 密钥已保存",
     pluginProviderKeyRemoved: "API 密钥已移除",
@@ -2736,7 +2736,7 @@ sklm: {
       "clipboard.read": "可能读取当前剪贴板内容以及应用运行期间保留的剪贴板历史。",
       "clipboard.write": "可能覆盖当前剪贴板中的内容。",
       notify: "可显示应用内提示和尽力而为的系统通知。",
-      "fs.read": "只读，且仅限插件声明的路径；凭据与仓库内部文件始终不可读。",
+      "fs.read": "通过宿主文件 API 只读访问，仅限插件声明的路径。它约束的是插件 API，而不是插件进程内的原生 Node 代码；只授权给你信任的代码。",
       "fs.write": "可创建或修改文件，且仅限插件声明的路径；其余路径每次都会先问你。",
       "fs.delete":
         "可删除声明范围内或自己写入的文件；删除进入系统回收站，其余路径每次都会先问你。",
@@ -2745,7 +2745,7 @@ sklm: {
       "fs.delete.workspace": "在文件范围机制之前声明，现在只能删除自己写入的文件。",
       "agent.tool.register": "允许 AI 调用此插件提供的额外工具。",
       "agent.prompt.inject": "可能修改发送给智能体的指令。",
-      "agent.complete": "会消耗你的模型额度发起一次补全。插件拿不到 API 密钥。",
+      "agent.complete": "可能消耗你的模型额度执行一次补全。API 密钥保存在宿主侧，不会经插件 API 返回；插件进程本身不是操作系统级沙箱。",
       "composer.transform": "允许插件转换你在输入框中主动选择的文本。插件会收到草稿文本和所选模型标识，不会收到对话历史或附件。",
       "composer.suggest": "允许插件在草稿为空时于输入框占位处显示一条可忽略的建议。只有你按 Tab 它才进入草稿，插件无法直接发送，开始输入即会消失。",
       "agent.extension": "在 agent 进程内运行 ExtensionAPI 模块，拥有与 agent 自身工具相同的权限。只启用你信任的代码。",

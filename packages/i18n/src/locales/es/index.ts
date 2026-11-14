@@ -1120,8 +1120,7 @@ sklm: {
     "pluginProviderManaged":
       "Este proveedor proviene del complemento «{{plugin}}», que proporciona su punto final y sus modelos. Actívelo o desactívelo en la página «Extensiones».",
     "pluginProviderKey": "Clave API",
-    "pluginProviderKeyHint":
-      "Se guarda en PI-Desktop y lo usa el entorno de ejecución. El complemento nunca lo recibe.",
+    "pluginProviderKeyHint": "Se guarda en PI-Desktop y la usa el runtime. Las claves no se devuelven a través de la API del complemento.",
     "pluginProviderKeyRemove": "Eliminar clave",
     "pluginProviderKeySaved": "Clave API guardada",
     "pluginProviderKeyRemoved": "Clave API eliminada",
@@ -2742,7 +2741,7 @@ sklm: {
       "clipboard.read": "Puede leer lo que esté actualmente en su portapapeles y el historial del portapapeles retenido.",
       "clipboard.write": "Puede reemplazar lo que esté actualmente en su portapapeles.",
       "notify": "Puede mostrar brindis en la aplicación y notificaciones nativas de mejor esfuerzo.",
-      "fs.read": "Acceso de solo lectura, limitado a las rutas que declara el complemento. Las credenciales y los elementos internos del repositorio nunca se incluyen.",
+      "fs.read": "Acceso de solo lectura a través de la API de archivos del host, limitado a las rutas que declara el complemento. Esto acota la API del complemento, no el código Node sin procesar dentro de él; instala solo código de confianza.",
       "fs.write": "Puede crear o cambiar archivos, limitado a las rutas que declara el complemento. Cualquier otra cosa te la preguntas primero.",
       "fs.delete": "Puede eliminar archivos que declara o que escribió él mismo. Las eliminaciones van a la papelera y todo lo demás te lo pide a ti primero.",
       "fs.read.workspace": "Acceso de solo lectura dentro del proyecto actual.",
@@ -2750,7 +2749,7 @@ sklm: {
       "fs.delete.workspace": "Declarado antes de que existieran los alcances de los archivos, por lo que ahora solo puede eliminar archivos que él mismo escribió.",
       "agent.tool.register": "Permite que la IA llame a herramientas adicionales proporcionadas por este complemento.",
       "agent.prompt.inject": "Puede cambiar las instrucciones enviadas al agente de IA.",
-      "agent.complete": "Puede gastar su cuota de modelo en una finalización única. El complemento nunca recibe sus claves API.",
+      "agent.complete": "Puede gastar su cuota de modelo en una finalización única. Las claves API permanecen en el host y no se devuelven a través de la API del complemento; el proceso del complemento no es un sandbox del sistema operativo.",
       "composer.transform": "Permite que este complemento transforme el texto que selecciones explícitamente en el compositor. Recibe el borrador y la clave del modelo seleccionado, pero no el historial de conversación ni los adjuntos.",
       "composer.suggest": "Permite que este complemento muestre una línea descartable en el marcador del compositor mientras el borrador está vacío. Solo entra en el borrador al pulsar Tab, nunca la envía el complemento y desaparece al escribir.",
       "agent.extension": "Ejecuta módulos ExtensionAPI dentro del proceso del agente con el mismo acceso que sus propias herramientas. Activa solo código en el que confíes.",

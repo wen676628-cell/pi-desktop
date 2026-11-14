@@ -1118,7 +1118,7 @@ sklm: {
     pluginProviderManaged:
       "此服務來自外掛“{{plugin}}”，介面地址和模型均由該外掛提供。可在“擴充套件”頁面啟用或停用。",
     pluginProviderKey: "API 金鑰",
-    pluginProviderKeyHint: "儲存在 PI-Desktop 中，由執行環境使用。外掛拿不到此金鑰。",
+    pluginProviderKeyHint: "儲存在 PI-Desktop 中，由執行時使用。金鑰不會經外掛 API 回傳。",
     pluginProviderKeyRemove: "移除金鑰",
     pluginProviderKeySaved: "API 金鑰已儲存",
     pluginProviderKeyRemoved: "API 金鑰已移除",
@@ -2736,7 +2736,7 @@ sklm: {
       "clipboard.read": "可能讀取當前剪貼簿內容以及應用執行期間保留的剪貼簿歷史。",
       "clipboard.write": "可能覆蓋當前剪貼簿中的內容。",
       notify: "可顯示應用內提示和盡力而為的系統通知。",
-      "fs.read": "只讀，且僅限外掛宣告的路徑；憑據與倉庫內部檔案始終不可讀。",
+      "fs.read": "透過宿主檔案 API 唯讀存取，僅限外掛宣告的路徑。它約束的是外掛 API，而不是外掛行程內的原生 Node 程式碼；只授權給你信任的程式碼。",
       "fs.write": "可建立或修改檔案，且僅限外掛宣告的路徑；其餘路徑每次都會先問你。",
       "fs.delete":
         "可刪除聲明範圍內或自己寫入的檔案；刪除進入系統回收站，其餘路徑每次都會先問你。",
@@ -2745,7 +2745,7 @@ sklm: {
       "fs.delete.workspace": "在檔案範圍機制之前宣告，現在只能刪除自己寫入的檔案。",
       "agent.tool.register": "允許 AI 呼叫此外掛提供的額外工具。",
       "agent.prompt.inject": "可能修改傳送給智慧體的指令。",
-      "agent.complete": "會消耗你的模型額度發起一次補全。外掛拿不到 API 金鑰。",
+      "agent.complete": "可能消耗你的模型額度執行一次補全。API 金鑰保存在宿主側，不會經外掛 API 回傳；外掛行程本身不是作業系統級沙箱。",
       "composer.transform": "允許外掛轉換你在輸入框中主動選擇的文字。外掛會收到草稿文字和所選模型識別碼，不會收到對話歷史或附件。",
       "composer.suggest": "允許外掛在草稿為空時於輸入框佔位處顯示一條可忽略的建議。只有你按 Tab 它才進入草稿，外掛無法直接送出，開始輸入即會消失。",
       "agent.extension": "在 agent 程序內執行 ExtensionAPI 模組，擁有與 agent 自身工具相同的權限。只啟用你信任的程式碼。",

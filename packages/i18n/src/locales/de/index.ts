@@ -1120,8 +1120,7 @@ sklm: {
     "pluginProviderManaged":
       "Dieser Anbieter stammt aus dem Plugin „{{plugin}}\", das Endpunkt und Modelle bereitstellt. Aktivieren oder deaktivieren Sie es auf der Seite „Erweiterungen\".",
     "pluginProviderKey": "API-Schlüssel",
-    "pluginProviderKeyHint":
-      "Wird in PI-Desktop gespeichert und von der Laufzeitumgebung verwendet. Das Plugin erhält ihn niemals.",
+    "pluginProviderKeyHint": "In PI-Desktop gespeichert und von der Runtime verwendet. Schlüssel werden über die Plugin-API nicht zurückgegeben.",
     "pluginProviderKeyRemove": "Schlüssel entfernen",
     "pluginProviderKeySaved": "API-Schlüssel gespeichert",
     "pluginProviderKeyRemoved": "API-Schlüssel entfernt",
@@ -2742,7 +2741,7 @@ sklm: {
       "clipboard.read": "Kann alles lesen, was sich derzeit in Ihrer Zwischenablage und im gespeicherten Zwischenablageverlauf befindet.",
       "clipboard.write": "Ersetzt möglicherweise alles, was sich derzeit in Ihrer Zwischenablage befindet.",
       "notify": "Kann In-App-Toasts und native Best-Effort-Benachrichtigungen anzeigen.",
-      "fs.read": "Schreibgeschützter Zugriff, beschränkt auf die Pfade, die das Plugin deklariert. Anmeldeinformationen und Repository-Interna werden niemals berücksichtigt.",
+      "fs.read": "Lesezugriff über die Host-Datei-API, beschränkt auf die vom Plugin deklarierten Pfade. Das begrenzt die Plugin-API, nicht rohen Node-Code im Plugin; nur Code installieren, dem Sie vertrauen.",
       "fs.write": "Kann Dateien erstellen oder ändern, beschränkt auf die vom Plugin deklarierten Pfade. Alles andere fragen Sie zuerst.",
       "fs.delete": "Kann Dateien löschen, die es selbst deklariert oder geschrieben hat. Löschungen werden in den Papierkorb verschoben, und alles andere wird zuerst von Ihnen abgefragt.",
       "fs.read.workspace": "Lesezugriff innerhalb des aktuellen Projekts.",
@@ -2750,7 +2749,7 @@ sklm: {
       "fs.delete.workspace": "Wurde deklariert, bevor Dateibereiche existierten, daher können jetzt nur Dateien gelöscht werden, die es selbst geschrieben hat.",
       "agent.tool.register": "Ermöglicht der KI, zusätzliche Tools aufzurufen, die von diesem Plugin bereitgestellt werden.",
       "agent.prompt.inject": "Kann Anweisungen ändern, die an den KI-Agenten gesendet werden.",
-      "agent.complete": "Kann Ihr Modellkontingent für eine einmalige Fertigstellung ausgeben. Das Plugin erhält niemals Ihre API-Schlüssel.",
+      "agent.complete": "Kann Ihr Modellkontingent für eine einmalige Fertigstellung ausgeben. API-Schlüssel bleiben auf der Host-Seite und werden über die Plugin-API nicht zurückgegeben; der Plugin-Prozess selbst ist keine OS-Sandbox.",
       "composer.transform": "Erlaubt diesem Plugin, ausdrücklich im Composer ausgewählten Text umzuwandeln. Es erhält den Entwurf und den Modellschlüssel, aber weder Gesprächsverlauf noch Anhänge.",
       "composer.suggest": "Erlaubt diesem Plugin, bei leerem Entwurf eine verwerfbare Zeile im Platzhalter des Composers anzuzeigen. Sie gelangt nur mit Tab in den Entwurf, kann nie vom Plugin gesendet werden und verschwindet beim Tippen.",
       "renderer.extension": "Lädt das Renderer-Modul dieses Plugins in das App-Fenster, um UI-Slot-Komponenten zu zeichnen (Nachrichten-Aktionsleisten, Antwort-Anhänge, Tool-Karten, Codeblock-Renderer, Eingabebereich). Das Modul läuft im selben Dokument wie PI-Desktop. Aktiviere nur Code, dem du vertraust.",
