@@ -16,6 +16,7 @@ import type { BrowserHost } from "../browser-host";
 import type { HostProcess } from "../host-process";
 import type { Logger } from "../logger";
 import type { PluginViewHost } from "../plugin-view-host";
+import { registerTrustedRenderer } from "../ipc/trusted-renderers";
 import { detachPluginViewOnRendererReload } from "../plugin-view-navigation";
 import {
   baseWindowBounds,
@@ -276,6 +277,9 @@ export async function createWindow({
     },
   });
   const window = windowState.mainWindow;
+  // The main window loads the general preload bridge, so it is the canonical
+  // trusted sender for every general IPC channel.
+  registerTrustedRenderer(window.webContents);
   if (process.platform === "win32") {
     if (windows11NativeCorners) {
       await installWindows11CornerController(

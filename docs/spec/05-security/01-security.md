@@ -34,6 +34,13 @@ Required (all **implemented**):
   defaults
 - Preload exposes a whitelist-checked `invoke`/`on` bridge only
   (`IPC_WHITELIST` enforced on both preload and main sides)
+- Main-side sender gate (defense in depth): every channel registered through
+  the IPC registrar answers only a webContents that registered as a trusted
+  first-party renderer (main window, live-voice widget, plugin launcher —
+  the three surfaces that load the general preload). Plugin panels and docked
+  views use the narrow plugin bridge and never pass the gate; Browser surfaces
+  carry no bridge. Registration is dropped when the webContents is destroyed,
+  so a stale window cannot keep calling after close
 - Transcript Markdown is sanitized (`rehype-sanitize`), but remote `http(s)`
   images, audio, and video that a model writes into a reply are fetched on
   render, without a click. This is a deliberate readability trade-off: a
@@ -87,7 +94,15 @@ storage, Target and network-interception methods remain denied.
 
 ### Future hardening (tracked, post-MVP)
 
-- Electron fuses (`runAsNode`, `nodeCliInspect` off) at package time
+- Electron fuses at package time are a deliberate trade-off, not an oversight:
+  `runAsNode` stays **on** because the release sidecar runs on the Electron
+  binary via `ELECTRON_RUN_AS_NODE=1` (D008, process-model §6) — turning it off
+  stops the agent from booting; `enableEmbeddedAsarIntegrityValidation` stays
+  **off** because this project ships unsigned and that fuse requires a valid
+  signature on Windows. `nodeCliInspect`, `nodeOptions`, and
+  `cookieEncryption` follow the packaging-hardening decisions. The unsigned
+  binary can be locally repacked; do not describe the package as
+  tamper-resistant.
 - `webSecurity` assertions in an automated security e2e
 
 ## 3. Secrets

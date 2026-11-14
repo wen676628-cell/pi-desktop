@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { IPC, type LiveCallView, type LiveVoiceWidgetAction } from "@pi-desktop/shared";
 import { getModuleDirectory } from "../module-path";
+import { registerTrustedRenderer } from "../ipc/trusted-renderers";
 import { suppressLinuxFramelessSystemMenu } from "../frameless-system-menu";
 
 /**
@@ -165,6 +166,9 @@ export function createLiveVoiceWidget(input: {
         },
       });
       window = created;
+      // The widget loads the general preload bridge, so its surface is a
+      // trusted sender like the main window's.
+      registerTrustedRenderer(created.webContents);
       suppressLinuxFramelessSystemMenu(created);
 
       if (process.platform === "darwin") {
