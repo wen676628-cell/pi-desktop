@@ -1983,6 +1983,10 @@ and host error, so one unclassifiable head cannot starve every session's writes
 (D656). A restarted host is a new generation and retries the head at once.
 Quarantined appends are never replayed automatically, and `session.delete`
 drops that session's quarantined appends too.
+Quarantine commits the dead-letter snapshot before removing the queue entry, so
+a failure at either write leaves the append in at least one committed file. If
+both files briefly contain the same key, startup removes the queue duplicate
+against the dead-letter list before replay.
 Every outbox and dead-letter snapshot, including an empty array, is written
 to its sibling temporary file before replacing the committed file by rename.
 Interrupted writes leave the previous committed snapshot readable; a failed
