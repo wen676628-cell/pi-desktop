@@ -32,6 +32,10 @@ const registrySrc = readFileSync(join(repoRoot, "crates/host-core/src/plugins/re
 const marketplaceSrc = readFileSync(join(repoRoot, "crates/host-core/src/plugins/marketplace.rs"), "utf8");
 const validationSrc = readFileSync(join(repoRoot, "crates/host-core/src/plugins/validation.rs"), "utf8");
 const installSrc = readFileSync(join(repoRoot, "crates/host-core/src/plugins/install.rs"), "utf8");
+const marketDownloadSrc = readFileSync(
+  join(repoRoot, "crates/host-core/src/plugins/market_download.rs"),
+  "utf8",
+);
 const modelSrc = readFileSync(join(repoRoot, "crates/host-core/src/plugins/model.rs"), "utf8");
 
 test("plugin runtime exposes gated high-risk host APIs", () => {
@@ -211,7 +215,7 @@ test("marketplace blocks install for a version with no published package", () =>
 // download boundary is what keeps a catalog entry from aiming a request
 // anywhere it likes.
 test("marketplace package downloads stay inside the host allowlist", () => {
-  const hostSrc = validationSrc + "\n" + installSrc;
+  const hostSrc = validationSrc + "\n" + installSrc + "\n" + marketDownloadSrc;
   assert.match(
     hostSrc,
     /const PACKAGE_HOST_ALLOWLIST: &\[&str\] = &\["github\.com", "githubusercontent\.com", "cnb\.cool"\]/,
@@ -226,7 +230,7 @@ test("marketplace package downloads stay inside the host allowlist", () => {
   // host before the request and re-checks the effective URL after redirects.
   assert.match(
     hostSrc,
-    /download_url_observed\(\s*url,\s*Some\(&catalog_url\),\s*expected_size,\s*report\)/,
+    /download_url_observed\(\s*url,\s*Some\(&catalog_url\),\s*expected_size,\s*report,?\s*\)/,
   );
   assert.match(hostSrc, /"--proto-redir"\.into\(\)/);
   assert.match(hostSrc, /"%\{url_effective\}"\.into\(\)/);
