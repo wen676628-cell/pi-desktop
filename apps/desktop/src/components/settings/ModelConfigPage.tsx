@@ -33,6 +33,7 @@ import {
 import { copyProviderConfiguration, type ProviderCopyDraft } from "./provider-copy";
 import { ImageGenerationModelRow } from "./ImageGenerationModelRow";
 import { OAuthLoginDialog } from "./OAuthLoginDialog";
+import { SecretsBackendWarning } from "./SecretsBackendWarning";
 import { ProviderSetupDialog } from "./ProviderSetupDialog";
 import { ServiceList } from "./ServiceList";
 import { serviceRowKind } from "./service-row-status";
@@ -450,6 +451,7 @@ export function ModelConfigPage() {
 
   return (
     <div className="settings-stack model-config-page">
+      <SecretsBackendWarning />
       <section className="settings-card-block">
         <div className="model-config-section-head">
           <div className="settings-card-heading-line">

@@ -1681,6 +1681,7 @@ sklm: {
     remoteMediaDesc: "Bir yanıtın internetten bağladığı görseller, ses ve video yüklenmeden önce tıklama bekler; böylece yanıt adlandırdığı bir ana bilgisayara IP’nizi açıklamaz.",
     remoteMediaClick: "Tıklayınca yükle",
     remoteMediaAllow: "Otomatik yükle",
+    secretFallback: "İşletim sistemi güvenli depolaması kullanılamadığı için sağlayıcı kimlik bilgileri yerel yedek anahtarla şifrelenir. Anahtar dosyası şifreli verilerin yanında durur; bu profili koruyun.",
     smoothStreaming: "Düzgün akış",
     smoothStreamingDesc: "Akan metni daktilo efekti için karakter karakter gösterir. Sistem hareket azaltmayı tercih ettiğinde otomatik devre dışı kalır.",
     inlineVisualizations: "Satır içi görselleştirmeler",

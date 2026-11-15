@@ -1678,6 +1678,7 @@ sklm: {
     "remoteMediaDesc": "Bilder, Audio und Video, die eine Antwort aus dem Internet verlinkt, warten vor dem Laden auf einen Klick, damit eine Antwort Ihre IP nicht gegenüber einem genannten Host offenlegt.",
     "remoteMediaClick": "Erst nach Klick laden",
     "remoteMediaAllow": "Automatisch laden",
+    secretFallback: "Anbieter-Anmeldedaten nutzen einen lokalen Ersatzschlüssel, weil der sichere OS-Speicher nicht verfügbar ist. Die Schlüsseldatei liegt neben den verschlüsselten Daten; schützen Sie dieses Profil.",
     "smoothStreaming": "Sanftes Streaming",
     "smoothStreamingDesc": "Gibt gestreamten Text zeichenweise aus, um einen Schreibmaschineneffekt zu erzeugen. Wird automatisch deaktiviert, wenn das System reduzierte Bewegung bevorzugt.",
     "inlineVisualizations": "Inline-Visualisierungen",

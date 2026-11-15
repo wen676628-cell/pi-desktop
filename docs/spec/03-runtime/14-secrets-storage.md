@@ -20,6 +20,11 @@ Node pi sidecar may receive secret **ephemerally in-memory** for a run via host 
 
 ### Primary
 - **Electron/OS safe storage style backend** mediated by host
+- Electron main wraps a 32-byte store key with `safeStorage` and passes it to
+  host-core through `PI_DESKTOP_SECRET_KEY_B64`; host-core reports
+  `backend=safeStorage` and keeps the existing AES-256-GCM blob format.
+  On first launch it wraps the legacy `.machine-key` and renames the raw file
+  to `.machine-key.migrated`; the ciphertext is not rewritten.
 - macOS: Keychain-backed path preferred for first release
 
 ### Fallback
@@ -27,7 +32,13 @@ If primary backend unavailable:
 1. encrypt secret blob with machine-local key material
 2. store ciphertext under app data
 3. mark `backend=file_fallback` in metadata
-4. surface security warning in settings
+4. surface security warning in settings (Model configuration page)
+
+When `safeStorage` is unavailable, Electron passes the legacy key through
+unchanged (or no key, letting host-core create one), and host-core reports
+`file_fallback`. A profile with a wrapped key that cannot be decrypted does not
+silently generate a replacement: the stored secrets are treated as missing and
+must be re-entered.
 
 MVP must implement both paths with automatic selection.
 
@@ -80,6 +91,7 @@ hiding the API key input on a vendor row.
 ## 5. Host RPC
 
 - `secrets.set` `{ secretRef, value, meta }`
+- `secrets.status` `{} -> { backend: "safeStorage" | "file_fallback" }`
 - `secrets.delete` `{ secretRef }`
 - `secrets.has` `{ secretRef } -> boolean`
 - `secrets.getForRuntime` `{ secretRef, reason, runId }` **internal only** (main/host → not exposed to renderer)

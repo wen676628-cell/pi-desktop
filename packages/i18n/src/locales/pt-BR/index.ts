@@ -1650,6 +1650,7 @@ export const ptBR = {
     remoteMediaDesc: "Imagens, áudio e vídeo vinculados por uma resposta na internet aguardam um clique antes de carregar, para que uma resposta não revele seu IP a um host que ela nomeia.",
     remoteMediaClick: "Carregar com clique",
     remoteMediaAllow: "Carregar automaticamente",
+    secretFallback: "As credenciais dos provedores usam uma chave local de fallback porque o armazenamento seguro do sistema operacional não está disponível. O arquivo da chave fica ao lado dos dados criptografados; proteja este perfil.",
     smoothStreaming: "Exibição gradual",
     smoothStreamingDesc: "Exibe o texto recebido caractere por caractere, criando um efeito de máquina de escrever. É desativada automaticamente quando o sistema está configurado para reduzir animações.",
     inlineVisualizations: "Visualizações embutidas",

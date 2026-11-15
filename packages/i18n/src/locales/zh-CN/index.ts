@@ -1671,6 +1671,7 @@ sklm: {
     remoteMediaDesc: "回复中来自互联网的图片、音频和视频在加载前需要点击，避免回复向它指定的主机暴露你的 IP。",
     remoteMediaClick: "点击后加载",
     remoteMediaAllow: "自动加载",
+    secretFallback: "操作系统安全存储不可用，供应商凭据正使用本地回退密钥加密。密钥文件与密文位于同一配置目录，请保护好此配置文件。",
     smoothStreaming: "平滑流式显示",
     smoothStreamingDesc: "将流式文本逐字释放，产生打字机效果。系统开启“减少动态效果”时自动禁用。",
     inlineVisualizations: "聊天内嵌可视化",
