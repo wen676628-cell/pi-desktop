@@ -261,8 +261,11 @@ jobs:
         # Xcode tools, Apple timestamp reachability) before electron-builder
         # imports the certificate. Informational: the Developer ID identity is
         # absent here by design and is imported from CSC_LINK during packaging.
+        # `bash` makes the lane independent of the script's git exec bit: a
+        # checkout that lost it (Windows working tree, patch transport) failed
+        # the fork's unsigned release after packaging had already succeeded.
         if: matrix.platform == 'macos'
-        run: scripts/macos-signing-diagnostics.sh
+        run: bash scripts/macos-signing-diagnostics.sh
 
       - name: Require macOS signing and notarization secrets
         if: matrix.platform == 'macos' && steps.signing.outputs.sign == 'true'
@@ -361,11 +364,13 @@ jobs:
           # keeps that wait observable and bounded.
           node scripts/macos-signing-watchdog.mjs \
             --label "notarize-dmg-${{ matrix.arch }}" \
-            -- scripts/notarize-and-staple-macos-release-dmg.sh apps/desktop/release
+            -- bash scripts/notarize-and-staple-macos-release-dmg.sh apps/desktop/release
 
       - name: Verify signed and notarized macOS installer
         if: matrix.platform == 'macos' && steps.signing.outputs.sign == 'true'
-        run: scripts/verify-macos-release.sh apps/desktop/release
+        # `bash` for the same git-exec-bit independence as the diagnostics
+        # step; this lane only runs with a certificate configured.
+        run: bash scripts/verify-macos-release.sh apps/desktop/release
 
       - name: Verify Linux host-core glibc floor
         if: matrix.platform == 'linux'
