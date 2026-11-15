@@ -822,7 +822,10 @@ against a live host, and replaying one after the final row would be wrong.
   download, and digest verification; only the final publish reacquires it.
   `market.cancelInstall` flips the armed token without that lock, so cancel and
   health requests do not queue behind a slow download.
-- `market.checkUpdates` / `market.applyUpdates`
+- `market.checkUpdates` / `market.applyUpdates` — a batch resolves its pending
+  list under the AppState lock, then each release uses the same
+  snapshot/fetch/publish split as `market.install`; one slow update does not
+  hold the lock across its transfer.
 
 ### Providers and models
 - `providers.list` / `providers.get` / `providers.create` /

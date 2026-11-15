@@ -663,7 +663,8 @@ Installs always pass through checksum verification and permission review before
 enable. The catalog decision and channel are snapshotted under the host state
 lock, which is released while the package is resolved, downloaded, and
 verified; only the final publish takes it again, so cancel and health requests
-stay responsive during a slow transfer.
+stay responsive during a slow transfer. A batch update (`market.applyUpdates`)
+uses the same split for each release after resolving its pending list.
 
 
 ## 14. Official marketplace repository

@@ -544,7 +544,9 @@ off | minimal | low | medium | high | xhigh | max
   目录中的一个发布版本。目录决策在 AppState 锁内快照，随后释放锁执行解析、下载和
   摘要校验；只有最终发布重新取锁。`market.cancelInstall` 不取该锁，直接翻转已武装的
   令牌，因此取消和健康检查不会排在慢速下载之后。
-- `market.checkUpdates` / `market.applyUpdates`
+- `market.checkUpdates` / `market.applyUpdates` — 批量更新在 AppState 锁内解析出
+  待安装列表，然后每个版本复用 `market.install` 的"快照 → 下载 → 发布"拆分；
+  单个慢速更新不会在整个传输期间持有锁。
 
 ### 提供商与模型
 - `providers.list` / `providers.get` / `providers.create` /
