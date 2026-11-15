@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const deEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "Inoffizielle Fork-Wartungsversion: Der Release-Workflow veröffentlicht Windows-/Linux-Artefakte und das GitHub Release wieder automatisch.",
+      "Lokale Plugin-Pakete und .piplug-Archive durchlaufen jetzt eine Berechtigungsprüfung vor der Installation; eine abgelehnte Aktualisierung lässt die installierte Version unberührt.",
+      "Anbieter-Anmeldedaten sind sicherer: Der Schlüssel wird mit dem sicheren OS-Speicher umhüllt, bei Nutzung des lokalen Ersatzschlüssels erscheint ein Hinweis.",
+      "Remote-Bilder, Audio und Video in Antworten warten auf einen Klick, bevor sie geladen werden, damit eine Antwort Ihre IP nicht von selbst offenlegt.",
+      "Marktplatz-Downloads und Batch-Aktualisierungen halten den Host-Lock während der Übertragung nicht mehr, sodass Gesundheit und Abbruch reagieren.",
+      "Die Neustartwiederherstellung schreibt Totbrief-Schnappschüsse, bevor Warteschlangeneinträge entfernt werden; ein fehlgeschlagener Schreibvorgang verliert keine Aufzeichnung mehr.",
+      "Die allgemeine IPC-Brücke wird als Verteidigungsebene auf vertrauenswürdige First-Party-Renderer beschränkt.",
+      "Die Berechtigungsauswahl im Composer heißt jetzt Vor Änderungen bestätigen, Automatische Prüfung und Voller Zugriff; die Modusbefehle sind /agent, /plan und /goal.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [

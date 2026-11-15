@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const zhTWEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "非官方 fork 維護版本：發布流程修復後可自動產出 Windows/Linux 資產與 GitHub Release。",
+      "本機外掛套件與 .piplug 封存安裝前必須通過權限審核；被拒絕的升級不會變更已安裝版本。",
+      "供應商憑證更安全：金鑰改用作業系統安全儲存包裹，使用本機後備金鑰時介面會給出提示。",
+      "回覆中的遠端圖片、音訊和影片預設等待點擊後才載入，避免回覆本身洩露你的 IP。",
+      "市場下載與批次更新不再在傳輸期間佔用宿主鎖，健康檢查和取消保持回應。",
+      "重新啟動復原先提交死信快照再移除佇列條目，寫入失敗不再遺失記錄。",
+      "通用 IPC 橋加入受信任第一方渲染程序門禁作為縱深防禦。",
+      "輸入框權限選項更名為變更前確認、自動審查、完整權限，執行模式改用 /agent、/plan、/goal 命令。",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [

@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const esEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "Versión de mantenimiento del fork no oficial: el workflow de publicación vuelve a generar assets de Windows/Linux y el GitHub Release automáticamente.",
+      "Los paquetes locales de plugins y los archivos .piplug ahora pasan por una revisión de permisos antes de instalarse; una actualización rechazada deja intacta la versión instalada.",
+      "Credenciales de proveedores más seguras: la clave se envuelve con el almacenamiento seguro del sistema operativo, con un aviso visible mientras se use la clave local de respaldo.",
+      "Las imágenes, el audio y el vídeo remotos en las respuestas esperan un clic antes de cargarse, para que una respuesta no revele tu IP por sí sola.",
+      "Las descargas del marketplace y las actualizaciones por lotes ya no mantienen el bloqueo del host durante la transferencia; salud y cancelación siguen respondiendo.",
+      "La recuperación tras reinicio confirma las instantáneas de mensajes muertos antes de eliminar entradas de la cola; un fallo de escritura ya no pierde un registro.",
+      "El puente IPC general se limita a renderizadores first-party de confianza como defensa en profundidad.",
+      "Las opciones de permisos del compositor pasan a llamarse Confirmar antes de cambiar, Revisión automática y Acceso total, con /agent, /plan y /goal como comandos de modo.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [
