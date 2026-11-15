@@ -118,7 +118,7 @@
   background: var(--ds-tile);
   color: var(--ds-text-secondary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-align: start;
   cursor: pointer;
 }
