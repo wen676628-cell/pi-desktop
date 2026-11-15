@@ -52,6 +52,10 @@ import { TooltipButton } from "./ui";
 import { ContextMenu, useContextMenu } from "./ContextMenu";
 import { MarkdownTable } from "./MarkdownTable";
 import { markdownTableData } from "../lib/markdown-table";
+import {
+  isRemoteMediaUrl,
+  remoteMediaNeedsGate,
+} from "../lib/remote-media-policy";
 import { PluginBlockRenderer } from "./PluginBlockRenderer";
 import { blockRendererCandidate } from "../lib/block-renderer";
 import { useSlotEntryForKey } from "../plugins/renderer-slots/use-slots";
@@ -696,10 +700,60 @@ function Anchor({
 }
 
 /**
+ * Remote media policy, read from settings. Absent or unknown means `click`:
+ * a remote URL in a reply is content the model wrote, so the renderer must not
+ * request it until the user asks. Local media is unaffected.
+ */
+function useRemoteMediaPolicy(): "click" | "allow" {
+  return useAppStore((state) =>
+    state.settings?.remoteMedia === "allow" ? "allow" : "click",
+  );
+}
+
+/**
+ * A remote image/audio/video that has not been requested yet. Clicking it
+ * mounts the real element with its `src`, which is the first moment any
+ * network request reaches the named host.
+ */
+function RemoteMediaGate({
+  source,
+  kind,
+  onLoad,
+}: {
+  source: string;
+  kind: "image" | "audio" | "video";
+  onLoad: () => void;
+}) {
+  const { t } = useTranslation();
+  let host = source;
+  try {
+    host = new URL(source).host;
+  } catch {
+    // Keep the raw string when the URL parser rejects it; the click still
+    // reveals only what the markdown contained.
+  }
+  return (
+    <button
+      type="button"
+      className="chat-remote-media"
+      data-remote-media={kind}
+      title={source}
+      aria-label={`${t("chat.loadRemoteMedia")}: ${host}`}
+      onClick={onLoad}
+    >
+      <IconGlobe size={14} aria-hidden />
+      <span>{t("chat.loadRemoteMedia")}</span>
+      <span className="chat-remote-media-host">{host}</span>
+    </button>
+  );
+}
+
+/**
  * Local image references can't load over the renderer origin; the host
  * resolves them into a bounded data URL so they render inline. Missing,
  * escaped, or oversized files fall back to a chip. Remote images render
- * inline and click through to the browser tab.
+ * inline and click through to the browser tab, unless the remote-media policy
+ * is `click` — then they wait behind a gate first.
  */
 function MarkdownImage({
   node: _node,
@@ -715,7 +769,9 @@ function MarkdownImage({
   const fileTitle = usePreviewTitle("file");
   const urlTitle = usePreviewTitle("url");
   const source = typeof src === "string" ? src : "";
-  const isRemote = /^https?:/i.test(source);
+  const isRemote = isRemoteMediaUrl(source);
+  const remoteMedia = useRemoteMediaPolicy();
+  const [remoteRevealed, setRemoteRevealed] = useState(false);
   const decoded = safeDecodeUri(source);
   const rel = isRemote ? null : toWorkspaceRel(decoded, root, baseDir);
   const attachmentRef =
@@ -726,6 +782,16 @@ function MarkdownImage({
   // Always run the hook before any branch so hook order stays stable when a
   // streaming src flips between remote and local. Remote images pass null.
   const dataUrl = useReferencedImageDataUrl(isRemote ? null : localRef);
+
+  if (remoteMediaNeedsGate(remoteMedia, source, remoteRevealed)) {
+    return (
+      <RemoteMediaGate
+        source={source}
+        kind="image"
+        onLoad={() => setRemoteRevealed(true)}
+      />
+    );
+  }
 
   /*
     A file the renderer can already show is still a file whose folder the user
@@ -804,6 +870,17 @@ function AudioBlock({
   ...rest
 }: ComponentProps<"audio"> & { node?: unknown }) {
   const source = typeof src === "string" ? src : "";
+  const remoteMedia = useRemoteMediaPolicy();
+  const [revealed, setRevealed] = useState(false);
+  if (remoteMediaNeedsGate(remoteMedia, source, revealed)) {
+    return (
+      <RemoteMediaGate
+        source={source}
+        kind="audio"
+        onLoad={() => setRevealed(true)}
+      />
+    );
+  }
   return (
     <div className="chat-audio">
       <audio controls preload="metadata" src={source} {...rest} />
@@ -818,6 +895,17 @@ function VideoBlock({
   ...rest
 }: ComponentProps<"video"> & { node?: unknown }) {
   const source = typeof src === "string" ? src : "";
+  const remoteMedia = useRemoteMediaPolicy();
+  const [revealed, setRevealed] = useState(false);
+  if (remoteMediaNeedsGate(remoteMedia, source, revealed)) {
+    return (
+      <RemoteMediaGate
+        source={source}
+        kind="video"
+        onLoad={() => setRevealed(true)}
+      />
+    );
+  }
   return (
     <div className="chat-video">
       <video controls preload="metadata" src={source} {...rest} />

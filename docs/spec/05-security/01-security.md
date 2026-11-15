@@ -41,11 +41,14 @@ Required (all **implemented**):
   views use the narrow plugin bridge and never pass the gate; Browser surfaces
   carry no bridge. Registration is dropped when the webContents is destroyed,
   so a stale window cannot keep calling after close
-- Transcript Markdown is sanitized (`rehype-sanitize`), but remote `http(s)`
-  images, audio, and video that a model writes into a reply are fetched on
-  render, without a click. This is a deliberate readability trade-off: a
-  reply can therefore reveal the user's IP to the host it names. Links never
-  navigate in-app and always route through the external-open path.
+- Transcript Markdown is sanitized (`rehype-sanitize`). Remote `http(s)`
+  images, audio, and video that a model writes into a reply do not load until
+  the user clicks them: the gate mounts no media element and issues no request,
+  so a reply cannot reveal the user's IP to the host it names by itself.
+  Settings → Conversation can switch the policy to automatic loading
+  (`remoteMedia: "allow"`); the default (`click`, also used for an absent or
+  unknown stored value) keeps the gate. Local/workspace media is unaffected.
+  Links never navigate in-app and always route through the external-open path.
 
 ### Embedded Browser local files
 

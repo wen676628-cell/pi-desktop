@@ -346,10 +346,12 @@ so no row repeats it.
 - **Display** card, in rendered order: the **Show thinking** toggle with its
   **Auto-fold finished thinking** sub-row, the **Transcript display** segmented
   control with its **Auto-fold finished groups** sub-row, **Context usage
-  display** (remaining or used), **Smooth streaming**, and **Inline
-  visualizations**. Context usage display controls whether the composer toolbar
-  context ring and its popover lead with the remaining or the used capacity
-  figure; the default is remaining.
+  display** (remaining or used), **Smooth streaming**, **Remote media**, and
+  **Inline visualizations**. Context usage display controls whether the composer
+  toolbar context ring and its popover lead with the remaining or the used
+  capacity figure; the default is remaining. Remote media chooses whether a
+  reply's remote images/audio/video wait for a click (default) or load
+  automatically; the gate is described in the security spec.
 - **Input & links** card: the **Enter-to-send** control, the large text paste
   threshold, and the **Link open destination**. The threshold controls when a
   text-only paste becomes a temporary session-scratch file; it defaults to 600

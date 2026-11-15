@@ -105,6 +105,35 @@
   border-radius: var(--radius-md);
 }
 
+/* Remote media waits for a click; the button itself issues no request. */
+.chat-remote-media {
+  display: inline-flex;
+  max-width: min(100%, 560px);
+  align-items: center;
+  gap: 6px;
+  margin: 0.65em 0;
+  border: 1px dashed color-mix(in oklab, var(--ds-text-muted) 45%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  background: var(--ds-tile);
+  color: var(--ds-text-secondary);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-align: start;
+  cursor: pointer;
+}
+.chat-remote-media:hover,
+.chat-remote-media:focus-visible {
+  border-color: var(--ds-accent);
+  color: var(--ds-accent);
+}
+.chat-remote-media-host {
+  overflow: hidden;
+  opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Audio player in chat messages */
 .chat-audio {
   margin: 0.65em 0;
