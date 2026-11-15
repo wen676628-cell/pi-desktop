@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const enEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "Unofficial fork maintenance release: the release workflow publishes Windows and Linux assets and the GitHub Release automatically again.",
+      "Local plugin packages and .piplug archives now go through a pre-install permission review; a refused upgrade leaves the installed version untouched.",
+      "Keep provider credentials safer: the secret key is wrapped with OS secure storage, with a visible warning while the local fallback key is in use.",
+      "Remote images, audio, and video in replies wait for a click before loading, so a reply cannot reveal your IP by itself.",
+      "Marketplace downloads and batch updates no longer hold the host lock while bytes move, keeping health and cancel responsive.",
+      "Restart recovery commits dead-letter snapshots before removing queued appends, so a failed write can no longer lose a record.",
+      "Gate the general IPC bridge on trusted first-party renderers as defense in depth.",
+      "Rename the composer permission choices to Confirm before changes, Auto review, and Full access, with /agent, /plan, and /goal as the mode commands.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [

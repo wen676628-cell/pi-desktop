@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const ptBREntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "Versão de manutenção do fork não oficial: o workflow de publicação volta a gerar assets de Windows/Linux e o GitHub Release automaticamente.",
+      "Pacotes locais de plugins e arquivos .piplug agora passam por uma revisão de permissões antes da instalação; uma atualização recusada deixa a versão instalada intacta.",
+      "Credenciais de provedores mais seguras: a chave é empacotada com o armazenamento seguro do sistema operacional, com um aviso visível enquanto a chave local de fallback estiver em uso.",
+      "Imagens, áudio e vídeo remotos nas respostas aguardam um clique antes de carregar, para que uma resposta não revele seu IP por si só.",
+      "Downloads do marketplace e atualizações em lote não seguram mais o lock do host durante a transferência; saúde e cancelamento continuam responsivos.",
+      "A recuperação após reinício confirma snapshots de dead-letter antes de remover entradas da fila; uma falha de gravação não perde mais um registro.",
+      "A ponte IPC geral é restrita a renderizadores first-party confiáveis como defesa em profundidade.",
+      "As opções de permissão do compositor passam a se chamar Confirmar antes de alterar, Revisão automática e Acesso total, com /agent, /plan e /goal como comandos de modo.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [

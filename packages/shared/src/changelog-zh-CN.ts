@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const zhCNEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "非官方 fork 维护版本：发布流程修复后可自动产出 Windows/Linux 资产与 GitHub Release。",
+      "本地插件包和 .piplug 归档安装前必须通过权限审核；被拒绝的升级不会改动已安装版本。",
+      "供应商凭据更安全：密钥改用操作系统安全存储包裹，使用本地回退密钥时界面会给出提示。",
+      "回复中的远程图片、音频和视频默认等待点击后才加载，避免回复本身泄露你的 IP。",
+      "市场下载与批量更新不再在传输期间占用宿主锁，健康检查和取消保持响应。",
+      "重启恢复先提交死信快照再移除队列条目，写入失败不再丢失记录。",
+      "通用 IPC 桥增加受信任第一方渲染进程门禁作为纵深防御。",
+      "输入框权限选项更名为变更前确认、自动审查、完全权限，运行模式改用 /agent、/plan、/goal 命令。",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [

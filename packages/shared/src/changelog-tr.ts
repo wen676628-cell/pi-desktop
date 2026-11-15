@@ -2,6 +2,20 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const trEntries: ChangelogEntry[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-15",
+    highlights: [
+      "Resmi olmayan fork bakım sürümü: yayın iş akışı Windows/Linux varlıklarını ve GitHub Release'i yeniden otomatik olarak üretiyor.",
+      "Yerel eklenti paketleri ve .piplug arşivleri artık kurulumdan önce bir izin incelemesinden geçiyor; reddedilen güncelleme kurulu sürüme dokunmaz.",
+      "Sağlayıcı kimlik bilgileri daha güvenli: anahtar işletim sistemi güvenli depolamasıyla sarılır ve yerel yedek anahtar kullanılırken görünür bir uyarı gösterilir.",
+      "Yanıtlardaki uzak görseller, sesler ve videolar yüklenmeden önce bir tıklamayı bekler; böylece bir yanıt kendi başına IP'nizi açıklamaz.",
+      "Market indirmeleri ve toplu güncellemeler aktarım sırasında host kilidini artık tutmaz; sağlık ve iptal duyarlı kalır.",
+      "Yeniden başlatma kurtarması, kuyruk girdilerini kaldırmadan önce dead-letter anlık görüntülerini işler; başarısız bir yazma artık kayıt kaybetmez.",
+      "Genel IPC köprüsü, savunma derinliği olarak güvenilir first-party renderer'larla sınırlandırıldı.",
+      "Composer izin seçenekleri Değişiklikten önce onayla, Otomatik inceleme ve Tam erişim olarak yeniden adlandırıldı; mod komutları /agent, /plan ve /goal'dur.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-11-08",
     highlights: [
