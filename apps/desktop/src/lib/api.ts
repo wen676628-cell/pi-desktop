@@ -473,6 +473,12 @@ function isTranscriptDisplayModeValue(value: unknown): value is TranscriptDispla
   return value === "flat" || value === "command-first" || value === "fully-folded";
 }
 
+type RemoteMediaPolicy = NonNullable<AppSettings["remoteMedia"]>;
+
+function isRemoteMediaPolicyValue(value: unknown): value is RemoteMediaPolicy {
+  return value === "click" || value === "allow";
+}
+
 export function normalizeSettings(settings: AppSettings): AppSettings {
   return {
     ...settings,
@@ -484,6 +490,9 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     transcriptDisplayMode: isTranscriptDisplayModeValue(settings.transcriptDisplayMode)
       ? settings.transcriptDisplayMode
       : "fully-folded",
+    remoteMedia: isRemoteMediaPolicyValue(settings.remoteMedia)
+      ? settings.remoteMedia
+      : "click",
     autoCollapseSettledGroups: settings.autoCollapseSettledGroups !== false,
     autoCollapseThinking: settings.autoCollapseThinking !== false,
     // The default mode stays a builtin; user modes are chosen per session.
@@ -534,6 +543,14 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     !isTranscriptDisplayModeValue(settings.transcriptDisplayMode)
   ) {
     throw Object.assign(new Error("transcriptDisplayMode is invalid"), {
+      errorCode: "INVALID_PARAMS",
+    });
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(settings, "remoteMedia") &&
+    !isRemoteMediaPolicyValue(settings.remoteMedia)
+  ) {
+    throw Object.assign(new Error("remoteMedia is invalid"), {
       errorCode: "INVALID_PARAMS",
     });
   }

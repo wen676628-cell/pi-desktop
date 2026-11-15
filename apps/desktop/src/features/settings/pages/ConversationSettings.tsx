@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsToggle } from "../../../components/ui";
 import { ShowThinkingRow } from "../../../components/settings/ShowThinkingRow";
 import { TranscriptDisplayModeRow } from "../../../components/settings/TranscriptDisplayModeRow";
+import { RemoteMediaRow } from "../../../components/settings/RemoteMediaRow";
 import {
   AutoCollapseSettledGroupsRow,
   AutoCollapseThinkingRow,
@@ -39,6 +40,7 @@ export function ConversationSettings({
         <TranscriptDisplayModeRow settings={settings} saveSettings={saveSettings} />
         <AutoCollapseSettledGroupsRow settings={settings} saveSettings={saveSettings} />
         <ContextUsageDisplayRow settings={settings} saveSettings={saveSettings} />
+        <RemoteMediaRow settings={settings} saveSettings={saveSettings} />
         <SettingsRow
           title={t("settings.smoothStreaming")}
           description={t("settings.smoothStreamingDesc")}

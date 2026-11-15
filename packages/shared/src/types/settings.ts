@@ -58,6 +58,13 @@ export type StartupAnimationSettings = {
   skipWhenReady?: boolean;
 };
 
+/**
+ * Whether remote media written into a reply loads on its own or waits for a
+ * click. A remote URL is content the model wrote, not user navigation: loading
+ * it automatically reveals the user's IP to the named host.
+ */
+export type RemoteMediaPolicy = "click" | "allow";
+
 export type AppSettings = {
   imageGeneration?: import("../image-generation.js").ImageGenerationBinding | null;
   /** All models marked for image generation; absent falls back to imageGeneration. */
@@ -156,6 +163,12 @@ export type AppSettings = {
    * This is presentation only and never changes tool execution or stored data.
    */
   transcriptDisplayMode?: TranscriptDisplayMode;
+  /**
+   * Remote images, audio, and video in a reply wait for a click before the
+   * renderer requests them. Absent means `click`; `allow` restores automatic
+   * loading. Local/workspace media is unaffected.
+   */
+  remoteMedia?: RemoteMediaPolicy;
   /**
    * Fold a settled activity group by default (issue #2094).
    *
