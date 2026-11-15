@@ -356,7 +356,7 @@ test("macOS release signing is required on tag pushes", () => {
   }
   assert.match(
     dmgBlock,
-    /node scripts\/macos-signing-watchdog\.mjs[\s\S]*?-- scripts\/notarize-and-staple-macos-release-dmg\.sh apps\/desktop\/release/,
+    /node scripts\/macos-signing-watchdog\.mjs[\s\S]*?-- bash scripts\/notarize-and-staple-macos-release-dmg\.sh apps\/desktop\/release/,
     "the DMG notarization wait runs under the signing watchdog",
   );
   assert.match(dmgBlock, /PI_SIGNING_TIMEOUT_SECONDS: "1200"/);
@@ -445,6 +445,62 @@ test("both macOS lanes only reference scripts that exist", async () => {
   }
   assert.deepEqual(missing, []);
 });
+
+test(
+  "macOS release steps run shell scripts through bash, not the git exec bit",
+  { skip: process.platform === "win32" ? "git file modes are not meaningful on Windows checkouts" : false },
+  async (t) => {
+    // The fork's first unsigned tag release failed *after* packaging had
+    // already succeeded: `run: scripts/macos-signing-diagnostics.sh` relies on
+    // the script's git exec bit, and a checkout that lost it (Windows working
+    // tree, patch transport) failed the whole macOS job, which skipped the
+    // publish job. Every shell script the release lane invokes directly now
+    // goes through `bash <script>`, and this pins the git modes too so a
+    // regression is caught on Linux CI where modes are real.
+    const { execFileSync } = await import("node:child_process");
+    const direct = releaseWorkflowSource.match(
+      /^        run: (scripts\/[A-Za-z0-9._-]+\.sh.*)$/gm,
+    ) ?? [];
+    assert.deepEqual(
+      [...direct].map((match) => match[1]),
+      [],
+      "release steps must not execute shell scripts by their git exec bit",
+    );
+    // The test runner's cwd is apps/desktop; resolve the repo root so the
+    // git mode query works from any working directory.
+    const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      encoding: "utf8",
+    }).trim();
+    for (const script of [
+      "scripts/macos-signing-diagnostics.sh",
+      "scripts/verify-macos-release.sh",
+      "scripts/notarize-and-staple-macos-release-dmg.sh",
+    ]) {
+      const mode = execFileSync("git", ["ls-files", "-s", script], {
+        encoding: "utf8",
+        cwd: repoRoot,
+      }).trim();
+      assert.match(
+        mode,
+        /^100(644|755)/,
+        `${script} must be a tracked regular file`,
+      );
+      assert.match(
+        releaseWorkflowSource,
+        new RegExp(`bash ${script.replace(/\./g, "\\.")}`),
+        `${script} must be invoked through bash`,
+      );
+    }
+    // The upstream signed path keeps its hard requirement: a tag push on
+    // vastsa/PI-Desktop without the certificate still fails instead of
+    // publishing an unsigned build.
+    const signingBlock = releaseWorkflowSource.match(
+      /- name: Resolve macOS signing mode[\s\S]*?(?=\n      - name:)/,
+    )?.[0];
+    assert.match(signingBlock, /"vastsa\/PI-Desktop"/);
+    assert.match(signingBlock, /exit 1/);
+  },
+);
 
 test("macOS signing instrumentation stays out of the Windows and Linux lanes", () => {
   const instrumentation =
