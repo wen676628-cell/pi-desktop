@@ -12,18 +12,22 @@
 
 <br />
 
-[![Release](https://img.shields.io/github/v/release/vastsa/PI-Desktop?label=release)](https://github.com/vastsa/PI-Desktop/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/vastsa/PI-Desktop/total?label=downloads)](https://github.com/vastsa/PI-Desktop/releases)
-[![Stars](https://img.shields.io/github/stars/vastsa/PI-Desktop?style=flat\&label=stars)](https://github.com/vastsa/PI-Desktop/stargazers)
-[![CI](https://github.com/vastsa/PI-Desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/vastsa/PI-Desktop/actions/workflows/ci.yml)
+**本仓库是 [vastsa/PI-Desktop](https://github.com/vastsa/PI-Desktop) 的非官方 fork。Windows 安装包由本 fork 发布，与上游项目无隶属关系。**
+
+<br />
+
+[![Release](https://img.shields.io/github/v/release/wen676628-cell/pi-desktop?label=release)](https://github.com/wen676628-cell/pi-desktop/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/wen676628-cell/pi-desktop/total?label=downloads)](https://github.com/wen676628-cell/pi-desktop/releases)
+[![Stars](https://img.shields.io/github/stars/vastsa/PI-Desktop?style=flat\&label=stars%20(upstream))](https://github.com/vastsa/PI-Desktop/stargazers)
+[![CI](https://github.com/wen676628-cell/pi-desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/wen676628-cell/pi-desktop/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/vastsa/PI-Desktop)](LICENSE)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FAIUO-FF4500?logo=reddit\&logoColor=white)](https://www.reddit.com/r/AIUO/)
 [![QQ 群：点击加入 PI-Desktop 开发者交流群](https://img.shields.io/badge/QQ-%E5%8A%A0%E5%85%A5%E5%BC%80%E5%8F%91%E8%80%85%E4%BA%A4%E6%B5%81%E7%BE%A4-12B7F5?logo=tencentqq&logoColor=white)](https://qm.qq.com/q/iWP8i0XxIc)
 
 <br />
 
-**[立即下载](https://github.com/vastsa/PI-Desktop/releases/latest)** ·
-[使用文档](https://pi-docs.aiuo.net/) ·
+**[立即下载](https://github.com/wen676628-cell/pi-desktop/releases/latest)** ·
+[使用文档](https://pi-docs.aiuo.net/)（上游文档） ·
 [插件开发](docs/plugin-development.md) ·
 [界面预览](docs/guide/screenshots.md) ·
 [English](README.md)
@@ -566,9 +570,11 @@ Agent / Plan / Goal
 
 <div align="center">
 
-### [下载 PI-Desktop →](https://github.com/vastsa/PI-Desktop/releases/latest)
+### [下载 PI-Desktop →](https://github.com/wen676628-cell/pi-desktop/releases/latest)
 
 **macOS · Windows · Linux**
+
+非官方 fork 构建说明：本 fork 目前发布 **Windows** 安装包与便携版。下表列出的 macOS 和 Linux 包是上游的发布矩阵，本 fork 尚未提供。
 
 </div>
 
@@ -657,8 +663,12 @@ PI-Desktop 也可以作为开发者构建 Agent 产品的宿主平台。
 #### Start
 
 ```bash
-git clone https://github.com/vastsa/PI-Desktop.git
-cd PI-Desktop
+# 本 fork：
+git clone https://github.com/wen676628-cell/pi-desktop.git
+cd pi-desktop
+
+# 上游项目：
+# git clone https://github.com/vastsa/PI-Desktop.git
 
 pnpm install
 
@@ -702,8 +712,9 @@ pnpm test
 
 让 Core 保持克制，让生态持续生长。
 
-**[提交 Issue](https://github.com/vastsa/PI-Desktop/issues/new/choose)** ·
-[查看 Issues](https://github.com/vastsa/PI-Desktop/issues) ·
+**[提交 Issue](https://github.com/wen676628-cell/pi-desktop/issues/new/choose)**（fork） ·
+[查看 Issues](https://github.com/wen676628-cell/pi-desktop/issues) ·
+[上游 Issues](https://github.com/vastsa/PI-Desktop/issues) ·
 [开发插件](docs/plugin-development.md)
 
 ---
@@ -758,8 +769,8 @@ PI-Desktop 使用 **GNU Lesser General Public License v3.0**。
 
 <br />
 
-**[立即下载](https://github.com/vastsa/PI-Desktop/releases/latest)** ·
-[Documentation](https://pi-docs.aiuo.net/) ·
+**[立即下载](https://github.com/wen676628-cell/pi-desktop/releases/latest)** ·
+[Documentation](https://pi-docs.aiuo.net/)（上游文档） ·
 [Build a Plugin](docs/plugin-development.md)
 
 <br /><br />

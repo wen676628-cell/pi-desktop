@@ -12,17 +12,21 @@ Local-first · Model-agnostic · Plugin-powered · macOS / Windows / Linux
 
 <br />
 
-[![Release](https://img.shields.io/github/v/release/vastsa/PI-Desktop?label=release)](https://github.com/vastsa/PI-Desktop/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/vastsa/PI-Desktop/total?label=downloads)](https://github.com/vastsa/PI-Desktop/releases)
-[![Stars](https://img.shields.io/github/stars/vastsa/PI-Desktop?style=flat\&label=stars)](https://github.com/vastsa/PI-Desktop/stargazers)
-[![CI](https://github.com/vastsa/PI-Desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/vastsa/PI-Desktop/actions/workflows/ci.yml)
+**Unofficial fork of [vastsa/PI-Desktop](https://github.com/vastsa/PI-Desktop). Windows builds are published by this fork and are not affiliated with the upstream project.**
+
+<br />
+
+[![Release](https://img.shields.io/github/v/release/wen676628-cell/pi-desktop?label=release)](https://github.com/wen676628-cell/pi-desktop/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/wen676628-cell/pi-desktop/total?label=downloads)](https://github.com/wen676628-cell/pi-desktop/releases)
+[![Stars](https://img.shields.io/github/stars/vastsa/PI-Desktop?style=flat\&label=stars%20(upstream))](https://github.com/vastsa/PI-Desktop/stargazers)
+[![CI](https://github.com/wen676628-cell/pi-desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/wen676628-cell/pi-desktop/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/vastsa/PI-Desktop)](LICENSE)
 [![Reddit](https://img.shields.io/badge/Reddit-r%2FAIUO-FF4500?logo=reddit\&logoColor=white)](https://www.reddit.com/r/AIUO/)
 
 <br />
 
-**[Download](https://github.com/vastsa/PI-Desktop/releases/latest)** ·
-[Documentation](https://pi-docs.aiuo.net/) ·
+**[Download](https://github.com/wen676628-cell/pi-desktop/releases/latest)** ·
+[Documentation](https://pi-docs.aiuo.net/) (upstream documentation) ·
 [Build a Plugin](docs/plugin-development.md) ·
 [Screenshots](docs/guide/screenshots.md) ·
 [简体中文](README.zh-CN.md)
@@ -562,9 +566,11 @@ Agent / Plan / Goal
 
 <div align="center">
 
-### [Download PI-Desktop →](https://github.com/vastsa/PI-Desktop/releases/latest)
+### [Download PI-Desktop →](https://github.com/wen676628-cell/pi-desktop/releases/latest)
 
 **macOS · Windows · Linux**
+
+Unofficial fork builds: this fork currently publishes **Windows** installers and portable executables. macOS and Linux packages listed below describe the upstream release matrix and are not published here yet.
 
 </div>
 
@@ -653,8 +659,12 @@ Plugins can be created and loaded directly as Development Plugins.
 #### Start
 
 ```bash
-git clone https://github.com/vastsa/PI-Desktop.git
-cd PI-Desktop
+# This fork:
+git clone https://github.com/wen676628-cell/pi-desktop.git
+cd pi-desktop
+
+# Upstream project:
+# git clone https://github.com/vastsa/PI-Desktop.git
 
 pnpm install
 
@@ -698,8 +708,9 @@ For standalone capabilities, consider one question first:
 
 Keep the Core focused. Let the ecosystem grow.
 
-**[Report an Issue](https://github.com/vastsa/PI-Desktop/issues/new/choose)** ·
-[Open Issues](https://github.com/vastsa/PI-Desktop/issues) ·
+**[Report an Issue](https://github.com/wen676628-cell/pi-desktop/issues/new/choose)** (fork) ·
+[Open Issues](https://github.com/wen676628-cell/pi-desktop/issues) ·
+[Upstream Issues](https://github.com/vastsa/PI-Desktop/issues) ·
 [Build a Plugin](docs/plugin-development.md)
 
 ---
@@ -754,8 +765,8 @@ See [LICENSE](LICENSE) for details.
 
 <br />
 
-**[Download](https://github.com/vastsa/PI-Desktop/releases/latest)** ·
-[Documentation](https://pi-docs.aiuo.net/) ·
+**[Download](https://github.com/wen676628-cell/pi-desktop/releases/latest)** ·
+[Documentation](https://pi-docs.aiuo.net/) (upstream documentation) ·
 [Build a Plugin](docs/plugin-development.md)
 
 <br /><br />
