@@ -1673,6 +1673,7 @@ sklm: {
     "enterToSendDesc": "Aus: Zum Senden ⌘/Strg+Eingabe drücken.",
     "infiniteProviderRetry": "Bis zum Erfolg wiederholen",
     "infiniteProviderRetryDesc": "Netzwerk- und vorübergehende Anbieterfehler werden bis zum Erfolg wiederholt. Du kannst den Lauf weiterhin stoppen; der API-Verbrauch kann fortlaufen.",
+    "secretFallback": "Anbieter-Anmeldedaten nutzen einen lokalen Ersatzschlüssel, weil der sichere OS-Speicher nicht verfügbar ist. Die Schlüsseldatei liegt neben den verschlüsselten Daten; schützen Sie dieses Profil.",
     "smoothStreaming": "Sanftes Streaming",
     "smoothStreamingDesc": "Gibt gestreamten Text zeichenweise aus, um einen Schreibmaschineneffekt zu erzeugen. Wird automatisch deaktiviert, wenn das System reduzierte Bewegung bevorzugt.",
     "inlineVisualizations": "Inline-Visualisierungen",

@@ -1673,6 +1673,7 @@ sklm: {
     "enterToSendDesc": "Desactivado: presione ⌘/Ctrl+Entrar para enviar.",
     "infiniteProviderRetry": "Reintentar hasta tener éxito",
     "infiniteProviderRetryDesc": "Reintenta los errores de red y temporales hasta que la solicitud tenga éxito. Puedes detener el turno; el uso de la API puede continuar.",
+    "secretFallback": "Las credenciales de proveedores usan una clave local de respaldo porque el almacenamiento seguro del sistema operativo no está disponible. El archivo de clave está junto a los datos cifrados; protege este perfil.",
     "smoothStreaming": "Transmisión suave",
     "smoothStreamingDesc": "Libera el texto transmitido carácter por carácter para un efecto de máquina de escribir. Se desactiva automáticamente cuando el sistema prefiere movimiento reducido.",
     "inlineVisualizations": "Visualizaciones en línea",

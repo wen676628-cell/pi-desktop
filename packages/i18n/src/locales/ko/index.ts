@@ -1682,6 +1682,7 @@ sklm: {
     enterToSendDesc: "끔: ⌘/Ctrl+Enter를 눌러 보내세요.",
     infiniteProviderRetry: "성공할 때까지 재시도",
     infiniteProviderRetryDesc: "네트워크 및 일시적인 제공자 오류가 성공할 때까지 계속 재시도됩니다. 언제든 중지할 수 있지만 API 사용량이 계속 발생할 수 있습니다.",
+    secretFallback: "OS 보안 저장소를 사용할 수 없어 공급자 자격 증명이 로컬 대체 키로 암호화됩니다. 키 파일이 암호문과 같은 설정 디렉터리에 있으므로 이 프로필을 보호하세요.",
     smoothStreaming: "부드러운 스트리밍",
     smoothStreamingDesc: "스트리밍 텍스트를 한 글자씩 타자기 효과로 표시합니다. 시스템에서 동작 줄이기를 선호하면 자동으로 비활성화됩니다.",
     inlineVisualizations: "인라인 시각화",

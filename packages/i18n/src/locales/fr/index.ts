@@ -1673,6 +1673,7 @@ sklm: {
     "enterToSendDesc": "Désactivé : appuyez sur ⌘/Ctrl+Entrée pour envoyer.",
     "infiniteProviderRetry": "Réessayer jusqu’à réussite",
     "infiniteProviderRetryDesc": "Réessaie les erreurs réseau et temporaires jusqu’à la réussite. Vous pouvez toujours arrêter le tour ; la consommation d’API peut continuer.",
+    "secretFallback": "Les identifiants des fournisseurs utilisent une clé locale de secours car le stockage sécurisé du système est indisponible. Le fichier de clé se trouve à côté des données chiffrées ; protégez ce profil.",
     "smoothStreaming": "Streaming fluide",
     "smoothStreamingDesc": "Libère le texte diffusé caractère par caractère pour un effet machine à écrire. Automatiquement désactivé lorsque le système préfère un mouvement réduit.",
     "inlineVisualizations": "Visualisations intégrées",

@@ -1645,6 +1645,7 @@ export const ptBR = {
     enterToSendDesc: "Desativado: pressione ⌘/Ctrl+Enter para enviar.",
     infiniteProviderRetry: "Tentar novamente até obter sucesso",
     infiniteProviderRetryDesc: "Continua tentando indefinidamente em caso de falhas temporárias de rede ou do provedor. Ainda é possível interromper a rodada; enquanto esta opção estiver ativada, o consumo e os custos da API podem continuar.",
+    secretFallback: "As credenciais dos provedores usam uma chave local de fallback porque o armazenamento seguro do sistema operacional não está disponível. O arquivo da chave fica ao lado dos dados criptografados; proteja este perfil.",
     smoothStreaming: "Exibição gradual",
     smoothStreamingDesc: "Exibe o texto recebido caractere por caractere, criando um efeito de máquina de escrever. É desativada automaticamente quando o sistema está configurado para reduzir animações.",
     inlineVisualizations: "Visualizações embutidas",

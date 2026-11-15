@@ -873,6 +873,14 @@
   font-size: var(--text-sm);
 }
 
+.settings-secret-fallback {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ds-warning) 12%, transparent);
+  color: var(--ds-warning);
+  font-size: var(--text-sm);
+}
+
 .settings-config-sync-approvals {
   display: grid;
   gap: 6px;

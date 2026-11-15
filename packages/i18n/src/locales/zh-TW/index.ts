@@ -1666,6 +1666,7 @@ sklm: {
     enterToSendDesc: "關閉後按 ⌘/Ctrl+Enter 傳送。",
     infiniteProviderRetry: "無盡重試",
     infiniteProviderRetryDesc: "網路或暫時性服務故障會持續重試直到成功。仍可隨時停止，但開啟後可能持續消耗 API 用量。",
+    secretFallback: "作業系統安全儲存不可用，供應商憑據正使用本機回退金鑰加密。金鑰檔案與密文位於同一設定目錄，請保護好此設定檔。",
     smoothStreaming: "平滑串流顯示",
     smoothStreamingDesc: "將串流文字逐字釋放，產生打字機效果。系統開啟「減少動態效果」時自動停用。",
     inlineVisualizations: "聊天內嵌視覺化",

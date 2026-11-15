@@ -930,6 +930,9 @@ export const api = {
   setJevApiKey: (value: string) =>
     invoke<void>(IPC.invoke.secretsSet, { secretRef: JEV_API_KEY_SECRET_REF, value }),
   deleteJevApiKey: () => invoke<void>(IPC.invoke.secretsDelete, JEV_API_KEY_SECRET_REF),
+  /** Which store encrypts provider secrets: OS-backed or the machine file. */
+  getSecretsBackend: () =>
+    invoke<{ backend: string }>(IPC.invoke.secretsStatus).then((result) => result.backend),
   hasJevApiKey: () =>
     invoke<{ has: boolean }>(IPC.invoke.secretsHas, JEV_API_KEY_SECRET_REF).then((result) => result.has),
   /**

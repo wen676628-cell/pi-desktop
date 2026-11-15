@@ -1676,6 +1676,7 @@ sklm: {
     enterToSendDesc: "Kapalı: göndermek için ⌘/Ctrl+Enter.",
     infiniteProviderRetry: "Başarılı olana kadar yeniden dene",
     infiniteProviderRetryDesc: "Ağ ve geçici sağlayıcı hataları istek başarılı olana kadar yeniden denenir. Çalışmayı yine durdurabilirsiniz; açıkken API kullanımı sürebilir.",
+    secretFallback: "İşletim sistemi güvenli depolaması kullanılamadığı için sağlayıcı kimlik bilgileri yerel yedek anahtarla şifrelenir. Anahtar dosyası şifreli verilerin yanında durur; bu profili koruyun.",
     smoothStreaming: "Düzgün akış",
     smoothStreamingDesc: "Akan metni daktilo efekti için karakter karakter gösterir. Sistem hareket azaltmayı tercih ettiğinde otomatik devre dışı kalır.",
     inlineVisualizations: "Satır içi görselleştirmeler",

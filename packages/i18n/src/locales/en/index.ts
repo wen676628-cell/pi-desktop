@@ -1685,6 +1685,7 @@ sklm: {
     enterToSendDesc: "Off: press ⌘/Ctrl+Enter to send.",
     infiniteProviderRetry: "Retry until success",
     infiniteProviderRetryDesc: "Keep retrying network and transient provider failures until the request succeeds. You can still stop the turn; API usage may continue while enabled.",
+    secretFallback: "Provider credentials use a local fallback key because OS secure storage is unavailable. The key file sits beside the encrypted data, so protect this profile.",
     smoothStreaming: "Smooth streaming",
     smoothStreamingDesc: "Release streamed text character by character for a typewriter effect. Automatically disabled when the system prefers reduced motion.",
     inlineVisualizations: "Inline visualizations",

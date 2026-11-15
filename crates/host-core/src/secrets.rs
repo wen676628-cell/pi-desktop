@@ -10,42 +10,67 @@ use std::path::{Path, PathBuf};
 pub struct SecretStore {
     dir: PathBuf,
     key: [u8; 32],
+    backend: String,
 }
+
+/// The key Electron's safeStorage wrapped for this launch. Absent means the
+/// host runs standalone or OS encryption is unavailable, so the legacy
+/// machine-key fallback applies.
+const ENV_KEY: &str = "PI_DESKTOP_SECRET_KEY_B64";
+const ENV_BACKEND: &str = "PI_DESKTOP_SECRET_BACKEND";
 
 impl SecretStore {
     pub fn open(data_dir: &Path) -> Result<Self> {
         let dir = data_dir.join("secrets");
         fs::create_dir_all(&dir)?;
         let key_path = dir.join(".machine-key");
-        let key = if key_path.exists() {
-            let bytes = fs::read(&key_path)?;
-            if bytes.len() != 32 {
-                return Err(anyhow!("invalid machine key length"));
-            }
-            let mut key = [0u8; 32];
-            key.copy_from_slice(&bytes);
-            key
+        let env_key = std::env::var(ENV_KEY)
+            .ok()
+            .and_then(|raw| B64.decode(raw.trim()).ok())
+            .and_then(|bytes| <[u8; 32]>::try_from(bytes.as_slice()).ok());
+        let (key, backend) = if let Some(key) = env_key {
+            let backend = std::env::var(ENV_BACKEND)
+                .ok()
+                .filter(|value| value == "safeStorage" || value == "file_fallback")
+                .unwrap_or_else(|| "safeStorage".into());
+            (key, backend)
         } else {
-            let mut key = [0u8; 32];
-            rng().fill_bytes(&mut key);
-            // Create the file owner-only from the first byte instead of
-            // tightening it afterwards, so no umask-dependent window exists.
-            let mut options = fs::OpenOptions::new();
-            options.write(true).create_new(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            {
-                use std::io::Write;
-                let mut file = options.open(&key_path)?;
-                file.write_all(&key)?;
-                file.sync_all()?;
-            }
-            key
+            let key = if key_path.exists() {
+                let bytes = fs::read(&key_path)?;
+                if bytes.len() != 32 {
+                    return Err(anyhow!("invalid machine key length"));
+                }
+                let mut key = [0u8; 32];
+                key.copy_from_slice(&bytes);
+                key
+            } else {
+                let mut key = [0u8; 32];
+                rng().fill_bytes(&mut key);
+                // Create the file owner-only from the first byte instead of
+                // tightening it afterwards, so no umask-dependent window exists.
+                let mut options = fs::OpenOptions::new();
+                options.write(true).create_new(true);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::OpenOptionsExt;
+                    options.mode(0o600);
+                }
+                {
+                    use std::io::Write;
+                    let mut file = options.open(&key_path)?;
+                    file.write_all(&key)?;
+                    file.sync_all()?;
+                }
+                key
+            };
+            (key, "file_fallback".into())
         };
-        Ok(Self { dir, key })
+        Ok(Self { dir, key, backend })
+    }
+
+    /// Which store encrypted this process's secrets.
+    pub fn backend(&self) -> &str {
+        &self.backend
     }
 
     /// AES-256-GCM under the machine key.
@@ -75,7 +100,7 @@ impl SecretStore {
         blob.extend_from_slice(&nonce_bytes);
         blob.extend_from_slice(&ciphertext);
         fs::write(self.path_for(secret_ref), B64.encode(blob))?;
-        Ok("file_fallback".into())
+        Ok(self.backend.clone())
     }
 
     pub fn get(&self, secret_ref: &str) -> Result<Option<String>> {
@@ -126,6 +151,13 @@ pub fn secret_ref_for_provider_oauth(provider_id: &str) -> String {
 mod tests {
     use super::*;
 
+    /// The key override is process-global, so every secrets test serializes.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(|error| error.into_inner())
+    }
+
     /// The on-disk layout is `base64(nonce ‖ ciphertext ‖ tag)` under a raw
     /// 32-byte machine key, and the filename is `sha256(secret_ref)`. Users have
     /// live provider API keys stored that way, so a crypto-crate bump that
@@ -136,6 +168,7 @@ mod tests {
     /// `crypto`), so it pins the format rather than our own behaviour.
     #[test]
     fn decrypts_a_secret_written_by_an_earlier_build() {
+        let _env = env_lock();
         let key: [u8; 32] = std::array::from_fn(|i| i as u8);
         let dir = tempfile::tempdir().expect("tempdir");
         let secrets_dir = dir.path().join("secrets");
@@ -159,6 +192,7 @@ mod tests {
 
     #[test]
     fn rejects_a_blob_whose_tag_does_not_authenticate() {
+        let _env = env_lock();
         let dir = tempfile::tempdir().expect("tempdir");
         let store = SecretStore::open(dir.path()).expect("open store");
         let secret_ref = secret_ref_for_provider("anthropic");
@@ -179,6 +213,7 @@ mod tests {
 
     #[test]
     fn each_write_uses_a_fresh_nonce() {
+        let _env = env_lock();
         let dir = tempfile::tempdir().expect("tempdir");
         let store = SecretStore::open(dir.path()).expect("open store");
         let secret_ref = secret_ref_for_provider("openai");
@@ -199,6 +234,7 @@ mod tests {
 
     #[test]
     fn oauth_and_api_key_refs_do_not_collide() {
+        let _env = env_lock();
         let dir = tempfile::tempdir().expect("tempdir");
         let store = SecretStore::open(dir.path()).expect("open store");
         let api_key = secret_ref_for_provider("anthropic");
@@ -224,5 +260,41 @@ mod tests {
         store.delete(&oauth).expect("delete oauth");
         assert!(!store.has(&oauth));
         assert!(store.has(&api_key));
+    }
+
+    #[test]
+    fn an_env_key_is_reported_as_safe_storage() {
+        let _env = env_lock();
+        let dir = tempfile::tempdir().expect("tempdir");
+        let key = [7u8; 32];
+        unsafe {
+            std::env::set_var(ENV_KEY, B64.encode(key));
+            std::env::set_var(ENV_BACKEND, "safeStorage");
+        }
+        let store = SecretStore::open(dir.path()).expect("open store");
+        assert_eq!(store.backend(), "safeStorage");
+        let secret_ref = secret_ref_for_provider("env");
+        assert_eq!(store.set(&secret_ref, "value").expect("set"), "safeStorage");
+        assert_eq!(store.get(&secret_ref).expect("get"), Some("value".into()));
+        unsafe {
+            std::env::remove_var(ENV_KEY);
+            std::env::remove_var(ENV_BACKEND);
+        }
+    }
+
+    #[test]
+    fn an_invalid_env_key_falls_back_to_the_machine_file() {
+        let _env = env_lock();
+        let dir = tempfile::tempdir().expect("tempdir");
+        unsafe {
+            std::env::set_var(ENV_KEY, "not-base64");
+            std::env::remove_var(ENV_BACKEND);
+        }
+        let store = SecretStore::open(dir.path()).expect("open store");
+        assert_eq!(store.backend(), "file_fallback");
+        assert!(dir.path().join("secrets/.machine-key").exists());
+        unsafe {
+            std::env::remove_var(ENV_KEY);
+        }
     }
 }
