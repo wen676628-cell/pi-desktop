@@ -466,6 +466,11 @@ test(
       [],
       "release steps must not execute shell scripts by their git exec bit",
     );
+    // The test runner's cwd is apps/desktop; resolve the repo root so the
+    // git mode query works from any working directory.
+    const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      encoding: "utf8",
+    }).trim();
     for (const script of [
       "scripts/macos-signing-diagnostics.sh",
       "scripts/verify-macos-release.sh",
@@ -473,6 +478,7 @@ test(
     ]) {
       const mode = execFileSync("git", ["ls-files", "-s", script], {
         encoding: "utf8",
+        cwd: repoRoot,
       }).trim();
       assert.match(
         mode,
