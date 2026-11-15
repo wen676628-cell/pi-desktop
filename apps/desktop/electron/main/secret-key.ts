@@ -1,4 +1,4 @@
-import { safeStorage } from "electron";
+import * as electron from "electron";
 import {
   resolveHostSecretKeyWith,
   type HostSecretKey,
@@ -6,6 +6,13 @@ import {
 } from "./secret-key-resolver";
 
 export type { HostSecretKey, SecretKeyStorage } from "./secret-key-resolver";
+
+/**
+ * Namespace import, not `{ safeStorage }`: Node-based tests load this module
+ * with a stub `electron` that has no named exports, and a named import would
+ * throw before the resolver could fall back.
+ */
+const safeStorage = (electron as { safeStorage?: SecretKeyStorage }).safeStorage;
 
 /**
  * Environment contract with host-core. The key is wrapped by Electron's
@@ -17,12 +24,9 @@ export const HOST_SECRET_BACKEND_ENV = "PI_DESKTOP_SECRET_BACKEND";
 
 /** Production resolver using Electron's safeStorage. */
 export function resolveHostSecretKey(dataDir: string): HostSecretKey | null {
+  if (!safeStorage) return null;
   try {
-    return resolveHostSecretKeyWith(
-      dataDir,
-      safeStorage as unknown as SecretKeyStorage,
-      process.platform,
-    );
+    return resolveHostSecretKeyWith(dataDir, safeStorage, process.platform);
   } catch {
     // safeStorage can refuse before the app is ready or when the OS backend
     // disappeared; the host then keeps its own fallback path.

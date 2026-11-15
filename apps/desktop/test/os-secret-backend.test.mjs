@@ -25,8 +25,8 @@ test("host-core prefers the wrapped key and reports the backend", async () => {
 test("Electron wraps the key with safeStorage and migrates the raw file", async () => {
   const bridge = await read("../electron/main/secret-key.ts");
   const resolver = await read("../electron/main/secret-key-resolver.ts");
-  assert.match(bridge, /safeStorage as unknown as SecretKeyStorage/);
-  assert.match(bridge, /resolveHostSecretKeyWith\(/);
+  assert.match(bridge, /import \* as electron from "electron"/);
+  assert.match(bridge, /resolveHostSecretKeyWith\(dataDir, safeStorage, process\.platform\)/);
   assert.match(resolver, /function osEncryptionAvailable\(storage/);
   assert.match(resolver, /storage\.isEncryptionAvailable\(\)/);
   assert.match(resolver, /getSelectedStorageBackend/);
