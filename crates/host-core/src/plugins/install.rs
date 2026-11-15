@@ -193,6 +193,7 @@ impl PluginManager {
         self.install_from_path(package_path, opts)
     }
 
+    #[cfg(test)]
     pub fn install_from_market(
         &mut self,
         plugin_id: &str,
@@ -217,6 +218,7 @@ impl PluginManager {
     /// The observer sees every phase the install passes through and decides how
     /// often to tell anyone: it is called for each chunk of bytes that lands and
     /// again whenever the phase changes.
+    #[cfg(test)]
     pub fn install_from_market_observed(
         &mut self,
         plugin_id: &str,
@@ -242,9 +244,30 @@ impl PluginManager {
         )
     }
 
+    #[cfg(test)]
     pub fn apply_updates(&mut self, only_auto: bool) -> Result<Vec<InstallResult>> {
+        let pending = self.pending_updates(only_auto)?;
+        let mut results = Vec::new();
+        for update in pending {
+            let installed = self.install_from_market(
+                &update.id,
+                Some(&update.version),
+                true,
+                update.auto_update,
+                Some(update.granted_permissions),
+            )?;
+            results.push(installed);
+        }
+        Ok(results)
+    }
+
+    /// Resolve the batch and return the decisions the caller must install.
+    ///
+    /// The caller can release the state lock between each decision's download
+    /// and publish, the same way a single marketplace install does.
+    pub(crate) fn pending_updates(&mut self, only_auto: bool) -> Result<Vec<PendingUpdate>> {
         let _ = self.check_updates(true)?;
-        let pending: Vec<(String, PluginUpdateInfo, bool, Vec<String>)> = self
+        Ok(self
             .runtime
             .iter()
             .filter_map(|p| {
@@ -262,33 +285,20 @@ impl PluginManager {
                 if only_auto && !update.permission_diff.is_empty() {
                     return None;
                 }
-                Some((
-                    p.id.clone(),
-                    update,
-                    p.auto_update.unwrap_or(false),
-                    p.permissions.clone(),
-                ))
-            })
-            .collect();
-
-        let mut results = Vec::new();
-        for (id, update, auto_update, current_permissions) in pending {
-            let mut granted = current_permissions;
-            for perm in &update.permission_diff {
-                if !granted.iter().any(|p| p == perm) {
-                    granted.push(perm.clone());
+                let mut granted = p.permissions.clone();
+                for perm in &update.permission_diff {
+                    if !granted.iter().any(|existing| existing == perm) {
+                        granted.push(perm.clone());
+                    }
                 }
-            }
-            let installed = self.install_from_market(
-                &id,
-                Some(&update.version),
-                true,
-                auto_update,
-                Some(granted),
-            )?;
-            results.push(installed);
-        }
-        Ok(results)
+                Some(PendingUpdate {
+                    id: p.id.clone(),
+                    version: update.version,
+                    auto_update: p.auto_update.unwrap_or(false),
+                    granted_permissions: granted,
+                })
+            })
+            .collect())
     }
 }
 

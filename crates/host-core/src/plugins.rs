@@ -35,7 +35,9 @@ pub(crate) mod reviews;
 mod validation;
 
 pub use manifest::PluginManifest;
-pub(crate) use market_download::{MarketDownloadContext, MarketInstallCommit, MarketInstallPlan};
+pub(crate) use market_download::{
+    MarketDownloadContext, MarketInstallCommit, MarketInstallPlan, PendingUpdate,
+};
 pub use marketplace::{market_channel_from_settings, MarketChannel, OFFICIAL_CHANNEL_CATALOG_URL};
 pub use model::{
     InstallOptions, InstallResult, InstallReview, MarketDownloadInfo, MarketPluginDetail,
