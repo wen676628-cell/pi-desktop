@@ -10,6 +10,7 @@ import {
   GlibcUnsupportedError,
   glibcMissingSymbol,
 } from "./linux-glibc";
+import { hostSecretKeyEnv } from "./secret-key";
 import { DbSchemaTooNewError, parseSchemaTooNew } from "./host-boot-diagnostics";
 import { redactValue } from "./logger";
 import { getModuleDirectory } from "./module-path";
@@ -124,6 +125,9 @@ export class HostProcess extends RuntimeHostProcess {
       env: {
         PI_DESKTOP_ELECTRON_PID: String(process.pid),
         ...(builtinPlugins ? { PI_DESKTOP_BUILTIN_PLUGINS_DIR: builtinPlugins } : {}),
+        // The OS-wrapped provider-secret key; absent means host-core falls
+        // back to its own machine-key file and reports `file_fallback`.
+        ...hostSecretKeyEnv(dataDir),
       },
       onStderr: onStderr ?? fallbackStderrLogger,
       diagnoseFailure: diagnoseHostFailure,

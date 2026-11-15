@@ -1678,6 +1678,7 @@ sklm: {
     "remoteMediaDesc": "Les images, l’audio et la vidéo qu’une réponse lie depuis Internet attendent un clic avant de se charger, afin qu’une réponse ne révèle pas votre IP à un hôte qu’elle nomme.",
     "remoteMediaClick": "Charger au clic",
     "remoteMediaAllow": "Charger automatiquement",
+    secretFallback: "Les identifiants des fournisseurs utilisent une clé locale de secours car le stockage sécurisé du système est indisponible. Le fichier de clé se trouve à côté des données chiffrées ; protégez ce profil.",
     "smoothStreaming": "Streaming fluide",
     "smoothStreamingDesc": "Libère le texte diffusé caractère par caractère pour un effet machine à écrire. Automatiquement désactivé lorsque le système préfère un mouvement réduit.",
     "inlineVisualizations": "Visualisations intégrées",

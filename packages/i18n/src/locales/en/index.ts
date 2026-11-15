@@ -1690,6 +1690,7 @@ sklm: {
     remoteMediaDesc: "Images, audio, and video a reply links from the internet wait for a click before loading, so a response cannot reveal your IP to a host it names.",
     remoteMediaClick: "Load on click",
     remoteMediaAllow: "Load automatically",
+    secretFallback: "Provider credentials use a local fallback key because OS secure storage is unavailable. The key file sits beside the encrypted data, so protect this profile.",
     smoothStreaming: "Smooth streaming",
     smoothStreamingDesc: "Release streamed text character by character for a typewriter effect. Automatically disabled when the system prefers reduced motion.",
     inlineVisualizations: "Inline visualizations",

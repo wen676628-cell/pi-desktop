@@ -2571,6 +2571,10 @@ async fn handle_request(
                 .map_err(|e| rpc_err(1000, e.to_string(), "INTERNAL"))?;
             Ok(json!({ "ok": true, "backend": backend }))
         }
+        "secrets.status" => {
+            let st = state.lock().await;
+            Ok(json!({ "backend": st.secrets.backend() }))
+        }
         "secrets.delete" => {
             let secret_ref = params
                 .get("secretRef")

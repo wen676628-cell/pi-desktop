@@ -1678,6 +1678,7 @@ sklm: {
     "remoteMediaDesc": "Las imágenes, el audio y el vídeo que una respuesta enlaza desde internet esperan un clic antes de cargarse, para que una respuesta no revele tu IP a un host que nombre.",
     "remoteMediaClick": "Cargar al hacer clic",
     "remoteMediaAllow": "Cargar automáticamente",
+    secretFallback: "Las credenciales de proveedores usan una clave local de respaldo porque el almacenamiento seguro del sistema operativo no está disponible. El archivo de clave está junto a los datos cifrados; protege este perfil.",
     "smoothStreaming": "Transmisión suave",
     "smoothStreamingDesc": "Libera el texto transmitido carácter por carácter para un efecto de máquina de escribir. Se desactiva automáticamente cuando el sistema prefiere movimiento reducido.",
     "inlineVisualizations": "Visualizaciones en línea",

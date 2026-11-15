@@ -226,6 +226,8 @@ export const IPC = {
     networkProxyTest: "pi-desktop/network/testProxy",
     commandShellList: "pi-desktop/commandShell/list",
     secretsSet: "pi-desktop/secrets/set",
+    /** Reports which store encrypts provider secrets (`safeStorage` or `file_fallback`). */
+    secretsStatus: "pi-desktop/secrets/status",
     secretsDelete: "pi-desktop/secrets/delete",
     secretsHas: "pi-desktop/secrets/has",
     projectOpen: "pi-desktop/project/open",

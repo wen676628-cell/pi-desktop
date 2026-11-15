@@ -1671,6 +1671,7 @@ sklm: {
     remoteMediaDesc: "回覆中來自網際網路的圖片、音訊和影片在載入前需要點擊，避免回覆向它指定的主機暴露你的 IP。",
     remoteMediaClick: "點擊後載入",
     remoteMediaAllow: "自動載入",
+    secretFallback: "作業系統安全儲存不可用，供應商憑據正使用本機回退金鑰加密。金鑰檔案與密文位於同一設定目錄，請保護好此設定檔。",
     smoothStreaming: "平滑串流顯示",
     smoothStreamingDesc: "將串流文字逐字釋放，產生打字機效果。系統開啟「減少動態效果」時自動停用。",
     inlineVisualizations: "聊天內嵌視覺化",

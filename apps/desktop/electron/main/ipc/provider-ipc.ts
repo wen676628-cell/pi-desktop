@@ -736,6 +736,10 @@ export function registerProviderIpc({
     if (!host) throw new Error("host unavailable");
     return host.call("secrets.delete", { secretRef });
   });
+  handle(IPC.invoke.secretsStatus, async () => {
+    if (!host) throw new Error("host unavailable");
+    return host.call("secrets.status", {});
+  });
   handle(IPC.invoke.secretsHas, async (secretRef: string) => {
     if (!host) throw new Error("host unavailable");
     return host.call("secrets.has", { secretRef });
