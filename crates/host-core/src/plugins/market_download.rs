@@ -28,6 +28,16 @@ pub(crate) struct MarketInstallCommit {
     pub granted_permissions: Option<Vec<String>>,
 }
 
+/// One release a batch update will install, with the permissions the user
+/// already granted plus the announced additions.
+#[derive(Clone)]
+pub(crate) struct PendingUpdate {
+    pub id: String,
+    pub version: String,
+    pub auto_update: bool,
+    pub granted_permissions: Vec<String>,
+}
+
 impl PluginManager {
     /// Snapshot the channel and package location for one install.
     pub(crate) fn market_install_plan(

@@ -6060,8 +6060,61 @@ async fn handle_request(
                 .get("onlyAuto")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true);
-            let mut st = state.lock().await;
-            let results = st.plugins.apply_updates(only_auto).map_err(plugin_err)?;
+            let pending = {
+                let mut st = state.lock().await;
+                st.plugins.pending_updates(only_auto).map_err(plugin_err)?
+            };
+            let mut results = Vec::new();
+            for update in pending {
+                let plan = {
+                    let mut st = state.lock().await;
+                    st.plugins
+                        .market_install_plan(&update.id, Some(&update.version))
+                        .map_err(plugin_err)?
+                };
+                // Resolve/download/verify without AppState, like a single
+                // marketplace install. Only the publish reacquires the lock.
+                let fetched = {
+                    let download_plan = plan.clone();
+                    match tokio::task::spawn_blocking(move || {
+                        let mut observer = crate::plugins::NoProgress;
+                        let mut report = crate::plugins::DownloadReport::new(
+                            &mut observer,
+                            &download_plan.info.plugin_id,
+                            &download_plan.info.version,
+                        );
+                        download_plan
+                            .download
+                            .fetch(&download_plan.info, &mut report)
+                    })
+                    .await
+                    {
+                        Ok(fetched) => fetched,
+                        Err(error) => {
+                            return Err(plugin_err(anyhow!("PLUGIN_MARKET_DOWNLOAD_TASK: {error}")))
+                        }
+                    }
+                };
+                let (package_path, shasum) = fetched.map_err(plugin_err)?;
+                let mut st = state.lock().await;
+                let mut observer = crate::plugins::NoProgress;
+                let installed = st
+                    .plugins
+                    .install_from_downloaded_market_package(
+                        &plan,
+                        &package_path,
+                        &shasum,
+                        crate::plugins::MarketInstallCommit {
+                            enable: true,
+                            auto_update: update.auto_update,
+                            granted_permissions: Some(update.granted_permissions),
+                        },
+                        &mut observer,
+                    )
+                    .map_err(plugin_err)?;
+                results.push(installed);
+            }
+            let st = state.lock().await;
             Ok(json!({ "results": results, "plugins": st.plugins.list() }))
         }
 
@@ -6310,6 +6363,173 @@ mod tests {
             accepted.load(std::sync::atomic::Ordering::SeqCst),
             "the install never reached the download server"
         );
+        server.join().unwrap();
+    }
+
+    #[allow(clippy::await_holding_lock)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn apply_updates_does_not_hold_state_lock_while_downloading() {
+        let _env = crate::plugins::tests::MARKET_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let data_dir = tempfile::tempdir().unwrap();
+        // Install 0.2.0 locally, then announce 0.3.0 through a loopback catalog.
+        let v1_bytes = crate::plugins::bundled_package_bytes("demo.hello", "0.2.0").unwrap();
+        let v1 = data_dir.path().join("demo.hello-0.2.0.piplug");
+        fs::write(&v1, &v1_bytes).unwrap();
+        let mut manager = crate::plugins::PluginManager::new(
+            data_dir.path(),
+            crate::plugins::MarketChannel::Official,
+            None,
+        );
+        manager
+            .install_from_package(
+                v1.to_str().unwrap(),
+                crate::plugins::InstallOptions {
+                    source: "marketplace".into(),
+                    enable: true,
+                    marketplace: None,
+                    expected_shasum: None,
+                    auto_update: false,
+                    granted_permissions: Some(vec![
+                        "ui.panel".into(),
+                        "agent.tool.register".into(),
+                        "notify".into(),
+                    ]),
+                },
+            )
+            .unwrap();
+
+        let manifest = json!({
+            "schemaVersion": 1,
+            "id": "demo.hello",
+            "name": "Hello",
+            "version": "0.3.0",
+            "main": "main.js",
+            "permissions": ["ui.panel", "agent.tool.register", "notify"],
+        });
+        let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+        let package = crate::plugins::make_zip(&[
+            ("manifest.json", manifest_bytes.as_slice()),
+            ("main.js", b"export function onLoad() {}".as_slice()),
+        ]);
+        let shasum = crate::plugins::sha256_hex(&package);
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let mut catalog = crate::plugins::built_in_catalog_at(data_dir.path());
+        for plugin in &mut catalog.plugins {
+            if plugin.id == "demo.hello" {
+                plugin.versions = vec![crate::plugins::MarketVersion {
+                    version: "0.3.0".into(),
+                    published_at: "2026-11-15T00:00:00Z".into(),
+                    shasum: shasum.clone(),
+                    url: format!("http://{address}/demo.hello-0.3.0.piplug"),
+                    size_bytes: package.len() as u64,
+                    permissions: vec![
+                        "ui.panel".into(),
+                        "agent.tool.register".into(),
+                        "notify".into(),
+                    ],
+                    ..Default::default()
+                }];
+            }
+        }
+        let catalog_path = data_dir.path().join("plugins/market/catalog.json");
+        let catalog_json = serde_json::to_string(&catalog).unwrap();
+        fs::write(&catalog_path, &catalog_json).unwrap();
+        let accepted = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let accepted_server = accepted.clone();
+        let server = std::thread::spawn(move || {
+            listener.set_nonblocking(true).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(3);
+            loop {
+                let mut stream = match listener.accept() {
+                    Ok((stream, _)) => stream,
+                    Err(error)
+                        if error.kind() == std::io::ErrorKind::WouldBlock
+                            && std::time::Instant::now() < deadline =>
+                    {
+                        std::thread::sleep(Duration::from_millis(10));
+                        continue;
+                    }
+                    _ => return,
+                };
+                let mut request = [0u8; 2048];
+                let read = stream.read(&mut request).unwrap_or(0);
+                let request = String::from_utf8_lossy(&request[..read]);
+                if request.contains("/catalog.json") {
+                    write!(
+                        stream,
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        catalog_json.len(),
+                        catalog_json
+                    )
+                    .unwrap();
+                    continue;
+                }
+                accepted_server.store(true, std::sync::atomic::Ordering::SeqCst);
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    package.len()
+                )
+                .unwrap();
+                stream.flush().unwrap();
+                std::thread::sleep(Duration::from_millis(700));
+                let _ = stream.write_all(&package);
+                return;
+            }
+        });
+        unsafe {
+            std::env::set_var(
+                "PI_DESKTOP_PLUGIN_MARKET_URL",
+                format!("http://{address}/catalog.json"),
+            );
+        }
+        let mut app = AppState::open(data_dir.path()).unwrap();
+        app.handshook = true;
+        let state = Arc::new(Mutex::new(app));
+        let update = tokio::spawn(handle_request(
+            state.clone(),
+            "market.applyUpdates",
+            json!({ "onlyAuto": false }),
+            mpsc::unbounded_channel().0,
+        ));
+        let started = tokio::time::timeout(Duration::from_secs(2), async {
+            while !accepted.load(std::sync::atomic::Ordering::SeqCst) {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await;
+        assert!(
+            started.is_ok(),
+            "the batch update never reached the download server"
+        );
+        let health = tokio::time::timeout(
+            Duration::from_millis(250),
+            handle_request(
+                state.clone(),
+                "app.health",
+                json!({}),
+                mpsc::unbounded_channel().0,
+            ),
+        )
+        .await;
+        assert!(
+            health.is_ok(),
+            "app.health must answer while the batch update download is still running"
+        );
+        let outcome = update.await.unwrap().unwrap();
+        assert_eq!(outcome["results"].as_array().map(Vec::len), Some(1));
+        unsafe {
+            std::env::remove_var("PI_DESKTOP_PLUGIN_MARKET_URL");
+        }
+        let installed = {
+            let st = state.lock().await;
+            st.plugins.get("demo.hello").unwrap()
+        };
+        assert_eq!(installed.version, "0.3.0");
         server.join().unwrap();
     }
 
