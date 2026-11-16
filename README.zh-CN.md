@@ -113,6 +113,24 @@ Subagent 与 Worker Session 可以承担独立任务并行工作。
 
 ---
 
+## 本 fork 与上游的差异
+
+本 fork 跟踪 [vastsa/PI-Desktop](https://github.com/vastsa/PI-Desktop) 并定期同步其主分支。在同步的上游代码之上，fork 额外提供以下改动——每一项都经过带回归测试的 PR 合入：
+
+| 领域 | 本 fork 的改动 | 原因 |
+| --- | --- | --- |
+| **发布自动化** | 发布流程自动产出 Windows 安装包、便携版与 GitHub Release；macOS 通道在没有 Apple 证书时回退为未签名打包，而不是失败。 | 上游要求 Developer ID 签名 secrets；fork 以 Windows 优先的无签名构建发布。 |
+| **安全加固** | 本地插件包安装前必须通过权限审核；供应商密钥用操作系统安全存储包裹；通用 IPC 桥只应答受信任的第一方渲染进程；回复中的远程媒体等待点击后才加载。 | 在上游权限模型之上做纵深防御，不改变上游契约。 |
+| **可靠性** | 市场下载与批量更新在传输期间释放宿主锁；重启恢复先提交死信快照再移除队列条目，写入失败不再丢记录。 | 慢速传输期间保持宿主响应，保护恢复数据。 |
+| **启动与体验** | Agent sidecar 首次使用时才启动；权限选项命名为"变更前确认 / 自动审查 / 完全权限"，运行模式使用 `/agent`、`/plan`、`/goal` 命令；仓库根提供 fork 身份说明与 `CHANGELOG.md`。 | 更快的冷启动、更清晰的权限命名、fork 身份透明。 |
+| **平台重心** | 每个版本发布 Windows x64 安装包与便携版；macOS 为未签名构建；Linux 包由 CI 构建。 | Windows 是本 fork 的主要目标平台。 |
+
+fork 专属模块（LSP 诊断宿主、受信任渲染进程 IPC 门禁、OS 包裹的密钥解析器）与上游代码并存，不改变上游契约——公共 API、存储 schema 与宿主协议保持兼容，因此上游同步保持干净。
+
+各版本详细变更见 [CHANGELOG.md](CHANGELOG.md)，上游变更的吸收方式见 [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md)。
+
+---
+
 ## 插件不是附加功能，而是工作台的一部分
 
 PI-Desktop 的 Core 负责提供稳定底座。
