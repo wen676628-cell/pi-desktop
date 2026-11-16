@@ -16,6 +16,7 @@ import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
+import { getModuleDirectory } from "./module-path";
 
 const MEMORY_ENTRY_NAME = "pi-desktop-agent-memory";
 
@@ -31,7 +32,7 @@ function serverScriptFor(): string {
   // Packaged: extraResources; dev: repo layout two levels above main/.
   const packaged = join(process.resourcesPath ?? "", "agent-memory", "server.mjs");
   if (existsSync(packaged)) return packaged;
-  return join(__dirname, "..", "..", "agent-memory", "server.mjs");
+  return join(getModuleDirectory(import.meta.url), "..", "agent-memory", "server.mjs");
 }
 
 function serverEnv(memoryRoot: string): NodeJS.ProcessEnv {
