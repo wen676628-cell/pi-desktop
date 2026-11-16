@@ -500,6 +500,8 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     infiniteProviderRetry:
       (settings as { infiniteProviderRetry?: unknown }).infiniteProviderRetry === true,
     jevEnabled: (settings as { jevEnabled?: unknown }).jevEnabled === true,
+    agentMemoryEnabled:
+      (settings as { agentMemoryEnabled?: unknown }).agentMemoryEnabled === true,
     defaultCommandShell: isCommandShellId(
       (settings as { defaultCommandShell?: unknown }).defaultCommandShell,
     )
@@ -583,6 +585,7 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     chatContentMaxWidth?: unknown;
     infiniteProviderRetry?: unknown;
     jevEnabled?: unknown;
+    agentMemoryEnabled?: unknown;
     smoothStreaming?: unknown;
     sidebarRunningIndicators?: unknown;
     sidebarRunningBadge?: unknown;
@@ -639,6 +642,14 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     typeof settings.scheduledTasksEnabled !== "boolean"
   ) {
     throw Object.assign(new Error("scheduledTasksEnabled is invalid"), {
+      errorCode: "INVALID_PARAMS",
+    });
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(settings, "agentMemoryEnabled") &&
+    typeof settings.agentMemoryEnabled !== "boolean"
+  ) {
+    throw Object.assign(new Error("agentMemoryEnabled is invalid"), {
       errorCode: "INVALID_PARAMS",
     });
   }

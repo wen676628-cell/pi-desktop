@@ -79,6 +79,18 @@ export function AgentBehaviorSettings({
             })}
           />
         </SettingsRow>
+        <SettingsRow
+          title={t("settings.agentMemory")}
+          description={t("settings.agentMemoryDesc")}
+        >
+          <SettingsToggle
+            checked={settings.agentMemoryEnabled === true}
+            label={t("settings.agentMemory")}
+            onChange={() => void saveSettings({
+              agentMemoryEnabled: settings.agentMemoryEnabled === true,
+            })}
+          />
+        </SettingsRow>
       </SettingsCard>
 
       <ComputerUseSettings t={t} settings={settings} saveSettings={saveSettings} />
