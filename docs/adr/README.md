@@ -53,6 +53,7 @@ Each ADR includes:
 | multi-backend-agent-sessions | [Multi-backend agent sessions](multi-backend-agent-sessions.md) | Proposed |
 | dev-channel-parallel-installation | [Dev-channel parallel installation](dev-channel-parallel-installation.md) | Proposed |
 | acp-client-backend-research | [ACP client backend research](acp-client-backend-research.md) | Proposed (research) |
+| agent-long-term-memory | [Agent long-term memory](agent-long-term-memory.md) | Proposed |
 | 0001 | Use Electron as the desktop shell | Accepted |
 | 0002 | Use the pi Agent Harness as the kernel | Accepted |
 | 0003 | Hybrid runtime — Rust host core + Node pi agent sidecar | Superseded in part |
