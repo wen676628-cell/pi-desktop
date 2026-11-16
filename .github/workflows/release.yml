@@ -564,6 +564,31 @@ jobs:
       - name: List artifacts
         run: ls -la dist/
 
+      - name: Write unofficial-fork notice
+        # Upstream is the official build; only a fork carries the notice. The
+        # tag comes from the workflow context so the notice cannot go stale the
+        # way a hand-copied file did (v0.22.0 shipped a v0.21.0 source link).
+        if: github.repository != 'vastsa/PI-Desktop'
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          cat > UNOFFICIAL-FORK.txt <<EOF
+          PI-Desktop — unofficial fork build
+          =================================
+
+          Maintained by ${GITHUB_REPOSITORY%%/*}.
+          Not affiliated with, endorsed by, or supported by vastsa/PI-Desktop.
+
+          Source for this tag:
+          ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${GITHUB_REF_NAME}
+
+          License: GNU Lesser General Public License v3.0 (LGPL-3.0).
+          See LICENSE and the third-party notices shipped with the application.
+
+          Windows installers are unsigned; SmartScreen may warn on first run.
+          The macOS build, when attached by the release workflow, is unsigned as well.
+          EOF
+
       - name: Merge macOS updater metadata
         working-directory: dist
         run: |

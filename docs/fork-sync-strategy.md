@@ -76,9 +76,10 @@ differences section, `README.zh-CN.md`, `CHANGELOG.md` (generated),
 3. `git push origin <branch> v<version>` triggers release.yml; the macOS lane
    runs unsigned on this fork and the publish job creates the Release.
 4. Post-release check: assets include Windows Setup/Portable, Linux packages,
-   unsigned macOS dmg/zip, `latest*.yml` feeds, and pi-host bundles.
-   `UNOFFICIAL-FORK.txt` is **not** auto-generated — upload it manually or add
-   a publish step that writes it (tracked follow-up).
+   unsigned macOS dmg/zip, `latest*.yml` feeds, pi-host bundles, and
+   `UNOFFICIAL-FORK.txt`. The publish job writes that notice from the workflow
+   context, so it always names the tag actually being released, and upstream's
+   own builds never carry it.
 
 ## 6. Known costs
 
