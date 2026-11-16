@@ -99,6 +99,12 @@ export type AppSettings = {
   keepAwakeWhileRunning?: boolean;
   /** Enable scheduled task UI, tools and new runs. Absent means enabled. */
   scheduledTasksEnabled?: boolean;
+  /**
+   * Agent long-term memory (ADR agent-long-term-memory): register the local
+   * stdio MCP memory server with agent sessions. Off when absent — off means
+   * nothing registered and nothing written.
+   */
+  agentMemoryEnabled?: boolean;
   /** Configured command shell for the agent Bash protocol tool. */
   defaultCommandShell?: CommandShellId;
   /** @deprecated Retained for one-time migration into pi.prompt-enhancement. */
