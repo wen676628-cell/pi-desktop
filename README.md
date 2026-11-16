@@ -59,7 +59,7 @@ This fork tracks [vastsa/PI-Desktop](https://github.com/vastsa/PI-Desktop) and r
 
 Fork-specific modules (LSP diagnostics host, trusted-renderer IPC gate, OS-wrapped secret key resolver) live beside the upstream code and never change upstream contracts — public APIs, storage schema, and the host protocol stay compatible, so upstream syncs stay clean.
 
-See [CHANGELOG.md](CHANGELOG.md) for per-release details, and [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md) for how upstream changes are absorbed.
+See [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md) for per-release details, and [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md) for how upstream changes are absorbed.
 
 ---
 

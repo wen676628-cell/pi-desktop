@@ -127,7 +127,7 @@ Subagent 与 Worker Session 可以承担独立任务并行工作。
 
 fork 专属模块（LSP 诊断宿主、受信任渲染进程 IPC 门禁、OS 包裹的密钥解析器）与上游代码并存，不改变上游契约——公共 API、存储 schema 与宿主协议保持兼容，因此上游同步保持干净。
 
-各版本详细变更见 [CHANGELOG.md](CHANGELOG.md)，上游变更的吸收方式见 [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md)。
+各版本详细变更见 [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)，上游变更的吸收方式见 [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md)。
 
 ---
 
