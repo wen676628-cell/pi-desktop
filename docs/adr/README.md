@@ -51,6 +51,8 @@ Each ADR includes:
 | subagent-model-opt-in | [Separate Subagent Model Opt-In from Definition Pins](subagent-model-opt-in.md) | Accepted for implementation |
 | os-wrapped-secret-key | [OS-wrapped provider-secret key](os-wrapped-secret-key.md) | Accepted |
 | multi-backend-agent-sessions | [Multi-backend agent sessions](multi-backend-agent-sessions.md) | Proposed |
+| dev-channel-parallel-installation | [Dev-channel parallel installation](dev-channel-parallel-installation.md) | Proposed |
+| acp-client-backend-research | [ACP client backend research](acp-client-backend-research.md) | Proposed (research) |
 | 0001 | Use Electron as the desktop shell | Accepted |
 | 0002 | Use the pi Agent Harness as the kernel | Accepted |
 | 0003 | Hybrid runtime — Rust host core + Node pi agent sidecar | Superseded in part |
