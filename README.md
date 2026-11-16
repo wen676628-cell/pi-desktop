@@ -45,6 +45,24 @@ Local-first · Model-agnostic · Plugin-powered · macOS / Windows / Linux
 
 ---
 
+## How this fork differs from upstream
+
+This fork tracks [vastsa/PI-Desktop](https://github.com/vastsa/PI-Desktop) and regularly syncs its main line. On top of the synced upstream code, the fork ships these changes — every one of them merged through a reviewed PR with regression tests:
+
+| Area | What this fork changes | Why |
+| --- | --- | --- |
+| **Release automation** | The release workflow publishes Windows installers, portable builds, and the GitHub Release automatically — the macOS lane falls back to unsigned packaging instead of failing without Apple certificates. | Upstream requires Developer ID signing secrets; the fork ships unsigned Windows-first builds. |
+| **Security hardening** | Local plugin packages go through a pre-install permission review; provider secrets are wrapped with OS secure storage; the general IPC bridge only answers trusted first-party renderers; remote media in replies waits for a click. | Defense in depth on top of the upstream permission model, without changing upstream contracts. |
+| **Reliability** | Marketplace downloads and batch updates release the host lock while data moves; restart recovery commits dead letters before removing queue entries, so a failed write cannot lose a record. | Keeps the host responsive during slow transfers and protects recovery data. |
+| **Startup & UX** | The agent sidecar starts on first use instead of at boot; permission choices are named *Confirm before changes / Auto review / Full access* with `/agent`, `/plan`, `/goal` mode commands; a fork identity and `CHANGELOG.md` live at the repo root. | Faster cold start, clearer permission naming, fork-transparent repository. |
+| **Platform focus** | Windows x64 installers and portable builds are published for every release; macOS builds are unsigned; Linux packages are built by CI. | Windows is the fork's primary target platform. |
+
+Fork-specific modules (LSP diagnostics host, trusted-renderer IPC gate, OS-wrapped secret key resolver) live beside the upstream code and never change upstream contracts — public APIs, storage schema, and the host protocol stay compatible, so upstream syncs stay clean.
+
+See [CHANGELOG.md](CHANGELOG.md) for per-release details, and [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md) for how upstream changes are absorbed.
+
+---
+
 ## Why PI-Desktop?
 
 Terminal agents are great at execution. IDE agents are great at living inside an editor.
