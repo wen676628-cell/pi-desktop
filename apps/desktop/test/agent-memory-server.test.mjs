@@ -7,6 +7,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -205,6 +206,85 @@ test("session_search reports session-sources-empty when no sources configured", 
   const result = await callTool(env, "session_search", { query: "anything" });
   assert.equal(result.payload.error?.code, "session-sources-empty");
   await rm(dir, { recursive: true, force: true });
+});
+
+/** A host-shaped transcript index: sessions + messages + FTS5 over the text. */
+async function makeHostIndex(rows) {
+  const dir = await mkdtemp(join(tmpdir(), "pi-host-index-"));
+  const file = join(dir, "pi.sqlite");
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(file);
+  db.exec(`
+    CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT);
+    CREATE TABLE messages (
+      mid INTEGER PRIMARY KEY, id TEXT, session_id TEXT, role TEXT,
+      text TEXT, created_at INTEGER
+    );
+    CREATE VIRTUAL TABLE messages_fts USING fts5(
+      text, content='messages', content_rowid='mid', tokenize='trigram'
+    );
+  `);
+  for (const row of rows) {
+    db.prepare("INSERT OR IGNORE INTO sessions (id, title) VALUES (?, ?)").run(
+      row.sessionId,
+      row.title ?? "",
+    );
+    db.prepare(
+      "INSERT INTO messages (id, session_id, role, text, created_at) VALUES (?, ?, ?, ?, ?)",
+    ).run(`${row.sessionId}-${row.createdAt}`, row.sessionId, row.role, row.text, row.createdAt);
+  }
+  db.exec("INSERT INTO messages_fts (rowid, text) SELECT mid, text FROM messages");
+  db.close();
+  return { dir, file };
+}
+
+test("session_search reads the host transcript index read-only", async () => {
+  const { dir: memoryDir, env } = await makeProfile();
+  const index = await makeHostIndex([
+    { sessionId: "s1", title: "Fix the flaky test", role: "user", text: "the workspace index test is flaky again", createdAt: 100 },
+    { sessionId: "s1", title: "Fix the flaky test", role: "assistant", text: "raised the spin budget to two hundred turns", createdAt: 101 },
+    { sessionId: "s2", title: "Unrelated", role: "user", text: "unrelated conversation about icons", createdAt: 102 },
+  ]);
+  const result = await callTool(
+    { ...env, AGENT_MEMORY_SOURCES: JSON.stringify([{ backend: "pi", db: index.file }]) },
+    "session_search",
+    { query: "flaky" },
+  );
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.hits.length, 1, "only the matching session is returned");
+  const hit = result.payload.hits[0];
+  assert.equal(hit.sessionId, "s1");
+  assert.equal(hit.title, "Fix the flaky test");
+  assert.equal(hit.backend, "pi");
+  assert.ok(hit.matches.length >= 1);
+  assert.match(hit.matches.map((match) => match.snippet).join(" "), /\[flaky\]/);
+  // The server never writes to a host index.
+  const { DatabaseSync } = await import("node:sqlite");
+  const check = new DatabaseSync(index.file, { readOnly: true });
+  const count = check.prepare("SELECT COUNT(*) AS n FROM messages").get().n;
+  check.close();
+  assert.equal(count, 3);
+  await rm(index.dir, { recursive: true, force: true });
+  await rm(memoryDir, { recursive: true, force: true });
+});
+
+test("session_search degrades to a structured code when the index is unusable", async () => {
+  const { dir: memoryDir, env } = await makeProfile();
+  const missing = join(memoryDir, "missing.sqlite");
+  const result = await callTool(
+    { ...env, AGENT_MEMORY_SOURCES: JSON.stringify([{ backend: "pi", db: missing }]) },
+    "session_search",
+    { query: "anything" },
+  );
+  assert.equal(result.payload.ok, true);
+  assert.deepEqual(result.payload.hits, []);
+  assert.equal(result.payload.error?.code, "session-index-unavailable");
+  assert.equal(
+    existsSync(missing),
+    false,
+    "a missing index must not be created by the search",
+  );
+  await rm(memoryDir, { recursive: true, force: true });
 });
 
 test("memory_status reports overBudget and scope list", async () => {

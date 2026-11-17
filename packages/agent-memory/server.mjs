@@ -12,9 +12,10 @@
  *                             (a guessed default would write into some
  *                             process's cwd, a worse failure mode)
  *   AGENT_MEMORY_CWD        — session cwd, derives the project key
- *   AGENT_MEMORY_SOURCES    — JSON [{backend, dir, project?}] session
- *                             collection sources; the server never guesses
- *                             paths itself
+ *   AGENT_MEMORY_SOURCES    — JSON [{backend, db, project?}] session indexes.
+ *                             Each entry names a host SQLite file opened
+ *                             read-only; the server never guesses paths and
+ *                             never writes to a host database.
  *
  * Storage model (ADR §2):
  *   <dir>/MEMORY.md          global facts        (32k chars / 400 entries)
@@ -30,10 +31,14 @@
  * (temp + rename). Whitespace-folding dedupe. Oldest-first budget trim,
  * reported in results (`trimmed.{count,oldest}`) and status output.
  */
-import { createServer } from "node:net";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
+
+// `node:sqlite` is loaded through require so an older Node degrades to a
+// structured "session-index-unavailable" instead of failing at import time.
+const require = createRequire(import.meta.url);
 
 const BUDGETS = {
   memory: { file: "MEMORY.md", chars: 32000, entries: 400 },
@@ -64,6 +69,11 @@ try {
 } catch {
   console.error("agent-memory: AGENT_MEMORY_SOURCES is not valid JSON; ignoring");
 }
+
+/** Session-history search bounds: sessions returned, matches per session, snippet size. */
+const SESSION_SEARCH_MAX_SESSIONS = 20;
+const SESSION_SEARCH_MESSAGES_PER_HIT = 3;
+const SESSION_SEARCH_SNIPPET_CHARS = 400;
 
 // ---------------------------------------------------------------------------
 // Paths and project keys
@@ -335,25 +345,31 @@ const tools = {
   session_search(args) {
     const query = normalizeForDedupe(String(args.query ?? "")).toLowerCase();
     if (!query) return badRequest("query is empty");
-    if (collectionSources.length === 0) {
+    const dbSources = collectionSources.filter(
+      (source) => typeof source?.db === "string" && source.db.length > 0,
+    );
+    if (dbSources.length === 0) {
       return ok({ hits: [], error: { code: "session-sources-empty" } });
     }
+    const limit = clampCount(args.limit, SESSION_SEARCH_MAX_SESSIONS);
     const hits = [];
-    for (const source of collectionSources) {
-      for (const session of listSessionsFromSource(source)) {
-        const matches = [];
-        for (const message of session.messages ?? []) {
-          const text = typeof message === "string" ? message : message?.text ?? "";
-          if (String(text).toLowerCase().includes(query)) {
-            matches.push({ role: message?.role ?? "unknown", text: String(text).slice(0, 500) });
-          }
-        }
-        if (matches.length > 0) {
-          hits.push({ session: session.id, title: session.title, matches });
-        }
+    const unavailable = [];
+    for (const source of dbSources) {
+      const result = searchSessionIndex(source, query, limit);
+      if (result.error) {
+        unavailable.push({ backend: source.backend ?? "unknown", code: result.error });
+        continue;
+      }
+      for (const hit of result.hits) {
+        hits.push({ ...hit, backend: source.backend ?? "pi" });
       }
     }
-    return ok({ hits });
+    const response = { hits: hits.slice(0, limit) };
+    if (unavailable.length > 0) response.unavailable = unavailable;
+    if (hits.length === 0 && unavailable.length === dbSources.length) {
+      response.error = { code: "session-index-unavailable" };
+    }
+    return ok(response);
   },
 
   memory_status() {
@@ -423,29 +439,121 @@ function collectionScopes() {
   return scopes;
 }
 
-function listSessionsFromSource(source) {
-  // Session collection reads pi-native JSONL from the source dir; a full
-  // implementation belongs to the host, which owns the transcript index.
-  // This server keeps the tool shape so the model contract is stable.
+/**
+ * Session history search over the host's own SQLite transcript index.
+ *
+ * The host already persists every message in `<dataDir>/pi.sqlite` with an
+ * FTS5 trigram index (`messages_fts`), so this reads that index read-only
+ * instead of collecting a second copy of the transcripts (ADR decision:
+ * no extra capture pipeline). Anything that goes wrong here degrades to a
+ * structured code — a broken or missing index must never take the memory
+ * server down.
+ */
+function searchSessionIndex(source, query, limit) {
+  let db = null;
   try {
-    const dir = join(source.dir, "sessions");
-    if (!existsSync(dir)) return [];
-    const sessions = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const metaPath = join(dir, entry.name, "session.json");
-      if (!existsSync(metaPath)) continue;
-      try {
-        sessions.push(JSON.parse(readFileSync(metaPath, "utf8")));
-      } catch {}
+    const { DatabaseSync } = require("node:sqlite");
+    // `mode=ro` keeps a misconfigured path from creating or mutating a host
+    // database; the explicit readOnly flag is the belt to that suspenders.
+    const uri = `file:${source.db.replace(/\\/g, "/")}?mode=ro`;
+    db = new DatabaseSync(uri, { readOnly: true });
+    const phrase = toFtsPhrase(query);
+    const rows = db
+      .prepare(
+        `SELECT m.session_id AS sessionId, m.role AS role, m.created_at AS createdAt,
+                COALESCE(s.title, '') AS title,
+                snippet(messages_fts, 0, '[', ']', ' … ', 12) AS snippet
+           FROM messages_fts
+           JOIN messages m ON m.mid = messages_fts.rowid
+      LEFT JOIN sessions s ON s.id = m.session_id
+          WHERE messages_fts MATCH ?
+       ORDER BY m.created_at DESC
+          LIMIT ?`,
+      )
+      .all(phrase, limit * SESSION_SEARCH_MESSAGES_PER_HIT);
+    return { hits: groupSessionHits(rows) };
+  } catch (error) {
+    const fallback = searchSessionIndexWithLike(source, query, limit, error);
+    return fallback;
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // A close failure must not mask the search result.
     }
-    return sessions;
-  } catch {
-    return [];
   }
 }
 
-import { readdirSync } from "node:fs";
+/** FTS5 treats punctuation as syntax; a quoted phrase keeps user text literal. */
+function toFtsPhrase(query) {
+  return `"${query.replace(/"/g, '""')}"`;
+}
+
+/** FTS unavailable (older schema, exotic query): plain substring scan. */
+function searchSessionIndexWithLike(source, query, limit, originalError) {
+  let db = null;
+  try {
+    const { DatabaseSync } = require("node:sqlite");
+    const uri = `file:${source.db.replace(/\\/g, "/")}?mode=ro`;
+    db = new DatabaseSync(uri, { readOnly: true });
+    const rows = db
+      .prepare(
+        `SELECT m.session_id AS sessionId, m.role AS role, m.created_at AS createdAt,
+                COALESCE(s.title, '') AS title,
+                substr(m.text, 1, 240) AS snippet
+           FROM messages m
+      LEFT JOIN sessions s ON s.id = m.session_id
+          WHERE m.text LIKE ? ESCAPE '\\'
+       ORDER BY m.created_at DESC
+          LIMIT ?`,
+      )
+      .all(`%${query.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`, limit * SESSION_SEARCH_MESSAGES_PER_HIT);
+    return { hits: groupSessionHits(rows) };
+  } catch {
+    return { hits: [], error: classifyIndexError(originalError) };
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function classifyIndexError(error) {
+  const message = String(error?.message ?? error);
+  if (/no such table: messages/i.test(message)) return "session-index-unavailable";
+  if (/unable to open|no such file|ENOENT/i.test(message)) return "session-index-unavailable";
+  return "session-index-error";
+}
+
+/** One hit per session, newest matches first, capped per session. */
+function groupSessionHits(rows) {
+  const bySession = new Map();
+  for (const row of rows) {
+    if (!row?.sessionId) continue;
+    const hit = bySession.get(row.sessionId) ?? {
+      sessionId: row.sessionId,
+      title: row.title || null,
+      matches: [],
+    };
+    if (hit.matches.length < SESSION_SEARCH_MESSAGES_PER_HIT) {
+      hit.matches.push({
+        role: row.role ?? "unknown",
+        snippet: String(row.snippet ?? "").slice(0, SESSION_SEARCH_SNIPPET_CHARS),
+        createdAt: row.createdAt ?? null,
+      });
+    }
+    bySession.set(row.sessionId, hit);
+  }
+  return [...bySession.values()];
+}
+
+function clampCount(value, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return max;
+  return Math.min(Math.floor(parsed), max);
+}
 
 function currentProjectKey() {
   return projectKeyFor(sessionCwd);
@@ -550,10 +658,14 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "session_search",
-    description: "Search collected session histories by keyword.",
+    description:
+      "Search this installation's session histories by keyword (host transcript index, read-only).",
     inputSchema: {
       type: "object",
-      properties: { query: { type: "string" } },
+      properties: {
+        query: { type: "string" },
+        limit: { type: "number" },
+      },
       required: ["query"],
     },
   },

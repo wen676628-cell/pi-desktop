@@ -454,6 +454,16 @@ Card order is **Session defaults → Execution → Computer use**.
 - **Computer use** card: last on the page. It omits card/row explanatory copy
   and the static scope note; controls, platform and permission status, errors,
   and the missing-model hint remain unchanged.
+- **Agent memory** switch, in the Execution card under Scheduled tasks.
+  Persists as optional `AppSettings.agentMemoryEnabled`, off when absent. Off
+  is the pre-feature state exactly: no helper process, nothing registered in
+  pi's MCP config, nothing written to disk. On starts the local stdio memory
+  server for the app's lifetime, records that server as the single
+  `pi-desktop-agent-memory` entry in the user's pi MCP config (a malformed
+  config is skipped, never rewritten), and lets the `memory_*` /
+  `session_search` tools answer from Markdown memory plus the host's read-only
+  transcript index. Turning it off removes the entry and stops the process but
+  keeps the memory files, so re-enabling restores the same facts.
 - The **Command shell** row in Session defaults uses the host-discovered catalog of native
   PowerShell 5.1, PowerShell 7, cmd, Git Bash, and Bash with IDs
   `windows-powershell`, `windows-pwsh`, `cmd`, `git-bash`, and

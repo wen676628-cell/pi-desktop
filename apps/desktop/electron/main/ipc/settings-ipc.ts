@@ -5,6 +5,7 @@ import type { IpcRegistrar } from "./types";
 import type { LiveCallService } from "../live-voice/call-service";
 import type { AppSettings } from "@pi-desktop/shared";
 import { currentSystemProxyRelayUrl } from "../network-proxy";
+import { applyAgentMemory } from "../agent-memory";
 
 export type SettingsIpcDependencies = {
   registrar: IpcRegistrar;
@@ -97,6 +98,13 @@ export function registerSettingsIpc({
     if (typeof (validatedSettings as { preventScreenSleep?: unknown })
       .preventScreenSleep === "boolean") {
       applyPreventScreenSleep(validatedSettings as { preventScreenSleep: boolean });
+    }
+    if (typeof (validatedSettings as { agentMemoryEnabled?: unknown })
+      .agentMemoryEnabled === "boolean") {
+      applyAgentMemory(
+        (validatedSettings as { agentMemoryEnabled: boolean }).agentMemoryEnabled,
+        dataDir,
+      );
     }
     await applyNetworkProxyFromAppSettings(validatedSettings);
     if (sidecar) {

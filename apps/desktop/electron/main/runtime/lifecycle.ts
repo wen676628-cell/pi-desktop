@@ -19,6 +19,7 @@ import type { Logger } from "../logger";
 import type { PluginRuntime } from "../plugin-runtime";
 import type { RuntimeState } from "./context";
 import { syncPluginDisplayLocale } from "../plugin-display-locale";
+import { applyAgentMemory } from "../agent-memory";
 import { RuntimeSupervisor } from "@pi-desktop/host-runtime";
 
 type RestartKind = "host" | "sidecar";
@@ -233,8 +234,13 @@ export function createRuntimeLifecycle({
     // settings; this keeps a host that boots without that write honest.
     await syncPluginDisplayLocale(runtimeState.host, getDisplayLocale());
     try {
-      const stored = await runtimeState.host!.call("settings.get");
+      const stored = await runtimeState.host!.call<
+        { agentMemoryEnabled?: unknown } & Record<string, unknown>
+      >("settings.get");
       await applyNetworkProxyFromAppSettings(stored);
+      // Agent memory is off unless the stored switch says otherwise; while on
+      // the server runs and pi's MCP config points at it.
+      applyAgentMemory(stored.agentMemoryEnabled === true, dataDir);
     } catch {
       await applyNetworkProxyFromAppSettings({ mode: "system" });
     }

@@ -62,6 +62,9 @@ test("startup plugin restore notifies the renderer after every enabled plugin lo
       schemaTooNewOf: () => null,
     },
     "../plugin-display-locale": { syncPluginDisplayLocale: async () => {} },
+    // Boot applies the stored agent-memory switch; the stub keeps this test on
+    // the plugin-restore contract instead of spawning a helper process.
+    "../agent-memory": { applyAgentMemory() {} },
     "@pi-desktop/host-runtime": {
       RuntimeSupervisor: class {
         superviseRestart() {
