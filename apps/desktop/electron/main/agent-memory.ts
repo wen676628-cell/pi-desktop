@@ -16,9 +16,13 @@ import { spawn as nodeSpawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
+import { syncPiMemoryRegistration, type MemoryMcpLaunch } from "./agent-memory-registration";
 import { getModuleDirectory } from "./module-path";
 
 const MEMORY_ENTRY_NAME = "pi-desktop-agent-memory";
+
+/** Host data file that owns the transcript index the server reads. */
+const HOST_DB_FILE = "pi.sqlite";
 
 const spawnImpl: typeof nodeSpawn = nodeSpawn;
 
@@ -35,21 +39,41 @@ function serverScriptFor(): string {
   return join(getModuleDirectory(import.meta.url), "..", "agent-memory", "server.mjs");
 }
 
-function serverEnv(memoryRoot: string): NodeJS.ProcessEnv {
+function serverEnv(memoryRoot: string, dataDir: string): NodeJS.ProcessEnv {
   // No credential literals; the server is config-by-env only (ADR §2). The
-  // memory root and empty cwd travel as env vars, never as command text.
+  // memory root, the session cwd and the host transcript index travel as env
+  // vars, never as command text.
   return {
     ...process.env,
     ELECTRON_RUN_AS_NODE: "1",
     AGENT_MEMORY_DIR: memoryRoot,
     AGENT_MEMORY_CWD: "",
+    // The host owns the transcript index; the server reads it read-only and
+    // never takes a second copy of session history.
+    AGENT_MEMORY_SOURCES: JSON.stringify([
+      { backend: "pi", db: join(dataDir, HOST_DB_FILE) },
+    ]),
   };
 }
 
 /**
- * Spawn the memory server if enabled and not already running.
+ * Apply the stored switch: run the server while it is on and keep pi's MCP
+ * config pointing at it. Both halves are idempotent, so boot and every
+ * settings write can call this.
+ *
+ * `dataDir` is the host data root, where the transcript index lives.
  */
-export function ensureMemoryServer(enabled: boolean): void {
+export function applyAgentMemory(enabled: boolean, dataDir: string): void {
+  ensureMemoryServer(enabled, dataDir);
+  const launch = enabled ? memoryRegistration(dataDir) : null;
+  const result = syncPiMemoryRegistration(enabled, launch);
+  if (result === "failed" || result === "skipped-malformed") {
+    console.warn(`agent-memory: pi MCP registration ${result}`);
+  }
+}
+
+/** Spawn the memory server if enabled and not already running. */
+function ensureMemoryServer(enabled: boolean, dataDir: string): void {
   if (!enabled) {
     stopMemoryServer();
     return;
@@ -62,7 +86,7 @@ export function ensureMemoryServer(enabled: boolean): void {
   const script = serverScriptFor();
   if (!existsSync(script)) return;
   const child: ChildProcess = spawnImpl(process.execPath, [script], {
-    env: serverEnv(memoryRoot),
+    env: serverEnv(memoryRoot, dataDir),
     stdio: ["pipe", "pipe", "pipe"],
     // Arguments stay literal; this launch never needs a Windows shell shim
     // because both the command (Electron binary) and the argument (constant
@@ -83,20 +107,14 @@ export function stopMemoryServer(): void {
   activeServer = null;
 }
 
-/** The registration payload for the user's pi MCP config, when enabled. */
-export function memoryRegistration(): {
-  name: string;
-  command: string;
-  args: string[];
-  env: NodeJS.ProcessEnv;
-} | null {
+/** The launch payload pi's MCP config needs, when the server script exists. */
+export function memoryRegistration(dataDir: string): MemoryMcpLaunch | null {
   const script = serverScriptFor();
   if (!existsSync(script)) return null;
   return {
-    name: MEMORY_ENTRY_NAME,
     command: process.execPath,
     args: [script],
-    env: serverEnv(memoryRootFor()),
+    env: serverEnv(memoryRootFor(), dataDir),
   };
 }
 
