@@ -464,6 +464,14 @@ Card order is **Session defaults → Execution → Computer use**.
   `session_search` tools answer from Markdown memory plus the host's read-only
   transcript index. Turning it off removes the entry and stops the process but
   keeps the memory files, so re-enabling restores the same facts.
+  While the switch is on, a **Memory usage** card follows it: one row per
+  scope with its entry count and budget, an over-budget badge instead of a
+  silent trim, and Export… / Import… / Refresh. Export writes a plain JSON
+  package through the native save dialog; import validates the package shape
+  first, then merges with oldest-first budgets and keeps tombstoned entries
+  out. Device-local memory is never exported. There is no clear-index action:
+  the read-only search index belongs to the host and is rebuilt by the host,
+  so the panel has nothing of its own to clear.
 - The **Command shell** row in Session defaults uses the host-discovered catalog of native
   PowerShell 5.1, PowerShell 7, cmd, Git Bash, and Bash with IDs
   `windows-powershell`, `windows-pwsh`, `cmd`, `git-bash`, and
