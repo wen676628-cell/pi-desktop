@@ -19,6 +19,7 @@ import type { Logger } from "../logger";
 import type { PluginRuntime } from "../plugin-runtime";
 import type { RuntimeState } from "./context";
 import { syncPluginDisplayLocale } from "../plugin-display-locale";
+import { currentBuildChannel } from "../build-channel";
 import { applyAgentMemory } from "../agent-memory";
 import { RuntimeSupervisor } from "@pi-desktop/host-runtime";
 
@@ -218,7 +219,9 @@ export function createRuntimeLifecycle({
   const bootBackends = async (): Promise<void> => {
     mkdirSync(join(dataDir, "logs"), { recursive: true });
     logger.app("lifecycle", "info", "app boot " + APP_NAME + " " + APP_VERSION, {
-      data: { protocolVersion: PROTOCOL_VERSION },
+      // The channel belongs in the first line of every log: a bug report that
+      // says "Dev build" cannot be triaged against the stable lane by mistake.
+      data: { protocolVersion: PROTOCOL_VERSION, channel: currentBuildChannel() },
     });
     try {
       await startHost();

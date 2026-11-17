@@ -36,6 +36,9 @@ export function AboutSettings({
         <div className="settings-about-hero-meta">
           protocol {version?.protocolVersion} · host {version?.hostVersion}
         </div>
+        {version?.channel === "dev" ? (
+          <div className="settings-about-hero-meta">{t("settings.aboutDevBuild")}</div>
+        ) : null}
       </div>
       <UpdatesRow
         currentVersion={version?.version}

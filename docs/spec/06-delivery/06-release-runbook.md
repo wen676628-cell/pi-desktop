@@ -597,6 +597,25 @@ The Windows `dist:win` command runs `scripts/build-desktop-release.mjs`,
 which invokes electron-builder once for NSIS and once for ZIP so each package
 gets the correct updater distribution marker.
 
+### Dev-channel builds (fork)
+
+`dist:win:dev`, `dist:mac:dev`, and `dist:linux:dev` pass `--channel dev` to the
+same script, which packages the build as `PI-Desktop Dev` with appId
+`net.aiuo.pi-desktop.dev`, `PI-Desktop-Dev-*` artifact names, and
+`piChannel = "dev"` in the packaged package.json. `--dry-run` prints the
+electron-builder invocations instead of running them, which is how the flags are
+verified without a full build; an unknown channel is rejected before any
+packaging starts.
+
+The channel, never the version string, decides the update lane: a Dev build sets
+`allowPrerelease = true` and so is offered `vX.Y.Z-beta.N` releases, while a
+stable or RC install keeps `allowPrerelease = false` and graduates to the newest
+stable release. The channel also travels into the About panel ("Dev build"),
+`app.getVersion`, the bug-report environment line, and the first boot log line, so
+a report can never be triaged against the wrong lane. Dev builds keep their own
+`userData` and data root (see `03-runtime/04-data-storage.md`), which is why a
+Dev and a stable install can run side by side.
+
 The macOS packages include `bin/pi-desktop-host-core` built for their runner
 architecture; the Linux packages do the same on their native x64 and arm64
 runners; Windows includes `bin/pi-desktop-host-core.exe`. Signing, rollback,
