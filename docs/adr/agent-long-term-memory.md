@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposed
+Accepted — server and tools (#50), switch and pi registration (#51, #56),
+host-index `session_search` (#56), and the usage/export/import panel (#57).
 
 ## Context
 

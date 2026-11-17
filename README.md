@@ -61,6 +61,17 @@ Fork-specific modules (LSP diagnostics host, trusted-renderer IPC gate, OS-wrapp
 
 See [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md) for per-release details, and [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md) for how upstream changes are absorbed.
 
+### Dev builds
+
+Pre-release testing ships as a parallel **PI-Desktop Dev** channel — not a different build of the same install.
+
+- **Side by side.** A Dev build has its own app id (`net.aiuo.pi-desktop.dev`), its own program name and shortcuts, its own profile directory, and its own data root, so it neither collides with a running stable install nor writes the database stable is reading.
+- **Choose once.** On first launch a Dev build asks whether to keep its data separate (the default) or share the stable installation's data — useful for reproducing a bug against real sessions, which is why the dialog names that path and asks you to quit stable first. The answer is remembered; a shared root that later disappears falls back to the Dev folder instead of refusing to start.
+- **Beta update lane.** Dev builds follow pre-releases (`vX.Y.Z-beta.N`) through the in-app updater, while stable and RC installs keep following the newest stable release.
+- **Say which build you are.** About shows a *Dev build* line, the bug-report environment includes it, and the first log line records the channel, so a report is never triaged against the wrong lane.
+- **Get it.** Pre-release tags appear on the [Releases](https://github.com/wen676628-cell/pi-desktop/releases) page marked as pre-releases.
+- **Build it.** `pnpm --filter @pi-desktop/desktop dist:win:dev` (also `dist:mac:dev`, `dist:linux:dev`) packages the Dev channel; `--dry-run` prints the electron-builder invocations instead of running them.
+
 ---
 
 ## Why PI-Desktop?

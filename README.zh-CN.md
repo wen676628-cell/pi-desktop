@@ -129,6 +129,17 @@ fork 专属模块（LSP 诊断宿主、受信任渲染进程 IPC 门禁、OS 包
 
 各版本详细变更见 [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)，上游变更的吸收方式见 [docs/fork-sync-strategy.md](docs/fork-sync-strategy.md)。
 
+### 开发版（Dev 构建）
+
+预发布测试以并行的 **PI-Desktop Dev** 通道发布——不是同一份安装的另一个版本。
+
+- **可并行安装。** 开发版有独立的应用 id（`net.aiuo.pi-desktop.dev`）、独立的程序名与快捷方式、独立的 profile 目录与数据根，既不会与正在运行的正式版抢锁，也不会写正式版正在读的数据库。
+- **只问一次。** 首次启动会询问数据是**独立存放**（默认）还是**与正式版共享**——共享适合对着真实会话复现问题，因此对话框会直接写出该路径并提示先退出正式版。选择会被记住；共享根之后若消失，会回落到开发版自己的目录，而不是拒绝启动。
+- **beta 更新通道。** 开发版通过应用内更新跟踪预发布版本（`vX.Y.Z-beta.N`），正式版与 RC 仍只跟踪最新的正式发布。
+- **说清自己是谁。** 关于页显示 *开发版构建* 一行，问题反馈的环境信息会带上它，启动日志第一行记录通道，报告不会被误按正式版归属。
+- **获取。** 预发布标签出现在 [Releases](https://github.com/wen676628-cell/pi-desktop/releases) 页并标记为 pre-release。
+- **自行构建。** `pnpm --filter @pi-desktop/desktop dist:win:dev`（另有 `dist:mac:dev`、`dist:linux:dev`）打包开发版通道；`--dry-run` 只打印 electron-builder 调用而不执行。
+
 ---
 
 ## 插件不是附加功能，而是工作台的一部分
