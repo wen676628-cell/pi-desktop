@@ -115,8 +115,8 @@ test("updater gates delivery mode by platform and delivery policy", () => {
   assert.match(updaterSource, /if \(!preferenceChanged\) return/);
   assert.match(
     updaterSource,
-    /allowPrerelease = false/,
-    "prerelease installs must still track the stable GitHub latest release",
+    /allowPrerelease = currentBuildChannel\(\) === "dev"/,
+    "a stable or RC install must still track the stable GitHub release while the Dev channel opts into prereleases",
   );
   assert.match(updaterSource, /quitAndInstall/);
   assert.match(

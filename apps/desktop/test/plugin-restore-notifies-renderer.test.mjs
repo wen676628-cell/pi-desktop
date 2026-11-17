@@ -65,6 +65,9 @@ test("startup plugin restore notifies the renderer after every enabled plugin lo
     // Boot applies the stored agent-memory switch; the stub keeps this test on
     // the plugin-restore contract instead of spawning a helper process.
     "../agent-memory": { applyAgentMemory() {} },
+    // Boot records the build channel on its first log line; a stable stub keeps
+    // this test on the plugin-restore contract.
+    "../build-channel": { currentBuildChannel: () => "stable" },
     "@pi-desktop/host-runtime": {
       RuntimeSupervisor: class {
         superviseRestart() {

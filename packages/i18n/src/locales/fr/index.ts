@@ -2073,6 +2073,7 @@ sklm: {
     "providerRemoved": "Fournisseur d'IA supprimé",
     "application": "Application",
     "aboutVersion": "Version {{version}}",
+"aboutDevBuild": "Version Dev · application et données séparées de la version stable",
     "logs": "Journaux",
     "openLogs": "Ouvrir les journaux",
     "feedback": "Signaler un problème",

@@ -39,6 +39,9 @@ function startupFixture(startFailure, isQuitting = () => false) {
     isQuitting,
     async syncPluginDisplayLocale() {},
     getDisplayLocale: () => "en",
+    // Boot records the build channel on its first log line; the fixture is a
+    // stable build so the assertion stays about the Host retry contract.
+    currentBuildChannel: () => "stable",
     async applyNetworkProxyFromAppSettings() {},
     // The sidecar is lazy now: boot must not reach it, so the boundary moves
     // to the first step that runs after the Host retry.

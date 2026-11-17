@@ -6,6 +6,8 @@ import type { SessionThinkingLevel } from "./models.js";
 export type AppVersionInfo = {
   name: string;
   version: string;
+  /** Build channel (`dev` for a Dev-channel package); absent means stable. */
+  channel?: "stable" | "dev";
   protocolVersion: number;
   hostProtocolVersion?: number;
   hostVersion?: string;

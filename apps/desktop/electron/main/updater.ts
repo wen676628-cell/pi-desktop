@@ -30,6 +30,7 @@ import {
   type UpdateState,
 } from "@pi-desktop/shared";
 import type { Logger } from "./logger";
+import { currentBuildChannel } from "./build-channel";
 import { parseAllowedExternalUrl } from "./safe-open-external";
 import {
   defaultUpdateCacheBasePath,
@@ -466,9 +467,14 @@ export class AppUpdaterController {
     // electron-updater defaults allowPrerelease=true when the installed
     // version has a prerelease component (e.g. 0.2.0-rc.6). That pins the
     // GitHub provider to the same custom channel ("rc") and never offers a
-    // newer stable release such as 0.2.2. Always track GitHub's latest
-    // stable release so RC installs can graduate to stable.
-    this.autoUpdater.allowPrerelease = false;
+    // newer stable release such as 0.2.2. A stable or RC install therefore
+    // always tracks GitHub's latest stable release so it can graduate.
+    //
+    // A Dev-channel build is the opposite case: it is built to test the next
+    // prerelease (`vX.Y.Z-beta.N`), so it opts into them explicitly. The
+    // channel, not the version string, decides this (ADR
+    // dev-channel-parallel-installation).
+    this.autoUpdater.allowPrerelease = currentBuildChannel() === "dev";
     // Only automatic mode may install on quit; manual mode never hands an
     // installer a no-install/portable directory.
     this.autoUpdater.logger = {

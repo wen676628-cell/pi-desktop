@@ -2073,6 +2073,7 @@ sklm: {
     "providerRemoved": "AI-Anbieter entfernt",
     "application": "Anwendung",
     "aboutVersion": "Version {{version}}",
+"aboutDevBuild": "Dev-Build · eigene App und eigene Daten neben der stabilen Version",
     "logs": "Protokolle",
     "openLogs": "Protokolle öffnen",
     "feedback": "Ein Problem melden",

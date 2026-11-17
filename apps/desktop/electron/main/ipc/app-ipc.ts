@@ -13,6 +13,7 @@ import {
 } from "@pi-desktop/shared";
 import { discoverExternalConfig, globalInstructionPath } from "@pi-desktop/agent-runtime";
 import type { HostProcess } from "../host-process";
+import { currentBuildChannel } from "../build-channel";
 import type { AppUpdaterController } from "../updater";
 import type { IpcRegistrar } from "./types";
 
@@ -60,6 +61,7 @@ export function registerAppIpc({
       : undefined;
     const url = buildBugReportUrl({
       version: APP_VERSION,
+      channel: currentBuildChannel(),
       platform: process.platform,
       arch: process.arch,
       protocolVersion: PROTOCOL_VERSION,
@@ -80,6 +82,7 @@ export function registerAppIpc({
     return {
       name: APP_NAME,
       version: APP_VERSION,
+      channel: currentBuildChannel(),
       protocolVersion: PROTOCOL_VERSION,
       hostProtocolVersion: hostVersion?.protocolVersion,
       hostVersion: hostVersion?.version,

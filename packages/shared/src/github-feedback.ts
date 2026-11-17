@@ -10,6 +10,8 @@ export const GITHUB_ISSUE_ORIGIN = "https://github.com";
 
 export type FeedbackIssueContext = {
   version: string;
+  /** Only present for a Dev-channel build; stable reports keep reading plainly. */
+  channel?: "stable" | "dev";
   platform: string;
   arch: string;
   protocolVersion: number;
@@ -33,7 +35,8 @@ export function osLabelForFeedback(platform: string): FeedbackOsLabel {
 
 export function formatFeedbackEnvironment(info: FeedbackIssueContext): string {
   const host = info.hostVersion?.trim() || "unknown";
-  return `PI-Desktop ${info.version} · ${info.platform} ${info.arch} · protocol ${info.protocolVersion} · host ${host}`;
+  const build = info.channel === "dev" ? " · Dev build" : "";
+  return `PI-Desktop ${info.version}${build} · ${info.platform} ${info.arch} · protocol ${info.protocolVersion} · host ${host}`;
 }
 
 export function buildBugReportUrl(info: FeedbackIssueContext): string {
