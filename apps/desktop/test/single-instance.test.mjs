@@ -24,7 +24,10 @@ const bundledEntry = await build({
     builder.onResolve({ filter: /^@pi-desktop\/shared$/ }, () => ({ path: fileURLToPath(new URL("../../../packages/shared/src/protocol.ts", import.meta.url)) }));
     builder.onResolve({ filter: /^electron$|^\.\/(logger|main-process-errors|index|storage\/bootstrap)$/ }, (args) => ({ path: args.path, namespace: "installation-test-boundary" }));
     builder.onLoad({ filter: /.*/, namespace: "installation-test-boundary" }, (args) => {
-      if (args.path === "electron") return { contents: "export const app = globalThis.__installationHarness.app; export class BrowserWindow { static getAllWindows() { return []; } }" };
+      if (args.path === "electron") return { contents: "export const app = globalThis.__installationHarness.app; export class BrowserWindow { static getAllWindows() { return []; } } export const dialog = { showMessageBox: async () => ({ response: 0 }) };" };
+      // The Dev-channel planner must not run in these lock/override tests.
+      if (args.path === "./build-channel") return { contents: 'export function currentBuildChannel() { return "stable"; }' };
+      if (args.path === "@pi-desktop/i18n") return { contents: 'export const catalogs = {}; export function resolveLocale() { return "en"; }' };
       if (args.path === "./logger") return { contents: "export function ignoreBrokenStdio() {}" };
       if (args.path === "./main-process-errors") return { contents: "export function installMainProcessErrorHandlers() {}" };
       if (args.path === "./storage/bootstrap") return { contents: "export function prepareStorage(root, override) { return globalThis.__installationHarness.prepareStorage(root, override); }" };
