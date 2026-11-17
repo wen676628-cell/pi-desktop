@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted — implemented in four steps: packaging identity (#54), isolated
+profile and first-launch data choice (#58), channel updater lane and
+diagnostics (#59), and the bilingual README section.
 
 ## Context
 
