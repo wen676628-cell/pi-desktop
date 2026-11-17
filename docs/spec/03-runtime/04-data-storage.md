@@ -126,6 +126,27 @@ A managed relaunch discards only the environment root published for child servic
 through the internal `--pi-managed-storage` argument before reacquiring the lock.
 The location is machine-local and never part of cloud configuration sync.
 
+### Dev-channel profile and first-launch data choice (fork)
+
+A packaged build carrying `piChannel = "dev"` keeps its profile separate exactly
+like an unpackaged development host: `userData` is `PI-Desktop Dev` and the default
+data root is `~/.pi-desktop-dev`, so a Dev install and a stable install each hold
+their own single-instance lock and never write the same database. `PI_DESKTOP_DATA_DIR`
+and `--user-data-dir` still win over both, which is how the harnesses isolate runs.
+
+On its first launch a Dev build that finds a stable installation asks once where
+its data should live. **Keep separate** (the default) uses the Dev root above.
+**Share with stable** points the Dev build at stable's data root — resolved from
+stable's `storage-location.json` when it is readable and its directory exists,
+otherwise `~/.pi-desktop` — and copies, migrates, and deletes nothing on its own.
+The answer is stored as `{version, choice, chosenAt}` in `dev-sharing.json` under
+the Dev `userData`; a marker that is missing, malformed, or from another version
+counts as never asked, so the dialog cannot be skipped by a torn write. A shared
+root that later disappears falls back to the Dev root instead of refusing to
+start. The dialog names the shared path and says stable should be closed first,
+because two host-core instances over one SQLite database is exactly the
+divergence the development split exists to prevent.
+
 Migration is cold: the accepted settings action journals pending work, then uses
 existing ordered shutdown to settle turns/outbox and stop writers. The next launch
 points Chromium `sessionData` at a temporary directory, then opens only a

@@ -100,7 +100,9 @@ test("a development build takes its own userData before the single-instance lock
   // Electron asks for it; otherwise a running packaged app refuses the lock and
   // `pnpm dev` quits on arrival.
   const pathsSource = await readMainModule("data-paths.ts");
-  const apply = installationSource.indexOf("applyDevelopmentUserData(app, isDevelopmentBuild)");
+  // A packaged Dev-channel build needs the same split, so the verdict the
+  // profile follows is "isolated profile" rather than "development build".
+  const apply = installationSource.indexOf("applyDevelopmentUserData(app, usesIsolatedProfile)");
   const setName = installationSource.indexOf("app.setName(APP_NAME)");
   const lock = installationSource.indexOf("app.requestSingleInstanceLock()");
 
@@ -127,11 +129,19 @@ test("a development build takes its own userData before the single-instance lock
     /const isDevelopmentBuild =\s*\n?\s*process\.env\.PI_DESKTOP_DEV === "1" \|\| !app\.isPackaged;/,
   );
   assert.ok(development > 0 && development < apply);
+  // The profile verdict adds the Dev channel and is still reached before the
+  // name the lock path derives from.
+  const isolated = installationSource.indexOf("const usesIsolatedProfile =");
+  assert.ok(isolated > development && isolated < apply);
+  assert.match(
+    installationSource,
+    /isDevelopmentBuild \|\| currentBuildChannel\(\) === "dev"/,
+  );
 });
 
 test("main resolves one data directory and publishes it to everything below", () => {
-  assert.match(installationSource, /const defaultDataDir = desktopDataDir\(isDevelopmentBuild\);/);
-  assert.match(entrySource, /prepareStorage\(defaultDataDir, !singleInstanceRequired\)/);
+  assert.match(installationSource, /const defaultDataDir = desktopDataDir\(usesIsolatedProfile\);/);
+  assert.match(entrySource, /prepareStorage\(dataDir, !singleInstanceRequired\)/);
   assert.match(indexSource, /const storage = getStorageBootstrap\(\);/);
   assert.match(indexSource, /const dataDir = storage\.preferences\.roots\.data;/);
   // The plugin runtime resolves this root from the environment rather than
