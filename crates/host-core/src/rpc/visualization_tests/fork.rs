@@ -3,6 +3,12 @@
 
 use super::*;
 
+/// Guard for the fixture's own Bash call, not a product budget: the tool
+/// already stops itself at `DEFAULT_BASH_TIMEOUT_MS`. A cold Windows runner
+/// spends that window starting PowerShell for the first time, so a tight guard
+/// here fails the test for reasons the tool cannot influence.
+const FIXTURE_BASH_GUARD: Duration = Duration::from_secs(30);
+
 #[tokio::test]
 async fn rpc_bash_created_visualization_survives_relocation_fork_and_source_deletion() {
     let data = tempfile::tempdir().unwrap();
@@ -35,7 +41,7 @@ async fn rpc_bash_created_visualization_survives_relocation_fork_and_source_dele
         _ => format!("mkdir -p '{}'; printf '%s' '<p>chart</p>' > '{}'", quote(&root), quote(&chart)),
     };
     let result = tokio::time::timeout(
-        Duration::from_secs(10),
+        FIXTURE_BASH_GUARD,
         handle_request(
             state.clone(),
             "tools.execute",
