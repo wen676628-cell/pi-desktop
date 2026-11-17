@@ -14,6 +14,7 @@ import { SettingsMenuSelect } from "../../../components/settings/SettingsMenuSel
 import { ComputerUseSettings } from "../computer-use/ComputerUseSettings";
 import { GoalBudgetSettingsRow } from "../../modes/GoalBudgetSettingsRow";
 import { CommandShellRow, SettingsCard, SettingsRow } from "../primitives";
+import { AgentMemoryPanel } from "../AgentMemoryPanel";
 
 export function AgentBehaviorSettings({
   settings,
@@ -92,6 +93,10 @@ export function AgentBehaviorSettings({
           />
         </SettingsRow>
       </SettingsCard>
+
+      {/* Usage and transfer stay next to the switch so "on" and "what it holds"
+          are the same decision surface. */}
+      {settings.agentMemoryEnabled === true ? <AgentMemoryPanel /> : null}
 
       <ComputerUseSettings t={t} settings={settings} saveSettings={saveSettings} />
     </div>

@@ -218,10 +218,17 @@ export type ImportSource = "claude-code" | "opencode" | "codex" | "pi";
 // One definition, owned by the shared package (the host and sidecar use the
 // same shape); re-exported so existing renderer imports keep working.
 import type {
+  AgentMemoryImportResult,
+  AgentMemoryStatus,
   ModelConfigImportCandidate,
   ModelConfigImportSource,
 } from "@pi-desktop/shared";
-export type { ModelConfigImportCandidate, ModelConfigImportSource };
+export type {
+  AgentMemoryImportResult,
+  AgentMemoryStatus,
+  ModelConfigImportCandidate,
+  ModelConfigImportSource,
+};
 
 export interface ImportCandidate {
   source: ImportSource;
@@ -944,6 +951,13 @@ export const api = {
   runImportModelConfigs: (items: ModelConfigImportCandidate[]) =>
     invoke<ImportRunResult>(IPC.invoke.modelConfigImportRun, items),
   getSettings: () => invoke<AppSettings>(IPC.invoke.settingsGet).then(normalizeSettings),
+  agentMemoryStatus: () => invoke<AgentMemoryStatus>(IPC.invoke.agentMemoryStatus),
+  exportAgentMemory: () =>
+    invoke<{ saved: boolean; entries: number }>(IPC.invoke.agentMemoryExport),
+  importAgentMemory: () =>
+    invoke<{ imported: false } | { imported: true; result: AgentMemoryImportResult }>(
+      IPC.invoke.agentMemoryImport,
+    ),
   getStorageInfo: () => invoke<StorageInfo>(IPC.invoke.storageGet),
   chooseStorageDirectory: () => invoke<string | null>(IPC.invoke.storageChoose),
   migrateStorage: (input: { path: string; language: string }) =>

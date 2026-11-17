@@ -27,6 +27,7 @@ import { registerProviderIpc } from "./provider-ipc";
 import { registerScheduledIpc } from "./scheduled-ipc";
 import { registerSessionIpc } from "./session-ipc";
 import { registerSettingsIpc } from "./settings-ipc";
+import { registerAgentMemoryIpc } from "./memory-ipc";
 import { registerStorageIpc } from "../storage/ipc";
 import { registerConfigSyncIpc } from "./config-sync-ipc";
 import { registerBackgroundTasksIpc } from "./background-tasks-ipc";
@@ -350,6 +351,8 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     resolveEffectiveCommandShell,
     liveCallService,
   });
+
+  registerAgentMemoryIpc({ registrar });
   registerConfigSyncIpc({
     registrar,
     getHost,
