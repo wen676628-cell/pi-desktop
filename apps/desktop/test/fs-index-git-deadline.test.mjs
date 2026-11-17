@@ -34,11 +34,26 @@ test("workspace file index and search fall back at the Git deadline without a cl
     new Function("require", "module", "exports", result.outputFiles[0].text)(require, module, module.exports);
     t.mock.timers.enable({ apis: ["setTimeout"] });
     let listing;
-    const pending = module.exports.getWorkspaceFileIndex(root).then(value => { listing = value; });
+    let failure;
+    const pending = module.exports.getWorkspaceFileIndex(root).then(
+      value => { listing = value; },
+      error => { failure = error; },
+    );
     await ready;
     t.mock.timers.tick(4000);
-    for (let tick = 0; tick < 20 && !listing; tick++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(killed, true);
+    // The Git deadline was the only mocked timer this test needs. Restoring
+    // real timers lets the fallback walk settle on I/O completion instead of
+    // a fixed spin count: how many event-loop turns a `readdir` needs is a
+    // property of the machine, not of the contract under test, and a budgeted
+    // spin failed on slower runners with the file index still pending.
+    t.mock.timers.reset();
+    const settled = await Promise.race([
+      pending.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 5000)),
+    ]);
+    assert.ok(settled, "the file index must settle after the Git deadline");
+    assert.equal(failure, undefined, "the file index must not reject");
     assert.ok(listing, "the file index must settle without Git close");
     assert.deepEqual(listing.entries, [{ path: "note.txt", kind: "file" }]);
     await pending;
