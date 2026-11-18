@@ -57,7 +57,14 @@ function fixture(steps: Step[], retryAfterMs = 1) {
                 index: 0,
                 id: `call_${requests}`,
                 type: "function",
-                function: { name: "Read", arguments: '{"path":"fixture.txt"}' },
+                // A distinct path per round: the runtime refuses a third
+                // byte-identical inspection call in one turn, and this fixture
+                // exists to prove provider recovery across many rounds, not to
+                // re-read one file eleven times.
+                function: {
+                  name: "Read",
+                  arguments: `{"path":"fixture-${requests}.txt"}`,
+                },
               },
             ],
           }
