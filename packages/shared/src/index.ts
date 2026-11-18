@@ -16,6 +16,7 @@ export * from "./fuzzy.js";
 export * from "./mcp-import.js";
 export * from "./mcp-catalog.js";
 export * from "./mcp-catalog-builtin.js";
+export * from "./output-styles.js";
 export {
   registryIdFromName,
   argumentValues,

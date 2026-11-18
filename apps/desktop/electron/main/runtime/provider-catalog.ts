@@ -3,6 +3,7 @@ import {
   SESSION_THINKING_LEVELS,
   defaultCommandShellForPlatform,
   isCommandShellId,
+  isOutputStyleId,
   normalizeRadialMenuPreferences,
   radialMenuWriteError,
   validateNetworkProxy,
@@ -221,6 +222,14 @@ export function createProviderCatalogRuntime({
     ) {
       throw Object.assign(new Error("defaultCommandShell is invalid"), {
         errorCode: ErrorCodes.COMMAND_SHELL_INVALID,
+      });
+    }
+    if (
+      (value as { outputStyle?: unknown }).outputStyle !== undefined &&
+      !isOutputStyleId((value as { outputStyle?: unknown }).outputStyle)
+    ) {
+      throw Object.assign(new Error("outputStyle is invalid"), {
+        errorCode: ErrorCodes.INVALID_PARAMS,
       });
     }
     if (

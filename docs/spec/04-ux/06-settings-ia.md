@@ -483,6 +483,17 @@ Card order is **Session defaults → Execution → Computer use**.
   the default, fallback, and no-effective-shell cases. A Bash turn verifies its
   pinned ID/dialect before execution. The row renders the same menu select as
   the permission mode beside it and the Appearance pickers.
+- The **Communication style** row sits in Session defaults under the command
+  shell. It persists as optional `AppSettings.outputStyle` with four values —
+  `default`, `concise`, `explanatory`, `mentor` — and any unknown or absent
+  value reads as `default`. The choice appends one instruction block to the
+  composed system prompt (concise: no preamble and no restating; explanatory:
+  an `## Insight` note after substantive steps; mentor: reasoning and
+  trade-offs, recommendation left to the user). It applies to sessions started
+  after the change, like the command shell; an open session keeps the style it
+  started with. A custom `SYSTEM.md` replaces the persona and not this block:
+  the style is the user's choice, not the product's voice. The runtime rejects
+  a write whose value is outside the four.
 - Context management has **no card and no controls** (D200 / ADR 0061, kept by
   D203 / ADR 0064). Automatic protection is always on and its budgets and
   retention limits are derived from the active model's window, so there is

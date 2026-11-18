@@ -199,6 +199,7 @@ import {
   defaultCommandShellForPlatform,
   IPC,
   isCommandShellId,
+  isOutputStyleId,
   normalizeBuiltinMode,
   normalizeLargePasteThreshold,
   normalizeMode,
@@ -509,6 +510,11 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     jevEnabled: (settings as { jevEnabled?: unknown }).jevEnabled === true,
     agentMemoryEnabled:
       (settings as { agentMemoryEnabled?: unknown }).agentMemoryEnabled === true,
+    // Omit rather than emit `undefined`: a read-modify-write round trip must not
+    // carry an absent key back into the validator.
+    ...(isOutputStyleId((settings as { outputStyle?: unknown }).outputStyle)
+      ? { outputStyle: (settings as { outputStyle: AppSettings["outputStyle"] }).outputStyle }
+      : {}),
     defaultCommandShell: isCommandShellId(
       (settings as { defaultCommandShell?: unknown }).defaultCommandShell,
     )
@@ -649,6 +655,14 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     typeof settings.scheduledTasksEnabled !== "boolean"
   ) {
     throw Object.assign(new Error("scheduledTasksEnabled is invalid"), {
+      errorCode: "INVALID_PARAMS",
+    });
+  }
+  if (
+    settings.outputStyle !== undefined &&
+    !isOutputStyleId(settings.outputStyle)
+  ) {
+    throw Object.assign(new Error("outputStyle is invalid"), {
       errorCode: "INVALID_PARAMS",
     });
   }

@@ -8447,3 +8447,24 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   lesson that truncating a model's planned calls is what produces retry loops.
 - Prompt text is not an interface (D194), so no ADR. See
   `03-runtime/02-agent-runtime.md` §7 and E2E-147.
+
+## 2026-11-18 — Communication style is a selectable prompt block (D687)
+
+- After the base prompt learned to serve writing requests as writing, the
+  remaining complaint was tone, not routing: the same model reads as terse for
+  some users and as a lecture for others, and the only knob was editing
+  `SYSTEM.md`.
+- `AppSettings.outputStyle` adds four values — `default`, `concise`,
+  `explanatory`, `mentor` — rendered as a Session defaults row and appended to
+  the composed prompt after the persona. `default` adds nothing; unknown or
+  absent values read as `default`; a write outside the four is rejected by both
+  validators.
+- The block sits in the non-replaceable operational group: a custom `SYSTEM.md`
+  replaces the persona, never the user's chosen style.
+- It applies to sessions started after the change, like the command shell. An
+  open session keeps the style it started with rather than paying a prompt-cache
+  rewrite mid-conversation.
+- Adapted from Reasonix Studio's `internal/runtime/outputstyle`, which keeps
+  style separate from persona for exactly this reason. Prompt text is not an
+  interface (D194), so no ADR; see `03-runtime/02-agent-runtime.md` §7 and
+  `04-ux/06-settings-ia.md`.

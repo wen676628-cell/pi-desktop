@@ -87,6 +87,7 @@ import type {
   AgentPromptAttachment,
   AskToolQuestion,
   AskToolRequest,
+  OutputStyleId,
   AskToolResolution,
   ContextCompactionFallback,
   CommandShellOption,
@@ -217,6 +218,7 @@ import {
   retainedUserMessageBudget,
   type ContextBudget,
 } from "./context-budget.js";
+import { outputStylePrompt } from "./output-styles.js";
 import { PathMutex } from "./path-lock.js";
 import { DelegationChainRegistry } from "./delegation-chain.js";
 import {
@@ -1038,6 +1040,8 @@ export type AgentRuntimeOptions = {
   thinkingLevel: SessionThinkingLevel;
   /** Persisted opt-in for retrying transient provider failures until success. */
   infiniteProviderRetry?: boolean;
+  /** Communication style chosen in settings (ADR output-style-selection). */
+  outputStyle?: OutputStyleId;
   /**
    * Fast mode for main turns, already resolved by the launcher from the
    * session `/fast` switch and the model binding's opt-in (ADR 0334).
@@ -1971,6 +1975,8 @@ export class DesktopAgentRuntime {
   private providerRateLimitRetryAttempt = 0;
   /** Opt-in mode removes only the retry-count ceiling; abort and backoff stay intact. */
   private infiniteProviderRetry = false;
+  /** Communication style for this session's prompt (ADR output-style-selection). */
+  private readonly outputStyle: OutputStyleId | undefined;
   private fastMode = false;
   private jevApiKey?: string;
   private computerUseEnabled = false;
@@ -2086,6 +2092,7 @@ export class DesktopAgentRuntime {
     this.provider = opts.provider;
     this.thinkingLevel = clampThinkingLevel(opts.provider, opts.thinkingLevel);
     this.infiniteProviderRetry = opts.infiniteProviderRetry === true;
+    this.outputStyle = opts.outputStyle;
     this.fastMode = opts.fastMode === true;
     this.jevApiKey = opts.jevApiKey;
     this.computerUseEnabled = opts.computerUseEnabled === true;
@@ -2141,6 +2148,10 @@ export class DesktopAgentRuntime {
     // SYSTEM.md must not remove (tool guidance, delegation, scratch, skills).
     const defaultSystemPromptParts = [
       DEFAULT_RUNTIME_SYSTEM_PROMPT,
+      // The chosen communication style (ADR output-style-selection). It sits in
+      // the operational block, not the persona, so selecting a style and
+      // replacing the persona stay independent knobs.
+      ...(outputStylePrompt(this.outputStyle) ? [outputStylePrompt(this.outputStyle)!] : []),
       // Task routing: the persona is one sentence, so the rules that decide
       // *how* a request is served live here, where a custom SYSTEM.md cannot
       // remove them.
