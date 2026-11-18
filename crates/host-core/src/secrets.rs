@@ -68,6 +68,27 @@ impl SecretStore {
         Ok(Self { dir, key, backend })
     }
 
+    /// Drop the launch key from this process's environment.
+    ///
+    /// Electron hands the wrapped key to the host through `PI_DESKTOP_SECRET_KEY_B64`
+    /// and the host reads it exactly once, in [`SecretStore::open`]. Everything
+    /// the host spawns afterwards — language servers, `git`, `curl`, scheduled
+    /// runs — inherits `std::env`, and none of them has any business holding the
+    /// master key that decrypts every provider secret. Call this immediately
+    /// after the store is opened and before the first child process exists.
+    ///
+    /// The key stays in this process's memory for the lifetime of the store;
+    /// only the inherited copy is removed.
+    pub fn scrub_launch_env() {
+        // `set_var`/`remove_var` are unsafe in the 2024 edition; this is the
+        // single-threaded startup path, before any thread reads the environment.
+        #[allow(unused_unsafe)]
+        unsafe {
+            std::env::remove_var(ENV_KEY);
+            std::env::remove_var(ENV_BACKEND);
+        }
+    }
+
     /// Which store encrypted this process's secrets.
     pub fn backend(&self) -> &str {
         &self.backend
@@ -280,6 +301,31 @@ mod tests {
             std::env::remove_var(ENV_KEY);
             std::env::remove_var(ENV_BACKEND);
         }
+    }
+
+    #[test]
+    fn the_launch_key_is_read_once_and_then_removed_from_the_environment() {
+        let _env = env_lock();
+        let dir = tempfile::tempdir().expect("tempdir");
+        let key = [9u8; 32];
+        unsafe {
+            std::env::set_var(ENV_KEY, B64.encode(key));
+            std::env::set_var(ENV_BACKEND, "safeStorage");
+        }
+        let store = SecretStore::open(dir.path()).expect("open store");
+        assert_eq!(store.backend(), "safeStorage");
+
+        SecretStore::scrub_launch_env();
+        assert!(
+            std::env::var_os(ENV_KEY).is_none(),
+            "a child process spawned later must not inherit the master key",
+        );
+        assert!(std::env::var_os(ENV_BACKEND).is_none());
+
+        // The store itself keeps working: encryption uses the copy it read.
+        let secret_ref = secret_ref_for_provider("scrubbed");
+        store.set(&secret_ref, "kept").expect("set secret");
+        assert_eq!(store.get(&secret_ref).expect("get"), Some("kept".into()));
     }
 
     #[test]
