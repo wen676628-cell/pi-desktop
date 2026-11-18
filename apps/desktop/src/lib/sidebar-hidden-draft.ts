@@ -48,7 +48,10 @@ export function sessionIsHiddenDraft(
   session: Pick<SessionSummary, "messageCount" | "worktree" | "scheduledRun">,
   context: HiddenDraftContext,
 ): boolean {
-  if (session.messageCount > 0) return false;
+  // Only a count we actually have may hide a row: a summary without the field
+  // (older payload, remote shape) is treated as "has content". Hiding a real
+  // conversation is far worse than listing an empty one.
+  if (typeof session.messageCount !== "number" || session.messageCount > 0) return false;
   if (context.running || context.submitted === true) return false;
   if ((context.liveMessageCount ?? 0) > 0) return false;
   if (context.pinned) return false;

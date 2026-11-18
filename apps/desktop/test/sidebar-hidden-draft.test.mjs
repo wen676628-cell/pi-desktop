@@ -28,6 +28,13 @@ test("a session with content is never hidden", () => {
   assert.equal(sessionIsHiddenDraft({ messageCount: 3 }, shown), false);
 });
 
+test("a summary without a message count is treated as having content", () => {
+  // An older payload or a remote summary may omit the field; hiding a real
+  // conversation is worse than listing an empty one.
+  assert.equal(sessionIsHiddenDraft({}, shown), false);
+  assert.equal(sessionIsHiddenDraft({ messageCount: undefined }, shown), false);
+});
+
 test("a submit in flight or a live turn keeps the row visible", () => {
   assert.equal(sessionIsHiddenDraft(draft, { ...shown, submitted: true }), false);
   assert.equal(sessionIsHiddenDraft(draft, { ...shown, liveMessageCount: 1 }), false);
