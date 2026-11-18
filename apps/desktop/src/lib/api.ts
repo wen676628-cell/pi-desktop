@@ -510,9 +510,11 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     jevEnabled: (settings as { jevEnabled?: unknown }).jevEnabled === true,
     agentMemoryEnabled:
       (settings as { agentMemoryEnabled?: unknown }).agentMemoryEnabled === true,
-    outputStyle: isOutputStyleId((settings as { outputStyle?: unknown }).outputStyle)
-      ? ((settings as { outputStyle: AppSettings["outputStyle"] }).outputStyle)
-      : undefined,
+    // Omit rather than emit `undefined`: a read-modify-write round trip must not
+    // carry an absent key back into the validator.
+    ...(isOutputStyleId((settings as { outputStyle?: unknown }).outputStyle)
+      ? { outputStyle: (settings as { outputStyle: AppSettings["outputStyle"] }).outputStyle }
+      : {}),
     defaultCommandShell: isCommandShellId(
       (settings as { defaultCommandShell?: unknown }).defaultCommandShell,
     )
@@ -657,7 +659,7 @@ export function validateSettingsWrite(settings: AppSettings): AppSettings {
     });
   }
   if (
-    Object.prototype.hasOwnProperty.call(settings, "outputStyle") &&
+    settings.outputStyle !== undefined &&
     !isOutputStyleId(settings.outputStyle)
   ) {
     throw Object.assign(new Error("outputStyle is invalid"), {

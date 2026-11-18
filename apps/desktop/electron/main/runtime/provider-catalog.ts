@@ -225,7 +225,7 @@ export function createProviderCatalogRuntime({
       });
     }
     if (
-      Object.prototype.hasOwnProperty.call(value, "outputStyle") &&
+      (value as { outputStyle?: unknown }).outputStyle !== undefined &&
       !isOutputStyleId((value as { outputStyle?: unknown }).outputStyle)
     ) {
       throw Object.assign(new Error("outputStyle is invalid"), {

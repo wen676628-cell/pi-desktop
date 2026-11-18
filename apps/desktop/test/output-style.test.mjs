@@ -67,7 +67,9 @@ test("both settings validators reject an unknown style", () => {
     "apps/desktop/electron/main/runtime/provider-catalog.ts",
   ]) {
     const source = read(path);
-    assert.match(source, /hasOwnProperty\.call\([^)]*"outputStyle"\)/, path);
+    // `undefined` counts as absent: a read-modify-write round trip must not
+    // fail validation just because normalize omitted the key.
+    assert.match(source, /\.outputStyle !== undefined/, path);
     assert.match(source, /isOutputStyleId/, path);
     assert.match(source, /outputStyle is invalid/, path);
   }
