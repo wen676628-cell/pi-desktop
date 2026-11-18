@@ -24,7 +24,7 @@ import {
 } from "./model-capabilities.js";
 
 describe("builtin subagent documents", () => {
-  it("parse into read-only delegates plus a write-capable fixer", async () => {
+  it("parse into read-only delegates plus the write-capable ones", async () => {
     const { definitions, diagnostics } = await loadSubagentDefinitions(null);
 
     expect(diagnostics).toEqual([]);
@@ -34,6 +34,9 @@ describe("builtin subagent documents", () => {
       "test-runner",
       "fixer",
       "ui-designer",
+      "translator",
+      "copy-editor",
+      "critic",
     ]);
     expect(definitions).toHaveLength(BUILTIN_SUBAGENT_DOCUMENTS.length);
     // The turn cap is gone (ADR 0253): no builtin document declares one.
@@ -45,17 +48,33 @@ describe("builtin subagent documents", () => {
       expect(definition.description.length).toBeGreaterThan(20);
       expect(definition.prompt.length).toBeGreaterThan(50);
     }
-    // Only `fixer` and `ui-designer` may write to the workspace; every other
-    // builtin is read-only (the shell delegate reads and runs commands, which
-    // is a permission prompt, not an edit). Builtins inherit the parent
-    // session's permission mode unless they explicitly opt into a narrower
-    // scope.
+    // Coding and writing delegates that produce a file may write to the
+    // workspace; every other builtin is read-only (the shell delegate reads and
+    // runs commands, which is a permission prompt, not an edit). Builtins
+    // inherit the parent session's permission mode unless they explicitly opt
+    // into a narrower scope.
     const mutating = definitions.filter(
       (definition) =>
         definition.tools.includes("Write") || definition.tools.includes("Edit"),
     );
-    expect(mutating.map((d) => d.name)).toEqual(["fixer", "ui-designer"]);
+    expect(mutating.map((d) => d.name)).toEqual([
+      "fixer",
+      "ui-designer",
+      "translator",
+      "copy-editor",
+    ]);
     expect(mutating[0]?.permission ?? "inherit").toBe("inherit");
+    // The editor's presets and these documents describe the same delegate; a
+    // mismatch means the template pre-fills a prompt the runtime will not run.
+    const { SUBAGENT_PRESETS } = await import("@pi-desktop/shared");
+    for (const preset of SUBAGENT_PRESETS) {
+      const document = definitions.find((definition) => definition.name === preset.id);
+      expect(document, preset.id).toBeDefined();
+      expect(document!.description).toBe(preset.description);
+      expect(document!.tools).toEqual([...preset.tools]);
+      expect(document!.prompt.trim()).toBe(preset.body.trim());
+    }
+
     const explorer = definitions.find((definition) => definition.name === "explorer")!;
     expect(explorer.tools).toEqual(["Read", "Glob", "Grep", "Bash"]);
     expect(subagentCanMutate(explorer)).toBe(true);

@@ -802,9 +802,13 @@ system while preserving their different data ownership:
   search field with a clear affordance, the selected-project picker, and the
   page's primary actions right-aligned. Subagents omits the filter and the
   picker because it is global-only, keeping only search and its actions.
-  The panel still uses two in-panel groups: **Built-in** (the five shipped
-  definitions `explorer`, `code-reviewer`, `test-runner`, `fixer`, and
-  `ui-designer`) and **Global** (`~/.agents/subagents`, user-owned). An enabled
+  The panel still uses two in-panel groups: **Built-in** (the eight shipped
+  definitions `explorer`, `code-reviewer`, `test-runner`, `fixer`,
+  `ui-designer`, plus the writing roles `translator`, `copy-editor` and
+  `critic`) and **Global** (`~/.agents/subagents`, user-owned). The writing
+  roles keep the same rules as the coding ones: `translator` and `copy-editor`
+  may write, `critic` is read-only, and each one's prompt is the document the
+  runtime executes. An enabled
   user document of the same name shadows that builtin in the Task catalog, so
   the Built-in row is omitted while the user row remains. A disabled user
   document of the same name leaves the builtin in the catalog (and on the
