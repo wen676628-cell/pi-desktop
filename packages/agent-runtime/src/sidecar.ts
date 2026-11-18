@@ -19,6 +19,7 @@ import {
   type RuntimeProviderConfig,
 } from "./runtime.js";
 import type { PluginSkillDef } from "./plugin-skills-prompt.js";
+import { isOutputStyleId } from "@pi-desktop/shared";
 import type { SessionMessageOrigin, TrustedExtensionSpec } from "@pi-desktop/shared";
 import type { ProjectInstructions } from "./project-instructions.js";
 import type { CustomSystemPrompt } from "./custom-system-prompt.js";
@@ -118,6 +119,8 @@ type RuntimeParams = {
   turnId?: string;
   thinkingLevel?: SessionThinkingLevel;
   infiniteProviderRetry?: boolean;
+  /** Communication style resolved by Electron main from settings. */
+  outputStyle?: unknown;
   /** Session `/fast` switch AND the model's opt-in, resolved by main (ADR 0334). */
   fastMode?: boolean;
   /** Opt-in TypeSafe classifier credential resolved by Electron main. */
@@ -327,6 +330,7 @@ async function runtimeFor(
     commandShell: params.commandShell,
     thinkingLevel,
     infiniteProviderRetry: params.infiniteProviderRetry === true,
+    ...(isOutputStyleId(params.outputStyle) ? { outputStyle: params.outputStyle } : {}),
     fastMode: params.fastMode === true,
     jevApiKey: params.jevApiKey,
     history,

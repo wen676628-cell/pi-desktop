@@ -7,7 +7,7 @@
  * presentation and composer input, which are now the Conversation
  * destination.
  */
-import type { AppSettings, GlobalPermissionMode } from "@pi-desktop/shared";
+import type { AppSettings, GlobalPermissionMode, OutputStyleId } from "@pi-desktop/shared";
 import { useTranslation } from "react-i18next";
 import { SettingsToggle } from "../../../components/ui";
 import { SettingsMenuSelect } from "../../../components/settings/SettingsMenuSelect";
@@ -55,6 +55,25 @@ export function AgentBehaviorSettings({
           />
         </SettingsRow>
         <CommandShellRow settings={settings} saveSettings={saveSettings} />
+        <SettingsRow
+          title={t("settings.outputStyle")}
+          description={t("settings.outputStyleDesc")}
+        >
+          <SettingsMenuSelect
+            className="settings-output-style-select"
+            label={t("settings.outputStyle")}
+            value={settings.outputStyle ?? "default"}
+            onChange={(style) =>
+              void saveSettings({ outputStyle: style as OutputStyleId })
+            }
+            options={[
+              { id: "default", label: t("settings.outputStyleDefault") },
+              { id: "concise", label: t("settings.outputStyleConcise") },
+              { id: "explanatory", label: t("settings.outputStyleExplanatory") },
+              { id: "mentor", label: t("settings.outputStyleMentor") },
+            ]}
+          />
+        </SettingsRow>
       </SettingsCard>
 
       <SettingsCard title={t("settings.execution")}>

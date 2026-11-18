@@ -6,6 +6,7 @@ import type { NetworkPolicySettings } from "../network-policy.js";
 import type { ContextCompactionSettings } from "./sessions.js";
 import type { Mode } from "./common.js";
 import type { GlobalPermissionMode } from "./permissions.js";
+import type { OutputStyleId } from "../output-styles.js";
 import type { PluginMarketSource } from "./plugins.js";
 import type { SpeechSettings } from "./speech.js";
 import type { ThinkingLevel } from "./models.js";
@@ -105,6 +106,11 @@ export type AppSettings = {
    * nothing registered and nothing written.
    */
   agentMemoryEnabled?: boolean;
+  /**
+   * How the agent writes to the user (ADR output-style selection). Absent means
+   * `default`: no style block beyond the base prompt's own rules.
+   */
+  outputStyle?: OutputStyleId;
   /** Configured command shell for the agent Bash protocol tool. */
   defaultCommandShell?: CommandShellId;
   /** @deprecated Retained for one-time migration into pi.prompt-enhancement. */

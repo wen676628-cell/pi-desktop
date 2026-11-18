@@ -1632,6 +1632,17 @@ Required behaviours, each one an observed failure inverted:
   report the exact failure and continue with whatever is unblocked
 - independent tool calls are issued together instead of serialized into a tour
 
+A selected communication style (`AppSettings.outputStyle`) adds one block right
+after the persona and before those task rules: `concise` (no preamble, no
+restating, no summary of what was just done), `explanatory` (an `## Insight`
+note naming the trade-off after a substantive step), or `mentor` (reasoning and
+trade-offs, recommendation left to the user). `default` adds nothing. The block
+lives in the operational group, so a custom `SYSTEM.md` replaces the persona
+without discarding the user's chosen style. The runtime receives the value from
+the launcher (`sidecarParams.outputStyle`, validated there against the four
+ids) and composes it at session start, so a change applies to sessions started
+afterwards rather than rewriting an open session's prompt.
+
 It also states a search preference that matches the host-side budgets in
 [16-tool-result-limits](16-tool-result-limits.md): scope `Read`, `Grep`, and
 `Glob` with their own parameters instead of hand-rolling `cat`/`sed`/`grep`/

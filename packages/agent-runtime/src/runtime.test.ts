@@ -195,6 +195,7 @@ function createRuntime(
     turnId: string;
     host: { call: ReturnType<typeof vi.fn>; onNotification?: ReturnType<typeof vi.fn> };
     onEvent: (envelope: unknown) => void;
+    outputStyle: import("@pi-desktop/shared").OutputStyleId;
   }> = {},
 ) {
   return new DesktopAgentRuntime({
@@ -206,6 +207,7 @@ function createRuntime(
     provider: overrides.provider ?? provider,
     commandShell: overrides.commandShell ?? commandShell,
     thinkingLevel: overrides.thinkingLevel ?? "medium",
+    outputStyle: overrides.outputStyle,
     history: overrides.history,
     compaction: overrides.compaction,
     compactionSettings: overrides.compactionSettings,
@@ -1479,6 +1481,29 @@ describe("custom system prompt files (issue #542)", () => {
     expect(prompt).toContain("You are operating in Agent mode.");
 
     await runtime.dispose();
+  });
+
+  it("composes the chosen output style into the prompt", async () => {
+    const concise = createRuntime({ outputStyle: "concise" });
+    const concisePrompt = promptOf(concise);
+    expect(concisePrompt).toContain("Communication style — Concise");
+    expect(concisePrompt).not.toContain("Communication style — Explanatory");
+    await concise.dispose();
+
+    const none = createRuntime();
+    expect(promptOf(none)).not.toContain("Communication style —");
+    await none.dispose();
+
+    // The style is the user's choice, not the product persona: replacing the
+    // persona keeps the style block.
+    const custom = createRuntime({
+      outputStyle: "mentor",
+      customSystemPrompt: { replace: persona },
+    });
+    const customPrompt = promptOf(custom);
+    expect(customPrompt).not.toContain("You are PI-Desktop");
+    expect(customPrompt).toContain("Communication style — Mentor");
+    await custom.dispose();
   });
 
   it("appends APPEND_SYSTEM.md after the base prompt and before project instructions", async () => {
