@@ -229,9 +229,16 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
    */
   const assertTrustedSender = (event: IpcMainInvokeEvent): void => {
     if (!isTrustedRenderer(event.sender)) {
-      throw Object.assign(new Error("sender is not a trusted renderer"), {
-        errorCode: "PERMISSION_DENIED",
-      });
+      // Name the surface that was rejected. A bare "not trusted" is
+      // indistinguishable from a permission-model bug, and the usual cause is a
+      // new window that loads the general preload without registering — which
+      // is invisible everywhere except in this rejection.
+      const url = typeof event.sender.getURL === "function" ? event.sender.getURL() : "";
+      const surface = url ? ` (${url.slice(0, 200)})` : "";
+      throw Object.assign(
+        new Error(`sender is not a trusted renderer${surface}`),
+        { errorCode: "PERMISSION_DENIED" },
+      );
     }
   };
   const handle = (channel: string, fn: (...args: any[]) => Promise<any>) => {

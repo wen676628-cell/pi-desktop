@@ -139,6 +139,10 @@ impl AppState {
             Err(error) => tracing::error!(%error, "mode run recovery failed"),
         }
         let secrets = SecretStore::open(data_dir)?;
+        // The key arrived through the environment; remove it before anything
+        // this host spawns can inherit it (language servers, git, curl,
+        // scheduled runs). The store keeps its own copy for this process.
+        SecretStore::scrub_launch_env();
         // The marketplace channel is read before the manager builds its first
         // catalog, so a source configured for networks without GitHub access
         // applies on launch instead of only after a manual refresh.

@@ -54,6 +54,7 @@ Each ADR includes:
 | dev-channel-parallel-installation | [Dev-channel parallel installation](dev-channel-parallel-installation.md) | Accepted |
 | acp-client-backend-research | [ACP client backend research](acp-client-backend-research.md) | Proposed (research) |
 | agent-long-term-memory | [Agent long-term memory](agent-long-term-memory.md) | Accepted |
+| rpc-module-decomposition | [RPC module decomposition strategy](rpc-module-decomposition.md) | Accepted |
 | 0001 | Use Electron as the desktop shell | Accepted |
 | 0002 | Use the pi Agent Harness as the kernel | Accepted |
 | 0003 | Hybrid runtime — Rust host core + Node pi agent sidecar | Superseded in part |
