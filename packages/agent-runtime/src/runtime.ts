@@ -219,6 +219,11 @@ import {
   type ContextBudget,
 } from "./context-budget.js";
 import { outputStylePrompt } from "./output-styles.js";
+import {
+  createToolRepeatGuard,
+  repeatRefusalMessage,
+  type ToolRepeatGuard,
+} from "./tool-repeat-guard.js";
 import { PathMutex } from "./path-lock.js";
 import { DelegationChainRegistry } from "./delegation-chain.js";
 import {
@@ -1901,6 +1906,8 @@ export class DesktopAgentRuntime {
   private batchPlanner: BatchPlanner;
   /** Complete tool registry; only the active subset is sent to the provider. */
   private toolCatalog = new Map<string, AgentTool>();
+  /** Refuses a third identical inspection call within one turn. */
+  private readonly toolRepeatGuard: ToolRepeatGuard = createToolRepeatGuard();
   /** Tools intentionally omitted from the initial provider request. */
   private deferredToolNames = new Set<string>();
   /** Deferred tools activated for this runtime and declaration epoch. */
@@ -3582,6 +3589,17 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
               )
           : undefined;
         const isBash = toolName === "Bash";
+        // A third byte-identical inspection call in one turn is refused before
+        // any host work: its result is already in context and the model is
+        // circling (see tool-repeat-guard). Any mutating tool resets the budget,
+        // so re-reading a file after an edit stays legal.
+        const repeat = this.toolRepeatGuard.check(toolName, params);
+        if (!repeat.allowed) {
+          throw Object.assign(
+            new Error(repeatRefusalMessage(toolName, repeat.limit)),
+            { errorCode: "TOOL_REPEAT_REFUSED" },
+          );
+        }
         const timeoutMs = isBash ? commandTimeoutMs(params) : undefined;
         let progress = "";
         let progressDirty = false;
@@ -9399,6 +9417,9 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
     if (this.disposed) throw new Error("runtime disposed");
     this.assertNotRunning();
     const turnId = durableTurnId?.trim() || randomUUID();
+    // A new user turn gets a clean repeat budget: the same file may legitimately
+    // be re-read in the next turn.
+    this.toolRepeatGuard.reset();
     return this.trackTurnOperation(turnId, async () => {
       try { return await this.promptTurn(input, userMessageId, turnId); }
       finally {

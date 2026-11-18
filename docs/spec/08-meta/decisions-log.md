@@ -8507,3 +8507,25 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 - Adapted from PiDeck's practice of shipping task-specialized builtin agents
   (translator, helper, diagnostics, plugin-dev) instead of one universal
   persona.
+
+## 2026-11-18 — Refuse a third identical inspection call in one turn (D690)
+
+- The reported symptom was an article session that "kept calling tools". The
+  local transcript shows the shape: 838 tool calls in one session, with runs of
+  ten `Read` calls in a row and edit/read cycles whose inputs never changed. The
+  model was not learning anything between calls — the same tool result was
+  already in context.
+- The runtime now refuses the **third byte-identical** `Read`/`Grep`/`Glob` call
+  within one user turn (`TOOL_REPEAT_REFUSED`) with a message that states the
+  call already ran twice, names the redundancy, and tells the model to change
+  the arguments, change approach, answer with what it has, or report the
+  blocker.
+- Scope is intentionally narrow: mutating and shell tools are exempt (re-running
+  tests after an edit is legitimate), any `Write`/`Edit`/`Bash` resets the
+  counters so a re-read after an edit stays legal, and a new turn resets them.
+- The check lives in the tool executor in front of `tools.execute`. An earlier
+  attempt wrapped the tool objects; it broke fourteen ordering and batching
+  tests because mutation ownership and permission logic key on tool identity.
+- Same family as the ZCode lesson recorded in D686: a local policy that silently
+  drops a model's calls produces retries, so the refusal is explicit and
+  corrective instead of silent.
