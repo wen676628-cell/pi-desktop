@@ -2941,11 +2941,13 @@ identify the platform validation still needed.
 - **Expected**: When the group's latest session is non-empty, the empty home
   replaces the previous transcript on the first frame, then one new row is
   persisted from `session.create` (without a blocking `session.list` /
-  `session.get` round-trip) and selected before the first send. Once that row
-  is the group's latest empty session, repeated clicks select it (or do
-  nothing when already selected) and create no duplicate. Sending updates the
-  same row's title and message count; the project and temporary groups keep
-  independent slots.
+  `session.get` round-trip) and selected before the first send. That empty slot
+  takes **no sidebar row**: the open chat surface is the new-task view, so the
+  group keeps listing only sessions with content. Once the slot is the group's
+  latest empty session, repeated clicks select it (or do nothing when already
+  selected) and create no duplicate. Sending updates the same row's title and
+  message count and the row appears in the sidebar at that point; the project
+  and temporary groups keep independent slots.
 - **Specs linked**: `03-runtime/01-ipc-protocol.md`,
   `04-ux/08-component-spec.md` (§11), `04-ux/01-ui-ia.md` (§5)
 - **Acceptance**: C (history integrity and group-scoped creation)
@@ -2959,13 +2961,16 @@ identify the platform validation still needed.
 - **Preconditions**: One project group contains an older empty session and a
   newer session with messages; a separate project and the Temporary group are
   available.
-- **Steps**: 1) Click New Task in the first project group. 2) Confirm the new
-  row is created even though the older empty session remains. 3) Click New Task
-  again before sending. 4) Repeat in the second project and Temporary group.
-- **Expected**: The first click creates a new durable row because only the
-  latest session is considered and it is non-empty. The second click reuses
-  that newly created empty row. The older empty row remains untouched, while
-  each other group gets its own independent empty-slot decision.
+- **Steps**: 1) Click New Task in the first project group. 2) Confirm no new
+  sidebar row appears even though the older empty session is also unlisted.
+  3) Click New Task again before sending. 4) Repeat in the second project and
+  Temporary group, then send one message in each.
+- **Expected**: The first click creates a new durable slot because only the
+  latest session is considered and it is non-empty, but neither empty slot gets
+  a sidebar row. The second click reuses that newly created empty slot. The
+  older empty session remains untouched, while each other group gets its own
+  independent empty-slot decision; each row appears once its own group's slot
+  receives a message.
 - **Specs linked**: `03-runtime/01-ipc-protocol.md`, `04-ux/01-ui-ia.md`,
   `04-ux/08-component-spec.md`
 - **Acceptance**: C (session creation and grouping), F (persistence)
