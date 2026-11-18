@@ -8487,3 +8487,23 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 - Follow-ups: section-level "revise with the agent" (needs a composer prefill
   path that is session-scoped rather than queue-scoped), and a document-first
   tab that opens straight into the rail.
+
+## 2026-11-18 — Writing roles join the builtin subagents (D689)
+
+- The base prompt learned to serve writing as writing and gained a style knob,
+  but there was still no way to hand a document task to a delegate with a
+  writer's brief: the shipped subagents were all engineering roles.
+- Three builtins join the catalog: `translator` (structure and terminology
+  intact, writes the translated file), `copy-editor` (tightens prose in the
+  author's voice, may edit in place) and `critic` (read-only adversarial reader
+  that names the weakest claim and the paragraph a reader quits on). Each is a
+  Markdown document like the coding ones, with the same permission inheritance.
+- The editor's presets and the runtime documents had silently drifted (the
+  shipped `explorer` and `code-reviewer` descriptions carried Bash-availability
+  sentences the presets lacked, and `code-reviewer`'s body had an extra bullet).
+  A lockstep test now compares name, description, tools and prompt body for
+  every preset, which surfaced the drift; the presets were aligned to the
+  documents rather than the other way round, because the document is what runs.
+- Adapted from PiDeck's practice of shipping task-specialized builtin agents
+  (translator, helper, diagnostics, plugin-dev) instead of one universal
+  persona.

@@ -119,6 +119,9 @@ export const SUBAGENT_PRESET_COPY = {
   "test-runner": { name: "presetTestRunnerName", desc: "presetTestRunnerDesc" },
   fixer: { name: "presetFixerName", desc: "presetFixerDesc" },
   "ui-designer": { name: "presetUiDesignerName", desc: "presetUiDesignerDesc" },
+  translator: { name: "presetTranslatorName", desc: "presetTranslatorDesc" },
+  "copy-editor": { name: "presetCopyEditorName", desc: "presetCopyEditorDesc" },
+  critic: { name: "presetCriticName", desc: "presetCriticDesc" },
 } as const satisfies Record<SubagentPreset["id"], { name: string; desc: string }>;
 
 /** Full i18n path for a preset chip, or null when `id` is blank / unknown. */

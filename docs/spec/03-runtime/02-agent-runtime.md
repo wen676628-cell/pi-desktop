@@ -971,10 +971,14 @@ transient and never restored into durable UI messages or transcript records.
 The session Agent can hand separable pieces of work to delegates that run in
 their own context, in the background, and report back on demand.
 
-**Catalog.** Definitions are Markdown documents from two sources: the five
-builtins shipped inline in `agent-runtime` (`explorer`, `code-reviewer`,
-`test-runner`, `fixer`, `ui-designer`) and the global user documents under
-`~/.agents/subagents/*.md`. There is no project-level subagent directory and
+**Catalog.** Definitions are Markdown documents from two sources: the eight
+builtins shipped inline in `agent-runtime` — the coding five (`explorer`,
+`code-reviewer`, `test-runner`, `fixer`, `ui-designer`) and the writing three
+(`translator`, `copy-editor`, `critic`) — and the global user documents under
+`~/.agents/subagents/*.md`. The editor's "start from template" presets are the
+same documents: a lockstep test compares name, description, tools and prompt
+body for every preset, so a template can never pre-fill a prompt the runtime
+will not run. There is no project-level subagent directory and
 `.pi/agents` is not scanned for capabilities. User documents are filtered by
 the app-local enabled state before they reach the loader, and the shipped
 builtins are filtered by that same app-local state inside it (ADR 0270).
