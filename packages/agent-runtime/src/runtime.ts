@@ -2141,10 +2141,19 @@ export class DesktopAgentRuntime {
     // SYSTEM.md must not remove (tool guidance, delegation, scratch, skills).
     const defaultSystemPromptParts = [
       DEFAULT_RUNTIME_SYSTEM_PROMPT,
+      // Task routing: the persona is one sentence, so the rules that decide
+      // *how* a request is served live here, where a custom SYSTEM.md cannot
+      // remove them.
+      "Task types: serve the request as what it is. Coding work gets the editing and verification rules below. A writing request (article, documentation, summary, email, script, copy) is answered with the text itself in the user's language and voice, honouring their audience, length, structure, and constraints: do not tour the repository, do not open workspace files the user did not name, and do not turn the request into a task list. A question that the conversation already answers gets a direct answer with no tool ceremony.",
       // Workflow rules.
       "Complete the requested work and relevant checks without expanding scope. Preserve unrelated user changes. Resolve recoverable blockers yourself.",
       // Visibility rules.
-      "Before each tool batch, briefly state its purpose. Keep the user informed during long work. The final response must state the outcome, verification, and remaining blockers. Never claim actions or checks you did not perform.",
+      "Say what a tool batch is for in one short line only when the request does not make it obvious; never narrate routine reads, re-list what you are about to do, or restate the user's request. During long work, report decisions and blockers rather than every call. The final response states the outcome, the checks you actually ran, and remaining blockers. Never claim actions or checks you did not perform.",
+      // Stopping and failure recovery: a retried call that cannot succeed is
+      // what makes a turn look like it is circling.
+      "Stopping: finish when the deliverable exists and the checks that matter have run. Do not re-read a file you just wrote, do not re-verify text you already produced, and do not retry a failed or denied tool call unchanged: adjust the approach once, and if it still fails, report the exact failure and continue with whatever is unblocked.",
+      // Parallelism: independent reads should not be serialized into a tour.
+      "Independent tool calls may run in one batch; issue them together instead of serializing read-only work.",
       // File-reference formatting.
       "File references: when citing a real local file, use a Markdown link with a short label and the exact absolute path as its target, e.g. [file.ts](/workspace/src/file.ts:42). Add only a starting line (:line or :line:column) when useful; do not use ranges or GitHub #L anchors. Wrap destinations containing spaces in angle brackets. Do not wrap links in backticks or use file://, vscode://, or https:// for local files. Link only to existing files in the accessible workspace; mention unavailable or other-repository files as code text.",
       // Delegation steering (ADR 0089).
@@ -2161,7 +2170,7 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
           ]
         : []),
       // Editing workflow.
-      `Editing workflow: inside the advertised workspace, use Edit for small, uniquely anchored changes and Write for new files or intentional whole-file rewrites. Never modify the same path concurrently. Do not use shell apply_patch, git apply, patch, or hand-edited unified-diff files. On failure, diagnose the cause, refresh content or anchors with Read or a complete tool-provided reveal when needed, and correct the payload before retrying. After three failed edit attempts on the same path in one user turn, stop editing that path, report the exact error, and continue unblocked work. For an authorized worktree outside the advertised workspace, use a guarded, deterministic Bash edit that aborts on unexpected content, then verify the diff.`,
+      `Editing workflow: inside the advertised workspace, use Edit for small, uniquely anchored changes and Write for new files or intentional whole-file rewrites. Never modify the same path concurrently. Do not use shell apply_patch, git apply, patch, or hand-edited unified-diff files. On failure, diagnose the cause, refresh content or anchors with Read or a complete tool-provided reveal when needed, and correct the payload before retrying. After three failed edit attempts on the same path in one user turn, stop editing that path, report the exact error, and continue unblocked work. For an authorized worktree outside the advertised workspace, use a guarded, deterministic Bash edit that aborts on unexpected content, then verify the diff. Prose follows the same rule at the size it is written: one Write of a new document or an intentional rewrite, and an Edit on the passage that changed — never a sequence of small patches that re-reads the whole file between them.`,
       // Shell dialect and scratch variable are selected by host-core.
       commandShellGuidance(this.commandShell),
       // Session scratch directory (D114).

@@ -9449,9 +9449,10 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   - Bash stdout keeps its head, stderr keeps its tail, both markers name which
     end survived and the spill path, and each spill file opens with the fuller
     output.
-  - The agent answers in the language the user wrote in, precedes each tool
-    batch with a sentence about what it is doing, never leaves more than one
-    batch without new visible text, and ends with a self-contained result.
+  - The agent answers in the language the user wrote in, opens a tool batch
+    with a short line only when its purpose is not already obvious, never
+    narrates routine reads or restates the request, and ends with a
+    self-contained result.
 - **Specs linked**: `03-runtime/16-tool-result-limits.md`,
   `03-runtime/02-agent-runtime.md` §7, `08-meta/decisions-log.md` (D194, D306, D315)
 - **Acceptance**: C (chat & stream), E (tools & permissions), Quality

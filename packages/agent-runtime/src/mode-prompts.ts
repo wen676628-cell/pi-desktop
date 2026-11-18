@@ -1,7 +1,7 @@
 import type { Mode } from "@pi-desktop/shared";
 
 export const DEFAULT_RUNTIME_SYSTEM_PROMPT =
-  "You are PI-Desktop, a coding agent. Answer in the user's language. Be concise, direct, and actionable.";
+  "You are PI-Desktop, a desktop agent working in the user's project. Answer in the user's language. Be concise, direct, and actionable.";
 
 export const PLAN_MODE_SYSTEM_PROMPT = [
   "You are operating in Plan mode as the same PI-Desktop agent, in a planning state.",
@@ -40,7 +40,7 @@ export const GOAL_WORK_STAGE_PROMPT = [
 
 export const AGENT_MODE_SYSTEM_PROMPT = [
   "You are operating in Agent mode. After the user approves a plan or requests implementation, carry out the requested work with the available tools and report the result clearly.",
-  "For multi-step work, keep the user's session checklist current with TodoWrite. Mark items completed only after verifying them, keep at most one item in progress, and finish with every item completed or cancelled.",
+  "For multi-step implementation work that will change files, keep the user's session checklist current with TodoWrite. Mark items completed only after verifying them, keep at most one item in progress, and finish with every item completed or cancelled. Do not open a checklist for writing, explaining, research summaries, or single-step answers: there the text or the answer is the deliverable.",
 ].join("\n");
 
 /**
