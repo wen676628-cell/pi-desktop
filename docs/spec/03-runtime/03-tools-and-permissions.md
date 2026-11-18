@@ -230,6 +230,30 @@ settles the turn, so Stop cannot hide a write or extension action that is still
 running. Typed cancellation records include the tool name and cannot be
 inherited by a different tool that reuses the call id.
 
+### 3.1 Repeated identical inspection calls
+
+The runtime refuses a **third byte-identical** `Read`, `Grep`, or `Glob` call
+inside one user turn, before any host work, with `TOOL_REPEAT_REFUSED` and a
+model-facing message saying the call already ran twice, its result is in
+context, and the next step must change approach. Real transcripts show the
+failure this exists for: ten `Read` calls in a row, and edit/read cycles whose
+inputs never change.
+
+Scope is deliberately narrow:
+
+- only inspection tools — repeating a mutating or shell call can be legitimate
+  (running tests after an edit), and blocking it would break real work;
+- identical arguments only, compared by a key-order-independent digest, so a
+  different `offset`, pattern or path is a new call;
+- any `Write`, `Edit`, or `Bash` call resets the counters, so re-reading a file
+  after editing it starts a fresh budget;
+- a new user turn resets them too, because the same file may legitimately be
+  re-read later.
+
+The guard sits in the runtime's tool executor in front of `tools.execute`, not
+as a wrapper around the tool objects: the Agent's batching, mutation ownership
+and permission decisions key on tool identity, and a wrapper would change it.
+
 `JevClassify` is an external provider operation rather than a workspace
 execution tool. It validates its structured request, observes cancellation,
 uses a bounded provider timeout, and returns typed classifier results; it has
