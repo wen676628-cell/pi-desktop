@@ -2447,7 +2447,15 @@ sklm: {
       "reveal": "Mostrar en el Finder",
       "binary": "Archivo binario: vista previa no disponible",
       "tooLarge": "El archivo es demasiado grande para obtener una vista previa",
-      "openFailed": "No se pudo abrir el archivo con la aplicación predeterminada."
+      "openFailed": "No se pudo abrir el archivo con la aplicación predeterminada.",
+      "outline": "Esquema",
+      "outlineEmpty": "Aún no hay títulos: añade uno para crear el esquema.",
+      "outlineStats": "{{words}} palabras · {{minutes}} min de lectura",
+      "outlineSectionWords": "{{count}} palabras",
+      "outlineSectionWords_one": "1 palabra",
+      "outlineSectionWords_other": "{{count}} palabras",
+      "outlineCopy": "Copiar",
+      "outlineCopySection": "Copiar esta sección",
     }
   },
   "palette": {

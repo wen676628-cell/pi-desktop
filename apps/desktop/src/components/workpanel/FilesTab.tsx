@@ -29,7 +29,9 @@ import {
   IconExternal,
   IconFileText,
   IconFolder,
+  IconList,
 } from "../icons";
+import { DocumentOutline } from "./DocumentOutline";
 import { WorkTabEmpty } from "./WorkTabEmpty";
 
 const VIEWER_LINE_CAP = 5000;
@@ -170,6 +172,8 @@ export function FilesTab() {
   const [selectedLine, setSelectedLine] = useState<number | undefined>();
   const [file, setFile] = useState<FsReadResult | null>(null);
   const [fileError, setFileError] = useState(false);
+  // Outline rail for Markdown documents: the writing surface reading side.
+  const [showOutline, setShowOutline] = useState(false);
   const viewerBodyRef = useRef<HTMLDivElement>(null);
   const fileGeneration = useRef(0);
 
@@ -371,6 +375,7 @@ export function FilesTab() {
               setSelectedMimeType(undefined);
               setSelectedLine(undefined);
               setFile(null);
+              setShowOutline(false);
             }}
           >
             <IconChevronLeft size={14} />
@@ -379,6 +384,18 @@ export function FilesTab() {
             {selected}
           </span>
           {file && <span className="file-viewer-size">{formatSize(file.size)}</span>}
+          {file?.kind === "text" && isMarkdownPath(selected) && selectedLine === undefined ? (
+            <TooltipButton
+              type="button"
+              className={cx("icon-btn icon-btn-square", showOutline && "is-active")}
+              tooltip={t("panel.files.outline")}
+              ariaLabel={t("panel.files.outline")}
+              aria-pressed={showOutline}
+              onClick={() => setShowOutline((value) => !value)}
+            >
+              <IconList size={14} />
+            </TooltipButton>
+          ) : null}
           {!remote ? <TooltipButton
             type="button"
             className="icon-btn icon-btn-square"
@@ -398,8 +415,11 @@ export function FilesTab() {
           file.kind === "text" &&
           isMarkdownPath(selected) &&
           selectedLine === undefined ? (
-            <div className="file-viewer-markdown prose-chat">
-              <Markdown source={file.content ?? ""} baseDir={fileDirOf(selected)} />
+            <div className={cx("file-viewer-document", showOutline && "has-outline")}>
+              <div className="file-viewer-markdown prose-chat">
+                <Markdown source={file.content ?? ""} baseDir={fileDirOf(selected)} />
+              </div>
+              {showOutline ? <DocumentOutline markdown={file.content ?? ""} /> : null}
             </div>
           ) : file.kind === "text" ? (
             <HighlightedText path={selected} content={file.content ?? ""} />

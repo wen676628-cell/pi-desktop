@@ -2414,7 +2414,15 @@ aboutDevBuild: "Versão Dev · aplicativo e dados separados da versão estável"
       reveal: "Revelar no Finder",
       binary: "Arquivo binário — pré-visualização indisponível",
       tooLarge: "O arquivo é grande demais para pré-visualização",
-      openFailed: "Não foi possível abrir o arquivo com o aplicativo padrão."
+      openFailed: "Não foi possível abrir o arquivo com o aplicativo padrão.",
+      outline: "Estrutura",
+      outlineEmpty: "Ainda sem títulos — adicione um para montar a estrutura.",
+      outlineStats: "{{words}} palavras · {{minutes}} min de leitura",
+      outlineSectionWords: "{{count}} palavras",
+      outlineSectionWords_one: "1 palavra",
+      outlineSectionWords_other: "{{count}} palavras",
+      outlineCopy: "Copiar",
+      outlineCopySection: "Copiar esta seção",
     }
   },
   palette: {

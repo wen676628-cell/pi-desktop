@@ -2447,7 +2447,15 @@ sklm: {
       "reveal": "Im Finder anzeigen",
       "binary": "Binärdatei – Vorschau nicht verfügbar",
       "tooLarge": "Datei ist zu groß für die Vorschau",
-      "openFailed": "Die Datei konnte nicht mit der Standardanwendung geöffnet werden."
+      "openFailed": "Die Datei konnte nicht mit der Standardanwendung geöffnet werden.",
+      "outline": "Gliederung",
+      "outlineEmpty": "Noch keine Überschriften — eine Überschrift erzeugt die Gliederung.",
+      "outlineStats": "{{words}} Wörter · {{minutes}} Min. Lesezeit",
+      "outlineSectionWords": "{{count}} Wörter",
+      "outlineSectionWords_one": "1 Wort",
+      "outlineSectionWords_other": "{{count}} Wörter",
+      "outlineCopy": "Kopieren",
+      "outlineCopySection": "Diesen Abschnitt kopieren",
     }
   },
   "palette": {
