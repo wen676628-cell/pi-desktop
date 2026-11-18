@@ -118,6 +118,11 @@ After implementation (or alongside it):
   preconditions, steps, expected, specs, acceptance, milestone, status).
 - [ ] If a scenario was added or updated, the traceability matrix in §8 is current.
 - [ ] Unit tests added or updated when the change's risk makes them necessary.
+- [ ] A shared seam that was edited (settings shape, tool identity, session
+  summary field, i18n catalog, provider payload, persisted row) had its
+  encoders located with `git grep`, its suites run for a clean baseline before
+  the edit and again after, its compatibility rule decided first, and an
+  invariant test left behind.
 - [ ] Integration tests added or updated when an IPC/RPC contract change or
   cross-component regression risk makes them necessary.
 - [ ] The smallest necessary targeted local checks passed, or local validation

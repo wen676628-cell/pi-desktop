@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Policy-Sync: 2026-09-26.1
+Policy-Sync: 2026-11-18.1
 
 Mandatory rules for AI coding agents working in PI-Desktop.
 
@@ -617,6 +617,31 @@ Never finish the code and then argue "the change is small, skip tests."
 * UI render conditions, user input, form submission, keyboard / pointer
   interaction, focus, accessible semantics, routing, async loading, or
   error recovery on important surfaces.
+
+### Seam-first verification
+
+A *seam* is a shared invariant that other code or tests already encode: a
+settings shape, a tool object's identity, a session summary field, an i18n
+catalog, a provider payload, a persisted row. Most regressions here come from
+editing a seam and meeting its encoders for the first time through a red CI
+run.
+
+Before editing a seam:
+
+* Find the encoders: `git grep` the field or helper name across
+  `apps/desktop/test`, `packages/*/src`, and `*.test.ts`. The invariant is
+  usually written down as an assertion, a fixture, or a source-contract test.
+* Run those suites **before** the edit for a clean baseline, and again after.
+  A suite you never ran proves nothing about the seam you touched.
+* Decide the compatibility rule first: an absent value is absent, not
+  invalid; a wrapped object keeps its identity; a new field must read as the
+  old default; an unknown enum value degrades instead of throwing.
+
+Leave an invariant test behind — a lockstep test between two representations,
+a contract test pinning ordering or identity, a boundary test for `undefined`.
+Fixtures that satisfy the invariant today are not a guard: the sidebar
+fixtures and the settings round-trip payloads both looked fine until a new
+field made them invalid.
 
 If code is hard to test **because** of mixed responsibilities, I/O
 coupling, or global state, refactor per § 6 to create testable seams
