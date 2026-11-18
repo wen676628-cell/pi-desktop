@@ -1467,7 +1467,11 @@ describe("custom system prompt files (issue #542)", () => {
     expect(prompt).not.toContain("You are PI-Desktop");
     // Operational rules from the default prompt must survive the replacement.
     expect(prompt).toContain("Complete the requested work and relevant checks");
-    expect(prompt).toContain("Before each tool batch, briefly state its purpose");
+    expect(prompt).toContain("Say what a tool batch is for in one short line");
+    // Task routing and the stopping rule must survive a custom persona too:
+    // they are what keeps a writing request from being run as a coding task.
+    expect(prompt).toContain("A writing request (article, documentation, summary");
+    expect(prompt).toContain("Do not re-read a file you just wrote");
     expect(prompt).toContain("File references: when citing a real local file, use a Markdown link");
     expect(prompt).toContain("do not use ranges or GitHub #L anchors");
     expect(prompt).toContain("Do not wrap links in backticks or use file://, vscode://, or https://");
@@ -1700,9 +1704,11 @@ describe("DesktopAgentRuntime configuration matching", () => {
     const prompt = (runtime as any).agent.state.systemPrompt as string;
 
     expect(prompt).toContain("Answer in the user's language");
-    expect(prompt).toContain("Keep the user informed during long work");
+    // Progress stays visible without narrating every call: decisions and
+    // blockers, not a running commentary of reads.
+    expect(prompt).toContain("During long work, report decisions and blockers rather than every call");
     expect(prompt).toContain(
-      "The final response must state the outcome, verification, and remaining blockers",
+      "The final response states the outcome, the checks you actually ran, and remaining blockers",
     );
     expect(prompt).toContain("Resolve recoverable blockers yourself");
 

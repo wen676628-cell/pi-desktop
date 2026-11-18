@@ -1610,8 +1610,9 @@ only relevant line, and a reasoning model executed it as saying nothing at all.
 Required behaviours, each one an observed failure inverted:
 
 - answer in the language the user writes in
-- one sentence before each tool batch in the same assistant message as the
-  tool calls, and no silence longer than one tool batch or 60 seconds of work
+- one short line before a tool batch only when the request does not make the
+  batch obvious; routine reads are not narrated and the request is never
+  restated
 - anything the user asked is answered in visible text; reasoning is not shown
   to them and does not count as an answer
 - the final message is self-contained
@@ -1619,6 +1620,17 @@ Required behaviours, each one an observed failure inverted:
 - tool calls go through the native tool-call interface; a call written as prose
   (notably an OpenAI-style `multi_tool_use.parallel` wrapper) does not run, and
   the runtime logs it when a model emits one
+- the request is served as what it is: a writing request (article,
+  documentation, summary, email, script, copy) is answered with the text itself
+  in the user's language and voice, honouring audience, length, structure and
+  constraints — no repository tour, no unnamed file reads, no task list; a
+  question the conversation already answers gets a direct answer with no tool
+  ceremony
+- the turn stops when the deliverable exists and the checks that matter ran: a
+  file just written is not re-read, text already produced is not re-verified,
+  and a failed or denied call is not retried unchanged — adjust once, then
+  report the exact failure and continue with whatever is unblocked
+- independent tool calls are issued together instead of serialized into a tour
 
 It also states a search preference that matches the host-side budgets in
 [16-tool-result-limits](16-tool-result-limits.md): scope `Read`, `Grep`, and

@@ -8418,3 +8418,32 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   keyboard, drag and accessibility, and the column geometry contract of D458
   holds: pill, label and native stop share one center for every stop count.
 - Escape clears a typed search first; a second Escape closes the menu.
+
+## 2026-11-18 — The base prompt serves the task it was given (D686)
+
+- Editor-mode writing requests were being run as coding work: the persona said
+  "coding agent", Agent mode demanded a TodoWrite checklist for "multi-step
+  work", and the visibility rule required a sentence before every tool batch.
+  An article request therefore opened files nobody named, produced a checklist,
+  and narrated every read — which reads to the user as circling.
+- The persona is now task-neutral ("a desktop agent working in the user's
+  project"), and the rules that decide how a request is served moved into the
+  non-replaceable operational block so a custom `SYSTEM.md` cannot remove them:
+  writing requests get the text itself (voice, audience, length, structure, no
+  repository tour, no task list), questions already answered by the
+  conversation get a direct answer.
+- Tool-batch narration is now conditional: one short line only when the batch
+  is not obvious, never for routine reads, and the request is never restated.
+  The TodoWrite requirement is scoped to implementation work that changes
+  files.
+- A stopping rule replaced the implicit "verify everything": a file just
+  written is not re-read, produced text is not re-verified, and a failed or
+  denied call is not retried unchanged — adjust once, then report the exact
+  failure. This is the failure-inverted counterpart of the narration rule the
+  same way the collaboration rules were for silent sessions.
+- Borrowed and adapted from three harnesses: OpenCode's lean conditional tool
+  guidance and parallel-call preference, Reasonix Studio's "no preamble, no
+  restating the request" communication style, and ZCode's relaxed-execution
+  lesson that truncating a model's planned calls is what produces retry loops.
+- Prompt text is not an interface (D194), so no ADR. See
+  `03-runtime/02-agent-runtime.md` §7 and E2E-147.
