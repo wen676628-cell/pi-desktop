@@ -8468,3 +8468,22 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   style separate from persona for exactly this reason. Prompt text is not an
   interface (D194), so no ADR; see `03-runtime/02-agent-runtime.md` §7 and
   `04-ux/06-settings-ia.md`.
+
+## 2026-11-18 — A writing surface over the Files preview (D688)
+
+- Writing an article in the repo still meant scrolling a rendered Markdown blob:
+  no structure, no size readout, no way to lift one section into the composer.
+  The agent could produce a document but the user had no reading surface for it.
+- Files → a Markdown document now has an **Outline** toggle: an ATX-heading rail
+  (frontmatter and fenced code excluded, so a `#` in a snippet never appears),
+  per-section word counts, a document readout of words and reading minutes, and
+  a copy-section action per row.
+- The rail is deliberately read-only. The file has one writer — the agent — and
+  a second editor over the same path would be a second writer with no conflict
+  story. Editing stays with the agent (Write/Edit) and the composer.
+- The parser is its own pure module with CJK-aware counting, because "words"
+  for a Chinese article is characters, not whitespace tokens, and a rail that
+  reports 0 words for a 3,000-character piece is worse than no rail.
+- Follow-ups: section-level "revise with the agent" (needs a composer prefill
+  path that is session-scoped rather than queue-scoped), and a document-first
+  tab that opens straight into the rail.

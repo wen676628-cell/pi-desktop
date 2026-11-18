@@ -2447,7 +2447,15 @@ sklm: {
       "reveal": "Révéler dans le Finder",
       "binary": "Fichier binaire — aperçu indisponible",
       "tooLarge": "Le fichier est trop volumineux pour être prévisualisé",
-      "openFailed": "Impossible d’ouvrir le fichier avec l’application par défaut."
+      "openFailed": "Impossible d’ouvrir le fichier avec l’application par défaut.",
+      "outline": "Plan",
+      "outlineEmpty": "Pas encore de titres : ajoutez-en un pour créer le plan.",
+      "outlineStats": "{{words}} mots · {{minutes}} min de lecture",
+      "outlineSectionWords": "{{count}} mots",
+      "outlineSectionWords_one": "1 mot",
+      "outlineSectionWords_other": "{{count}} mots",
+      "outlineCopy": "Copier",
+      "outlineCopySection": "Copier cette section",
     }
   },
   "palette": {

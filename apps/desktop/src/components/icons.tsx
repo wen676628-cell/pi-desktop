@@ -49,6 +49,7 @@ import {
   Keyboard,
   KeyRound,
   Link,
+  List,
   ListChecks,
   LogOut,
   Mic,
@@ -233,6 +234,7 @@ export const IconUser = icon(UserRound);
 export const IconKey = icon(KeyRound);
 export const IconLogOut = icon(LogOut);
 export const IconSparkles = icon(Sparkles);
+export const IconList = icon(List);
 export const IconListChecks = icon(ListChecks);
 /** Goal mode: an outcome to reach, as opposed to Plan's list of steps. */
 export const IconTarget = icon(Target);

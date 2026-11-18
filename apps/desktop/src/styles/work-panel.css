@@ -931,6 +931,80 @@
   border-radius: var(--radius-sm);
 }
 
+/* Writing surface: a Markdown document with its outline rail. The document
+   keeps the panel's single scroll owner; the rail rides along beside it. */
+.file-viewer-document {
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.file-viewer-document .file-viewer-markdown {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px 24px;
+}
+
+.file-viewer-document.has-outline .file-viewer-markdown {
+  padding-inline-end: 6px;
+}
+
+.document-outline {
+  flex: 0 0 232px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-height: 100%;
+  overflow: auto;
+  padding: 10px 10px 16px;
+  border-inline-start: 1px solid var(--ds-border-subtle);
+}
+
+.document-outline-stats {
+  padding-block-end: 6px;
+  font-size: var(--text-xs);
+  color: var(--ds-text-muted);
+}
+
+.document-outline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-outline-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.document-outline-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ds-text-primary);
+  font-size: var(--text-xs-plus);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-outline-words {
+  flex: 0 0 auto;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs);
+}
+
+.document-outline-empty {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs);
+}
+
 /* Round review has one vertical scroll owner, not nested diff viewports. */
 .review-round-toolbar { gap: 6px; }
 .review-select.review-round-scope { flex: 0 0 auto; width: auto; height: 24px; min-height: 24px; padding: 1px 8px; }

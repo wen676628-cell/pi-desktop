@@ -155,6 +155,14 @@ destination, chat as the home surface, tools and permissions inline.
   of 800×560, capped to the current display's work area (D635). Replaces
   the former context-panel overlay; workspace/model/status info lives in the
   composer chips and Settings instead.
+  The Files preview of a Markdown document offers an **outline** header toggle:
+  a rail beside the rendered document listing its ATX headings (frontmatter and
+  fenced code excluded), the words each section owns, and a whole-document
+  readout of words and reading minutes. Each row copies its heading and body to
+  the clipboard, which is how a passage moves into the composer without
+  selecting it by hand. The rail is read-only — the file keeps one writer, the
+  agent that produced it — closes when another file is opened, and is offered
+  only for Markdown previews, not for code, images or a line-pinned view.
 - **Composer**: workspace-agnostic floating pill anchored to the conversation
   destination — centered empty-home content above a bottom-reserved composer
   (D111/D204/D206), bottom-docked in a transcript, with no project / Local / branch
