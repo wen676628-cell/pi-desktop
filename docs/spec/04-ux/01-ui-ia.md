@@ -498,9 +498,16 @@ shared capability contract:
   title stands.
 - New task resolves the current project or temporary group by its most recent
   session: if that session has `messageCount = 0`, it is selected and reused;
-  otherwise a durable empty session is created immediately and appears in the
-  sidebar. Repeated clicks therefore keep one empty slot per visible group;
-  an empty slot remains persisted until the user deletes or archives it.
+  otherwise a durable empty session is created immediately. Repeated clicks
+  therefore keep one empty slot per visible group.
+- An untouched empty slot is **not a sidebar row**. It is the new-task view
+  itself: the chat surface shows it, the composer keeps its draft and model pin
+  in it, and the next New Task click reuses it, but the sidebar only lists a
+  session once it has content (or is running, has a submit in flight, is pinned,
+  is an archived row being shown, or is an automation transcript entered from
+  the Scheduled page). The record therefore survives navigation and restart
+  without ever reading as a conversation the user started; nothing is deleted
+  on the user's behalf.
 
 ## 6. Keyboard map (IA level)
 

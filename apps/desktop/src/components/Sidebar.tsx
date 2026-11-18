@@ -35,6 +35,7 @@ import {
   sessionArchived,
   sessionPinned,
 } from "../lib/sidebar-session-groups";
+import { sessionIsHiddenDraft } from "../lib/sidebar-hidden-draft";
 import {
   getVisibleProjectSessions,
   updateProjectSessionExpansion,
@@ -691,12 +692,21 @@ export function Sidebar({
     // can still resolve its title, source, and capabilities when it is opened
     // from there.
     const candidates = listableSessions(sessions)
-      .filter((session) => showArchived || !sessionArchived(session, sessionMeta[session.id]));
-    // Empty sessions are durable sidebar rows now. Their message count, not
-    // their title, controls New Task reuse, so a manual rename never changes
-    // the empty-slot behavior.
+      .filter((session) => showArchived || !sessionArchived(session, sessionMeta[session.id]))
+      // An untouched New Task draft keeps its durable record (drafts, model pin,
+      // and the next New Task click all need it) but takes no sidebar row until
+      // someone writes into it. The open session stays listed so the surface the
+      // user is typing into never disappears from under them.
+      .filter((session) => !sessionIsHiddenDraft(session, {
+        pinned: sessionPinned(session, sessionMeta[session.id]),
+        running: runningSessions[session.id] === true,
+        showingArchived: showArchived,
+        archived: sessionArchived(session, sessionMeta[session.id]),
+      }));
+    // Empty sessions are durable rows again as soon as they have content; their
+    // message count, not their title, controls New Task reuse.
     return candidates;
-  }, [sessions, showArchived, sessionMeta]);
+  }, [sessions, showArchived, sessionMeta, activeSessionId, runningSessions]);
 
   const compareSessions = useCallback((a: SessionSummary, b: SessionSummary) => {
     const aMeta = sessionMeta[a.id] ?? {};
