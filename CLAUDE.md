@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Policy-Sync: 2026-09-26.1
+Policy-Sync: 2026-11-18.1
 
 Instructions for Claude Code CLI and Claude Cowork on PI-Desktop.
 
@@ -200,6 +200,12 @@ Before coding, decide "direct change" vs "refactor first". Refactor (or make it 
 | Docs / no-logic config | Verify links, paths, commands, facts; no unit tests required |
 
 "Diff is small", "no time", "typecheck passed", "manually clicked through" are not reasons to skip tests. When you skip, state the basis, alternative verification you ran, and residual risk.
+
+### Seam-first verification
+
+A *seam* is a shared invariant other code or tests already encode: a settings shape, a tool object's identity, a session summary field, an i18n catalog, a persisted row. Before editing one, find its encoders with `git grep` across `apps/desktop/test`, `packages/*/src`, and `*.test.ts`, then run those suites for a clean baseline **before** the edit and again after — a suite you never ran proves nothing about the seam you touched. Decide the compatibility rule first: an absent value is absent rather than invalid; a wrapped object keeps its identity; a new field must read as the old default; an unknown enum value degrades instead of throwing.
+
+Leave an invariant test behind: a lockstep test between two representations, a contract test pinning ordering or identity, a boundary test for `undefined`. Fixtures that satisfy the invariant today are not a guard — the sidebar fixtures and the settings round-trip payloads both looked fine until a new field made them invalid.
 
 ### Delivery report
 
