@@ -317,6 +317,8 @@ export function Sidebar({
   const showToast = useAppStore((s) => s.showToast);
   const setSettingsTab = useAppStore((s) => s.setSettingsTab);
   const setSettingsAnchor = useAppStore((s) => s.setSettingsAnchor);
+  const openSettings = useAppStore((s) => s.openSettings);
+  const settingsOpen = useAppStore((s) => s.settingsOpen);
   const update = useUpdateState();
 
   const [sortOpen, setSortOpen] = useState(false);
@@ -1054,7 +1056,8 @@ export function Sidebar({
   );
   const remoteProjectGroups = useMemo(() => groupRemoteProjectSessions(
     filtered.filter((session) => isRemoteSession(session) && !pinnedSessionIds.has(session.id)), compareSessions,
-  ), [filtered, pinnedSessionIds, compareSessions]);
+    displayProjectSort,
+  ), [filtered, pinnedSessionIds, compareSessions, displayProjectSort]);
   // Flat ordered list of every visible session id — used for Shift+click range selection.
   const flatSessionOrder = useMemo(() => {
     const ids: string[] = [];
@@ -2806,12 +2809,12 @@ export function Sidebar({
           <div className="footer-actions">
             <TooltipButton
               type="button"
-              className={`footer-action ${page === "settings" ? "active" : ""}`}
+              className={`footer-action ${settingsOpen ? "active" : ""}`}
               data-nav="settings"
               tooltip={t("nav.settings")}
               ariaLabel={t("nav.settings")}
-              onClick={() => setPage("settings")}
-              aria-pressed={page === "settings"}
+              onClick={() => openSettings()}
+              aria-pressed={settingsOpen}
             >
               <IconSettings size={14} aria-hidden />
             </TooltipButton>

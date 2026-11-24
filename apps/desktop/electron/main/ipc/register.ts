@@ -492,6 +492,8 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     activeTurns,
     completionNoticeTurns,
     recordTurnStart,
+    observePersistedUserMessage: dependencies.observePersistedUserMessage,
+    scheduledRunsBySession,
     isTurnDispatchable,
     activeTurnUsages,
     approvedExecutionIdsBySession,

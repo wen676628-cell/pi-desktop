@@ -11,15 +11,14 @@ const settingsPage = await readFile(
   "utf8",
 );
 
-test("settings hides and inerts chat without aria-hiding a focused descendant", () => {
+test("Settings replaces the chat shell in the fork layout", async () => {
   const chatShell = appShell.match(
     /<div\s+className="app-chat-shell"[\s\S]*?>/,
   )?.[0];
 
   assert.ok(chatShell, "chat shell must exist");
-  assert.match(chatShell, /hidden=\{page === "settings"\}/);
-  assert.match(chatShell, /inert=\{page === "settings" \? true : undefined\}/);
-  assert.doesNotMatch(chatShell, /aria-hidden/);
+  assert.match(chatShell, /hidden=\{settingsOpen\}/);
+  assert.match(chatShell, /inert=\{settingsOpen \? true : undefined\}/);
 });
 
 test("entering Settings moves focus to its first search control", () => {
@@ -31,7 +30,7 @@ test("entering Settings moves focus to its first search control", () => {
   assert.match(settingsPage, /<input\s+ref=\{settingsSearchRef\}/);
 });
 
-test("chat code loads inside the existing route boundary and stays mounted in Settings", () => {
+test("chat code loads inside the existing route boundary and stays mounted under Settings", () => {
   assert.match(
     appShell,
     /const loadChatSurface = \(\) => import\("\.\.\/\.\.\/components\/ChatSurface"\)/,
@@ -45,6 +44,6 @@ test("chat code loads inside the existing route boundary and stays mounted in Se
   );
   assert.match(
     appShell,
-    /className="app-chat-shell"[\s\S]*?hidden=\{page === "settings"\}[\s\S]*?<ChatSurface visible=\{page === "chat"\} \/>/,
+    /className="app-chat-shell"[\s\S]*?<ChatSurface visible=\{page === "chat"\} \/>/,
   );
 });

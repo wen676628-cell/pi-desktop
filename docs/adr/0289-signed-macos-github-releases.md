@@ -2,23 +2,19 @@
 
 - Status: Accepted
 - Date: 2026-09-18
-- Deciders: PI-Desktop core
 - Decision: D450
 - Amends: ADR 0022, ADR 0145, ADR 0191, ADR 0204, D078
 - Related: D120, D126, D164, D364, ADR 0197, ADR 0232, ADR 0257, ADR 0278, E2E-196a, E2E-196c, E2E-067A
 
 ## Context
 
-Official GitHub tag releases already produce native macOS arm64 and Intel x64
-DMG/ZIP artifacts, merge `latest-mac.yml`, and ship `electron-updater`. The
-default CI lane still disabled identity discovery, skipped notarization, and
-kept packaged macOS on notify-and-link delivery because unsigned artifacts
-cannot provide a qualified in-app upgrade. Local packaging without a
-certificate must stay possible (D078). Contributors must not commit
-certificate material.
-
-A Developer ID Application certificate for team `DUV63RKYTW` is now available
-for the official `vastsa/PI-Desktop` release lane.
+Tag releases already produced native arm64 and x64 DMG/ZIP artifacts with a
+merged `latest-mac.yml`, but the CI lane skipped identity discovery and
+notarization, so packaged macOS stayed on notify-and-link delivery because
+unsigned artifacts cannot support a qualified in-app upgrade. Local packaging
+without a certificate must stay possible (D078), and contributors must not
+commit certificate material, yet a Developer ID certificate for team
+`DUV63RKYTW` is now available for the official release lane.
 
 ## Decision
 
@@ -68,22 +64,16 @@ for the official `vastsa/PI-Desktop` release lane.
 
 ## Consequences
 
-- Users who download a tagged DMG should open PI-Desktop without a
-  Gatekeeper “unidentified developer” or quarantine-damaged warning.
-- Packaged macOS installs can check GitHub Releases, download the arch ZIP,
-  and restart into the new version. Existing unsigned installs may still need
-  one manual signed DMG before in-app updates succeed.
-- Windows and Linux packaging, artifact names, and updater modes are
-  unchanged.
-- Operators must create the five Actions secrets before the next tag.
+- A downloaded tagged DMG opens without a Gatekeeper unidentified-developer or
+  quarantine-damaged warning.
+- Packaged macOS installs update in-app; existing unsigned installs may still
+  need one manual signed DMG first.
+- Windows and Linux packaging and updater modes are unchanged, but operators
+  must create the five Actions secrets before the next tag.
 
-## Alternatives considered
+## Alternatives
 
-- Keep unsigned tag artifacts and opt-in signing: rejected; it leaves
+- Keep unsigned tag artifacts with opt-in signing: rejected, it leaves
   production users on the Gatekeeper warning path.
-- Hard-code the identity in `apps/desktop/package.json`: rejected; local
+- Hard-code the identity in `apps/desktop/package.json`: rejected, local
   packaging without the certificate must keep working (D078).
-- Apple API key (`APPLE_API_KEY`) instead of Apple ID + app-specific
-  password: deferred; the existing electron-builder 26 Apple ID path is
-  already wired.
-- Separate macOS updater implementation: rejected; reuse `electron-updater`.

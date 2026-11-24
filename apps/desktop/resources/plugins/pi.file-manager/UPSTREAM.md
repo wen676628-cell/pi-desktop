@@ -1,12 +1,8 @@
-# Vendored File Manager: scoped remote-read hotfix
+# Vendored File Manager
 
-This directory is the actual plugin loaded and packaged by Desktop. It now
-contains the remote-read consumer required by issue #1711. It follows the
-existing Desktop hotfix convention introduced by commit
-`73d8932ade73471277b9a51afac90ee9867d97c8`, rather than representing an
-unpublished plugin contribution as an official upstream release.
-
-## Source and distribution provenance
+Desktop ships the runtime for `pi.file-manager`, with the same plugin ID,
+permissions, workspace scope and view entry as upstream. Source, build and
+QA dependencies are not shipped.
 
 | Field | Value |
 | --- | --- |
@@ -80,14 +76,14 @@ is recorded here. `UPSTREAM.md` is the provenance record, not a runtime input.
 
 | File | Bytes | SHA-256 |
 | --- | --- | --- |
-| `CHANGELOG.md` | 34520 | `b7a3c06c07b2dbe5ce79577bbc6c6a53ffa00324bd64a27d0d5634493dec48b4` |
+| `CHANGELOG.md` | 36051 | `038bd20e1ec4dd711489c72c10cc3b6aef56a4ccdaa8e087d38ae409090e3dd7` |
 | `LICENSE` | 1067 | `ebaec3ae096498a39f6b86e3ac8017e39818fb5aaff80b452349f94bc275ec0d` |
 | `README.md` | 38470 | `4ecf6e3afa2051b59b479907c485d156caca54ef6d1f4e3c410805807942a268` |
 | `main.js` | 125487 | `f819c13bb8e0196e92a0cbef18ffb147a5f38fdc9a8e7fbe27d58463fd991088` |
 | `manifest.json` | 40092 | `ea3798770849c77193f16da5a582157cc07e5f756f7225dcbec1762ed591d461` |
 | `package.json` | 25 | `8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a` |
-| `remote-workspace.js` | 3757 | `931a579801fd4b334c3d96231aafc7ff52e0c03e7baebbabaf00b4c5e17cc366` |
-| `views/assets/index.js` | 6617597 | `75fe29bb98db38e8246aa38bcc55c21c28a6b9310cf1ae5ae146bf6c304f080a` |
+| `remote-workspace.js` | 4150 | `aa8526fcf30220f58f21b278fc2736de9a1d2abedab9d320462a936add77b79c` |
+| `views/assets/index.js` | 6622991 | `16bd329eaa6476d11fd8e5a48f6d51e6705d70b14c1b627a95d1d833daa547c3` |
 | `views/assets/pdfjs-LICENSES.txt` | 61789 | `a8b04e2e9022721482079ee5c85b9f05ae129e6a2cfd59ea67f2629a3fc23640` |
 | `views/index.html` | 345 | `771fd3d8afdea7fca75ed1f1918c1ce93ad1c87babdb321cfb85e910465cd2c1` |
 

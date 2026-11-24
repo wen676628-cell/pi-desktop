@@ -6,6 +6,8 @@ import {
   isOutputStyleId,
   normalizeRadialMenuPreferences,
   radialMenuWriteError,
+  normalizeSidebarModulePreferences,
+  sidebarModulesWriteError,
   validateNetworkProxy,
   validateSpeechSettings,
   type CommandShellId,
@@ -172,6 +174,7 @@ export function createProviderCatalogRuntime({
     ) as T & { defaultCommandShell?: unknown; radialMenu?: unknown };
     return {
       ...(value as T),
+      backgroundJobContinuationEnabled: (value as T & { backgroundJobContinuationEnabled?: unknown }).backgroundJobContinuationEnabled === true,
       infiniteProviderRetry: (value as T & { infiniteProviderRetry?: unknown })
         .infiniteProviderRetry === true,
       keepAwakeWhileRunning: (value as T & { keepAwakeWhileRunning?: unknown })
@@ -179,6 +182,7 @@ export function createProviderCatalogRuntime({
       scheduledTasksEnabled: (value as T & { scheduledTasksEnabled?: unknown })
         .scheduledTasksEnabled !== false,
       jevEnabled: (value as T & { jevEnabled?: unknown }).jevEnabled === true,
+      codemodeEnabled: (value as T & { codemodeEnabled?: unknown }).codemodeEnabled === true,
       transcriptDisplayMode:
         (value as T & { transcriptDisplayMode?: unknown }).transcriptDisplayMode === "flat" ||
         (value as T & { transcriptDisplayMode?: unknown }).transcriptDisplayMode === "command-first" ||
@@ -190,6 +194,13 @@ export function createProviderCatalogRuntime({
       autoCollapseThinking:
         (value as T & { autoCollapseThinking?: unknown }).autoCollapseThinking !== false,
       radialMenu: normalizeRadialMenuPreferences(value.radialMenu),
+      ...(Object.prototype.hasOwnProperty.call(value, "sidebarModules")
+        ? {
+            sidebarModules: normalizeSidebarModulePreferences(
+              (value as T & { sidebarModules?: unknown }).sidebarModules,
+            ),
+          }
+        : {}),
       defaultCommandShell: isCommandShellId(value.defaultCommandShell)
         ? value.defaultCommandShell
         : defaultCommandShellForPlatform(process.platform),
@@ -203,9 +214,11 @@ export function createProviderCatalogRuntime({
     const value = settings as T & {
       defaultCommandShell?: unknown;
       infiniteProviderRetry?: unknown;
+      backgroundJobContinuationEnabled?: unknown;
       keepAwakeWhileRunning?: unknown;
       scheduledTasksEnabled?: unknown;
       jevEnabled?: unknown;
+      codemodeEnabled?: unknown;
       updatePreference?: unknown;
       lastNotifiedUpdateVersion?: unknown;
       networkProxy?: unknown;
@@ -223,6 +236,9 @@ export function createProviderCatalogRuntime({
       throw Object.assign(new Error("defaultCommandShell is invalid"), {
         errorCode: ErrorCodes.COMMAND_SHELL_INVALID,
       });
+    }
+    if (Object.prototype.hasOwnProperty.call(value, "backgroundJobContinuationEnabled") && typeof value.backgroundJobContinuationEnabled !== "boolean") {
+      throw Object.assign(new Error("backgroundJobContinuationEnabled is invalid"), { errorCode: "INVALID_ARGUMENT" });
     }
     if (
       (value as { outputStyle?: unknown }).outputStyle !== undefined &&
@@ -261,6 +277,14 @@ export function createProviderCatalogRuntime({
       typeof value.jevEnabled !== "boolean"
     ) {
       throw Object.assign(new Error("jevEnabled is invalid"), {
+        errorCode: ErrorCodes.INVALID_PARAMS,
+      });
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(value, "codemodeEnabled") &&
+      typeof value.codemodeEnabled !== "boolean"
+    ) {
+      throw Object.assign(new Error("codemodeEnabled is invalid"), {
         errorCode: ErrorCodes.INVALID_PARAMS,
       });
     }
@@ -318,6 +342,14 @@ export function createProviderCatalogRuntime({
     const radialMenuProblem = radialMenuWriteError(value.radialMenu);
     if (radialMenuProblem) {
       throw Object.assign(new Error(radialMenuProblem), {
+        errorCode: ErrorCodes.INVALID_PARAMS,
+      });
+    }
+    const sidebarModulesProblem = sidebarModulesWriteError(
+      (value as T & { sidebarModules?: unknown }).sidebarModules,
+    );
+    if (sidebarModulesProblem) {
+      throw Object.assign(new Error(sidebarModulesProblem), {
         errorCode: ErrorCodes.INVALID_PARAMS,
       });
     }

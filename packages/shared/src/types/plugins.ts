@@ -152,6 +152,7 @@ export type PluginViewMeta = {
   pluginName: string;
   icon?: string;
   order: number;
+  acceptsTranscriptSelection?: boolean;
 };
 
 /** A user-invoked text action available beside the Composer controls. */

@@ -3,10 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { loadStyles } from "./helpers/styles.mjs";
 
-const sidebarSource = await readFile(
-  new URL("../src/components/Sidebar.tsx", import.meta.url),
-  "utf8",
-);
+const sidebarSource =
+  (await readFile(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8")) +
+  (await readFile(new URL("../src/components/SidebarNavigation.tsx", import.meta.url), "utf8"));
+const footerSource = sidebarSource.slice(sidebarSource.indexOf("export function SidebarFooter"));
 const globalStyles = await loadStyles();
 const zhLocale = await readFile(
   new URL("../../../packages/i18n/src/locales/zh-CN/index.ts", import.meta.url),
@@ -45,6 +45,13 @@ test("footer keeps settings beside notifications; destinations live in the prima
     sidebarSource,
     /<NotificationCenter onBeforeOpen=\{\(\) => closeMenus\(false\)\} \/>/,
   );
+  // Settings is a labelled entry that opens the Settings dialog.
+  assert.match(footerSource, /className=\{cx\("footer-settings", settingsOpen && "active"\)\}/);
+  assert.match(footerSource, /aria-haspopup="dialog"/);
+  assert.match(footerSource, /onClick=\{\(\) => openSettings\(\)\}/);
+  assert.match(footerSource, /t\("nav\.settings"\)/);
+  // The notification entry is gone from the sidebar (issue #2431).
+  assert.doesNotMatch(sidebarSource, /NotificationCenter/);
   // Logs live in Settings → About; the footer stays down to daily controls.
   assert.doesNotMatch(sidebarSource, /openLogs/);
   // Every action is icon-only, so each needs a label for pointer and AT users.
@@ -74,11 +81,11 @@ test("footer sits on the sidebar content grid without a hairline", () => {
   assert.match(globalStyles, /\.footer-build\s*\{[^}]*padding:\s*5px 8px/s);
 });
 
-test("footer action buttons share the notification trigger's hit target", () => {
-  const block = globalStyles.match(/\.footer-action\s*\{[^}]+\}/)?.[0] ?? "";
-  assert.match(block, /width:\s*32px/);
+test("footer Settings entry shares the 32px control line", () => {
+  const block = globalStyles.match(/\.footer-settings\s*\{[^}]+\}/)?.[0] ?? "";
   assert.match(block, /height:\s*32px/);
   assert.match(block, /transition:[^;]*var\(--motion-duration-fast\)/);
+  assert.doesNotMatch(globalStyles, /\.footer-action\s*\{/);
 });
 
 test("build chip hides the version label and only dots an actionable update", () => {

@@ -97,6 +97,19 @@ function stubRecord(dir, overrides = {}) {
   };
 }
 
+/** Poll until a stub process is gone; closing the client signals it. */
+async function waitForExit(pid) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  assert.fail(`user mcp child ${pid} is still running`);
+}
+
 function runtime(t, options = {}) {
   const { spawnImpl, ...rest } = options;
   const instance = new UserMcpRuntime({
@@ -217,6 +230,7 @@ test("the stdio connection cache stays bounded and evicted workspaces reconnect"
 test("refreshing HTTP MCP status detects a server that went offline", async (t) => {
   let online = true;
   let pings = 0;
+  let handshakes = 0;
   let connected = false;
   let finishCall;
   let failCall;
@@ -225,7 +239,11 @@ test("refreshing HTTP MCP status detects a server that went offline", async (t) 
   const client = {
     isConnected: () => connected,
     getTools: () => [{ name: "lookup" }],
-    connect: async () => { connected = true; return [{ name: "lookup" }]; },
+    connect: async () => {
+      handshakes += 1;
+      connected = true;
+      return [{ name: "lookup" }];
+    },
     callTool: () => new Promise((resolve, reject) => {
       finishCall = resolve;
       failCall = reject;
@@ -257,6 +275,12 @@ test("refreshing HTTP MCP status detects a server that went offline", async (t) 
   finishCall({ content: [{ type: "text", text: "completed" }] });
   assert.deepEqual(await pendingCall, { content: [{ type: "text", text: "completed" }] });
   assert.equal(pings, 2);
+
+  online = true;
+  client.callTool = async () => "recovered";
+  assert.equal(await rt.callTool("mcp_stub_lookup", {}, "/repo"), "recovered");
+  assert.equal(handshakes, 2, "a failed live transport should be re-handshaken");
+  assert.equal(rt.statusFor("stub").state, "ready");
 });
 test("stopping one session cancels only its active MCP call", async (t) => {
   const started = new Map();
@@ -333,6 +357,119 @@ test("a call is refused once the server no longer applies to the session", async
     assert.match(error.message, /not active for this session/);
     return true;
   });
+});
+
+/** A server saved in a project's own `.agents/servers`, as host-core lists it. */
+function projectStubRecord(dir, projectPath, overrides = {}) {
+  return stubRecord(dir, {
+    level: "project",
+    projectPath,
+    scope: { mode: "projects", projects: [projectPath] },
+    ...overrides,
+  });
+}
+
+// #2332: host-core answers `mcp.active` per project, and each session refreshes
+// its own project. One project's answer must not replace another's.
+test("refreshing another project keeps a running project's own server callable", async (t) => {
+  const dir = stubDir();
+  const projectA = projectDir("a");
+  const projectB = projectDir("b");
+  const rt = runtime(t);
+  rt.setRecords([projectStubRecord(dir, projectA)], projectA);
+  assert.equal((await rt.toolsForProject(projectA)).length, 2);
+
+  rt.setRecords([], projectB);
+
+  assert.deepEqual(await rt.toolsForProject(projectB), []);
+  assert.equal(rt.hasTool("mcp_stub_lookup"), true);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /lookup/);
+  assert.equal((await rt.toolsForProject(projectA)).length, 2);
+  await assert.rejects(rt.callTool("mcp_stub_lookup", {}, projectB), (error) => {
+    assert.equal(error.errorCode, "TOOL_NOT_FOUND");
+    return true;
+  });
+});
+
+test("a global server switched off in one project stays on in another", async (t) => {
+  const dir = stubDir();
+  const projectA = projectDir("a");
+  const projectB = projectDir("b");
+  const rt = runtime(t);
+  rt.setRecords([stubRecord(dir)], projectA);
+  rt.setRecords([], projectB);
+
+  assert.equal((await rt.toolsForProject(projectA)).length, 2);
+  assert.deepEqual(await rt.toolsForProject(projectB), []);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /lookup/);
+  await assert.rejects(rt.callTool("mcp_stub_lookup", {}, projectB), /unknown mcp tool/);
+  assert.deepEqual(rt.listRecords(projectA).map((record) => record.id), ["stub"]);
+  assert.deepEqual(rt.listRecords(projectB), []);
+});
+
+test("a global server edited from one project reaches every project at once", async (t) => {
+  const dir = stubDir();
+  const projectA = projectDir("a");
+  const projectB = projectDir("b");
+  const rt = runtime(t);
+  rt.setRecords([stubRecord(dir, { env: { STUB_TAG: "old" } })], projectA);
+  rt.setRecords([stubRecord(dir, { env: { STUB_TAG: "old" } })], projectB);
+  await rt.toolsForProject(projectA);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /old:lookup/);
+
+  // The settings page refreshes only the open project; the saved server is one.
+  rt.setRecords([stubRecord(dir, { env: { STUB_TAG: "new" } })], projectB);
+
+  await rt.toolsForProject(projectA);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /new:lookup/);
+});
+
+test("a project server reusing a global id is a separate server", async (t) => {
+  const dir = stubDir();
+  const projectA = projectDir("a");
+  const projectB = projectDir("b");
+  const rt = runtime(t);
+  rt.setRecords([projectStubRecord(dir, projectA, { env: { STUB_TAG: "project" } })], projectA);
+  rt.setRecords([stubRecord(dir, { env: { STUB_TAG: "global" } })], projectB);
+  await rt.toolsForProject(projectA);
+  await rt.toolsForProject(projectB);
+
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /project:lookup/);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectB)), /global:lookup/);
+  // Refreshing B with the same global server leaves A's own server in place.
+  rt.setRecords([stubRecord(dir, { env: { STUB_TAG: "global" } })], projectB);
+  assert.match(JSON.stringify(await rt.callTool("mcp_stub_lookup", {}, projectA)), /project:lookup/);
+  assert.deepEqual(rt.listedWorkspaces().sort(), [projectA, projectB].sort());
+});
+
+test("a server no project lists any more is disconnected", async (t) => {
+  const dir = stubDir();
+  const pidFile = join(dir, "pid");
+  const projectA = projectDir("a");
+  const rt = runtime(t);
+  rt.setRecords([stubRecord(dir, { env: { STUB_PID_FILE: pidFile } })], projectA);
+  await rt.toolsForProject(projectA);
+  const pid = Number(readFileSync(pidFile, "utf8"));
+
+  rt.setRecords([], projectA);
+
+  assert.equal(rt.hasTool("mcp_stub_lookup"), false);
+  assert.equal(rt.statusFor("stub").state, "idle");
+  await waitForExit(pid);
+});
+
+test("testing a saved server another workspace does not list adopts it nowhere", async (t) => {
+  const dir = stubDir();
+  const projectA = projectDir("a");
+  const rt = runtime(t);
+  rt.setRecords([], projectA);
+  const saved = projectStubRecord(dir, projectA, { enabled: false });
+
+  const status = await rt.test("stub", projectA, saved);
+
+  assert.equal(status.state, "ready");
+  assert.deepEqual(rt.listRecords(projectA), []);
+  assert.deepEqual(await rt.toolsForProject(projectA), []);
 });
 
 test("a name the server never advertised is refused, not forwarded", async (t) => {
@@ -442,16 +579,25 @@ test("reconnection revalidates the advertised tool list before dispatch", async 
   assert.deepEqual(state.calls, []);
 });
 
-test("a failed reconnect reports unavailability without repeated handshakes", async (t) => {
+test("a failed reconnect is retried and can recover on a later tool call", async (t) => {
   const { rt, client, state } = reconnectingRuntime(t);
   await rt.toolsForProject("/repo");
   client.close();
   state.fail = true;
-  for (let i = 0; i < 2; i += 1) {
-    await assert.rejects(rt.callTool("mcp_stub_lookup", {}, "/repo"), { errorCode: "UNAVAILABLE" });
-  }
+  await assert.rejects(rt.callTool("mcp_stub_lookup", {}, "/repo"), { errorCode: "UNAVAILABLE" });
   assert.equal(state.handshakes, 2);
+
+  assert.deepEqual(await rt.toolsForProject("/repo"), []);
+  assert.equal(state.handshakes, 2, "session assembly should not repeatedly dial a failed server");
+  await assert.rejects(rt.callTool("mcp_stub_lookup", {}, "/repo"), { errorCode: "UNAVAILABLE" });
+  assert.equal(state.handshakes, 3, "an explicit tool call should retry the failed handshake");
   assert.deepEqual(state.calls, []);
+
+  state.fail = false;
+  assert.equal(await rt.callTool("mcp_stub_lookup", {}, "/repo"), "lookup");
+  assert.equal(state.handshakes, 4);
+  assert.deepEqual(state.calls, ["lookup"]);
+  assert.equal(rt.statusFor("stub").state, "ready");
 });
 
 test("scope and enablement are checked before reconnecting a remembered tool", async (t) => {

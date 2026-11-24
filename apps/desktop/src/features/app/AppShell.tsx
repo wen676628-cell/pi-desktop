@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useAppStore } from "../../stores/app-store";
 import { ConversationTopbar } from "../../components/ConversationTopbar";
 import { ExtensionPromptHost } from "../../components/ExtensionPromptDialog";
 import { PluginRendererHost } from "../../plugins/renderer-host/PluginRendererHost";
@@ -102,6 +103,7 @@ export function AppShell() {
     workPanelToggleTooltip,
     requestedWorkPanelWidth,
   } = useAppShellRuntime();
+  const settingsOpen = useAppStore((state) => state.settingsOpen);
   const [toastAnchor, setToastAnchor] = useState<HTMLElement | null>(null);
   useCopyTex();
 
@@ -144,11 +146,11 @@ export function AppShell() {
   if (ready) {
     shell = (
       <>
-        <PortalVisibilityProvider visible={page !== "settings"}>
+        <PortalVisibilityProvider visible={!settingsOpen}>
           <div
             className="app-chat-shell"
-            hidden={page === "settings"}
-            inert={page === "settings" ? true : undefined}
+            hidden={settingsOpen}
+            inert={settingsOpen ? true : undefined}
           >
             {!sidebarCollapsed || sidebarExiting ? (
               <Sidebar
@@ -203,7 +205,6 @@ export function AppShell() {
                 {page === "chat" ? (
                   <ConversationTopbar
                     sidebarCollapsed={sidebarCollapsed}
-                    workPanelOpen={presentedWorkPanelOpen}
                     onToggleSidebar={toggleSidebar}
                     onNewTask={() => void runMenuCommand("newTask")}
                     onOpenSearch={() => setSearchOpen(true)}
@@ -226,7 +227,7 @@ export function AppShell() {
                     )}
                   </div>
                 )}
-                {page !== "settings" ? <UpdateBanner /> : null}
+                {!settingsOpen ? <UpdateBanner /> : null}
 
                 {backendDown && (
                   <div
@@ -349,17 +350,17 @@ export function AppShell() {
             </TooltipButton>
           </div>
         </PortalVisibilityProvider>
-        {page === "settings" ? (
+        {settingsOpen ? (
           <Suspense fallback={<RoutePending />}>
             <SettingsPage />
           </Suspense>
         ) : null}
         <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-        <ToastHost anchorElement={page === "settings" ? null : toastAnchor} />
+        <ToastHost anchorElement={settingsOpen ? null : toastAnchor} />
         <LiveVoiceStatusHost />
         <PluginRendererHost />
         <ExtensionPromptHost />
-        {page === "settings" ? <UpdateBanner /> : null}
+        {settingsOpen ? <UpdateBanner /> : null}
       </>
     );
   }
@@ -370,7 +371,7 @@ export function AppShell() {
       className={cx(
         "app-shell",
         !ready && "app-shell-boot",
-        page === "settings" && ready && "settings-mode",
+        settingsOpen && ready && "settings-mode",
         sidebarCollapsed && "sidebar-collapsed",
         workPanelMaximized && "work-panel-maximized",
         showSplash && "is-booting",
