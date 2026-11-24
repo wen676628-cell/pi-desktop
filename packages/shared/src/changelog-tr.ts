@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const trEntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "Masaüstü upstream 0.24.0-beta.1 (23 Kasım) hattına geçiyor: mod çalışmaları, codemode betikleri, arka plan işlerinin sürdürülmesi ve sohbetin üzerinde Ayarlar iletişim kutusu bulunan yeni kenar çubuğu.",
+      "Çatal kendi yüzeylerini koruyor: workbench stili, gizlenen boş «Yeni görev» satırları, güvenilir renderer IPC kapısı, işletim sistemiyle sarmalanan sağlayıcı anahtarları, Dev kanalı, ajan belleği, çıktı stilleri ve tekrarlanan incelemelere karşı koruma.",
+      "Mevcut veriler elle işlem gerektirmeden açılıyor: yerel veritabanı yedekli ve işlemsel tek adımda çatalın şema 29'undan upstream'in 34'üne geçiyor; çatalın v29 geçişi upstream ile bayt bayt aynı.",
+      "İlk istemin ajan sidecar'ından önce başlamasını ve ağaç birleştirmesinden kalan yinelenen yardımcıları düzeltiyor, Çince belgeleri giriş sayfalarına indiriyor; belge derlemesinde ölü bağlantı kalmıyor.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [

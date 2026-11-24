@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const esEntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "El escritorio pasa a la línea upstream 0.24.0-beta.1 (23 de noviembre): ejecuciones de modo, scripts de codemode, continuación de tareas en segundo plano y la nueva barra lateral con un diálogo de Ajustes sobre el chat.",
+      "El fork conserva sus propias superficies: el estilo del workbench, las filas vacías de «Nueva tarea» ocultas, la puerta IPC para renderers de confianza, las claves de proveedor cifradas por el sistema, el canal Dev, la memoria del agente, los estilos de salida y el guardia contra inspecciones repetidas.",
+      "Los datos existentes se abren sin pasos manuales: la base local migra en un paso transaccional con copia de seguridad del esquema 29 del fork al 34 de upstream; la migración v29 coincide byte a byte.",
+      "Corrige el arranque del primer prompt antes del sidecar del agente y los ayudantes duplicados que dejó la fusión, y reduce la documentación china a las páginas de entrada, sin enlaces muertos.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [

@@ -109,7 +109,7 @@ Subagent 与 Worker Session 可以承担独立任务并行工作。
 > [!NOTE]
 > **PI-Desktop 目前仍处于 Early Preview。** 已可用于真实开发工作流，部分 API、插件接口与桌面能力仍在持续演进。
 
-> **当前发布线：0.22.x（Early Preview）。**
+> **当前发布线：0.24.x（预发布：0.24.0-beta.1）。**
 
 ---
 
