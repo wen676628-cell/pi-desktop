@@ -225,6 +225,9 @@ export function registerAgentIpc({
     const modeOrigin = modeContinuationOrigin(req);
     const background = backgroundContinuationOrigin(req);
     const startGoal = goalStartRequested(req);
+    // The fork keeps the lazy sidecar: the first prompt starts it, so boot does
+    // not pay for a Node child the reader may never use (see lifecycle.ts).
+    sidecar = await ensureSidecar();
     if (!sidecar) throw new Error("sidecar unavailable");
     const voiceOrigin = parseVoiceOrigin(req.voiceOrigin);
     if (req.sessionId.startsWith("native-pi:")) {
