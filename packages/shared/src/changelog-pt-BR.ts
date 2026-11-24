@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const ptBREntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "O desktop passa para a linha upstream 0.24.0-beta.1 (23 de novembro): execuções de modo, scripts de codemode, continuação de tarefas em segundo plano e a nova barra lateral com uma caixa de Configurações sobre o chat.",
+      "O fork mantém suas próprias superfícies: o estilo do workbench, as linhas vazias de «Nova tarefa» ocultas, a barreira IPC de renderers confiáveis, as chaves de provedor cifradas pelo sistema, o canal Dev, a memória do agente, os estilos de saída e a proteção contra inspeções repetidas.",
+      "Os dados existentes abrem sem passos manuais: o banco local migra em uma etapa transacional com backup do esquema 29 do fork para o 34 do upstream; a migração v29 é idêntica byte a byte.",
+      "Corrige o início do primeiro prompt antes do sidecar do agente e os auxiliares duplicados deixados pela fusão, e reduz a documentação chinesa às páginas de entrada, sem links quebrados.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [

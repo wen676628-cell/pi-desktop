@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const deEntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "Die Desktop-App folgt jetzt der Upstream-Linie 0.24.0-beta.1 (23. November): Modus-Läufe, Codemode-Skripte, Fortsetzung von Hintergrundaufgaben sowie die neue Seitenleiste mit einem Einstellungsdialog über der Chat-Oberfläche.",
+      "Der Fork behält seine eigenen Oberflächen: Workbench-Stil, ausgeblendete leere „Neue Aufgabe“-Zeilen, IPC-Gate für vertrauenswürdige Renderer, vom System verschlüsselte Provider-Schlüssel, Dev-Kanal, Agent-Gedächtnis, Ausgabestile und die Sperre gegen wiederholte Inspektionen.",
+      "Vorhandene Daten öffnen ohne Handgriff: Die lokale Datenbank wandert in einem gesicherten, transaktionalen Schritt vom Schema 29 des Forks auf Schema 34 des Upstreams; die v29-Migration ist bytegleich.",
+      "Behebt den Start des ersten Prompts vor dem Agent-Sidecar und doppelte Helfer aus dem Baum-Merge und kürzt die chinesische Dokumentation auf Einstiegsseiten, sodass der Docs-Build keine toten Links mehr hat.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [

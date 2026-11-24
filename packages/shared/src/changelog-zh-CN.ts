@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const zhCNEntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "桌面端升级到上游 0.24.0-beta.1（11 月 23 日）：带来模式运行、代码模式脚本、后台任务续跑，以及新的侧栏与覆盖在聊天外壳上的设置对话框。",
+      "同步中保留 fork 自有能力：工作台样式、隐藏未写入的「新建任务」空行、受信任渲染进程 IPC 门禁、由系统密钥库包裹的供应商密钥、Dev 通道、代理记忆、输出风格与重复调用门禁。",
+      "既有数据无需手动处理：本地数据库在一次带备份的事务迁移中从 fork 的 schema 29 升到上游的 34，fork 的 v29 迁移与上游逐字节一致。",
+      "修掉首个提示词早于代理 sidecar 启动、树合并留下的重复函数，并把中文文档收敛为入口页，文档构建不再有死链。",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [

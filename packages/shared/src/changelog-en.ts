@@ -2,6 +2,16 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const enEntries: ChangelogEntry[] = [
   {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "The desktop moves to the upstream 0.24.0-beta.1 line (November 23): mode runs, codemode scripts, background job continuation, and the new sidebar with a Settings dialog over the chat shell.",
+      "Keeps the fork's own surfaces through the sync: workbench styling, hidden empty New Task rows, the trusted-renderer IPC gate, OS-wrapped provider keys, the Dev channel, agent memory, output styles, and the repeated-inspection guard.",
+      "Opens existing data without manual steps: the local database migrates in one backed-up, transactional step from the fork's schema 29 to upstream's 34, and the fork's v29 migration matches upstream byte for byte.",
+      "Fixes the first prompt starting before the agent sidecar, duplicate helpers left by the tree merge, and trims the Chinese documentation to the entry-point pages so the docs build has no dead links.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-20",
     highlights: [
