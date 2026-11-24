@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import { FILE_LINES_CLIPBOARD_TYPE } from "@pi-desktop/shared";
 
 function extract(source, name) {
   const tree = ts.createSourceFile("module.ts", source, ts.ScriptTarget.Latest, true);
@@ -39,7 +40,7 @@ function harness(native, { files = [], text = "", items = [], paused, sourceSess
   };
   let sequence = 0;
   const environment = {
-    module: { exports: {} }, Array, TextEncoder, crypto,
+    module: { exports: {} }, Array, TextEncoder, crypto, FILE_LINES_CLIPBOARD_TYPE,
     context: () => context, ...context, draft: context, isInputBlocked: false,
     setPasting() {}, readEditorValue: editor => editor.textContent,
     editorSelectionRange: () => ({ start: 7, end: 7 }),
@@ -49,9 +50,10 @@ function harness(native, { files = [], text = "", items = [], paused, sourceSess
       getDroppedFilePath: () => null,
       readClipboardDirectories: async () => { nativeReads.push(true); if (paused) await paused; return native; },
       recordClipboardPaste: async () => {},
-      importFiles: async (session, token) => {
+      importFiles: async (session, token, reference) => {
         imported.push({ session, token });
-        return { files: [{ path: "/synthetic/scratch/notes.txt", name: "notes.txt", kind: "file" }] };
+        assert.equal(reference, true);
+        return { files: [{ path: "/synthetic/original/notes.txt", name: "notes.txt", kind: "file", size: 67108865, localReference: "selection-id" }] };
       },
       pasteFiles: async (_session, payload) => {
         transfers.push(payload);
@@ -77,7 +79,11 @@ function harness(native, { files = [], text = "", items = [], paused, sourceSess
     edit(text) { element.textContent = text; revision++; },
     switchSession() { activeSessionId = "other"; },
     switchProject() { workspacePath = "/synthetic/other-project"; },
-    paste: () => environment.module.exports({ currentTarget: element, preventDefault() {}, clipboardData: { files, items, types: ["Files"], getData: () => text } }),
+    paste: () => environment.module.exports({
+      currentTarget: element,
+      preventDefault() {},
+      clipboardData: { files, items, types: ["Files"], getData: (type) => type === "text/plain" ? text : "" },
+    }),
   };
 }
 
@@ -143,6 +149,18 @@ test("ordinary native files keep their existing byte attachment flow", async () 
   assert.equal(run.drafts[0].references[0].kind, "file");
   assert.equal(run.transfers.length, 1);
   assert.equal(new TextDecoder().decode(run.transfers[0][0].data), "notes");
+});
+
+test("native large-file paste keeps original path and size without reading browser bytes", async () => {
+  const file = new File([], "notes.txt", { type: "text/plain" });
+  file.arrayBuffer = () => assert.fail("disk file contents must not cross IPC");
+  const run = harness({ items: [{ kind: "file", name: "notes.txt" }], token: "selection" }, { files: [file] });
+  await run.paste();
+  assert.equal(run.drafts[0].references[0].path, "/synthetic/original/notes.txt");
+  assert.equal(run.drafts[0].references[0].size, 67108865);
+  assert.equal(run.drafts[0].references[0].localReference, "selection-id");
+  assert.equal(run.writes[0].snapshot.fileReferences[0].size, 67108865);
+  assert.deepEqual(run.transfers, []);
 });
 
 for (const navigate of ["switchSession", "switchProject"]) {

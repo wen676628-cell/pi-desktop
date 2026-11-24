@@ -12,7 +12,8 @@ The sidecar pins `@earendil-works/pi-agent-core`, `pi-ai`, and
 `pi-coding-agent` together at exactly `1.5.2`; Desktop's `pi-ai` and `pi-mcp`
 development dependencies use the same release. Target-release package patches
 remain narrow compatibility deltas and are listed with their audited behavior
-in `docs/project/pi-150-adoption.md`.
+in `docs/project/pi-150-adoption.md` and updated for 1.5.2 in
+`docs/project/pi-152-adoption.md`.
 
 - `@earendil-works/pi-agent-core` supplies the agent loop and its stable agent,
   event, and tool types. Agent Runtime owns desktop-specific compaction,
@@ -25,6 +26,11 @@ in `docs/project/pi-150-adoption.md`.
   detailed versioned `User-Agent`, while `attribution: null` suppresses
   pi-agent-core's default Pi attribution headers for OpenRouter, NVIDIA, and
   OpenCode requests.
+- `@earendil-works/pi-codemode` (same release) supplies only the QuickJS-WASI
+  sandbox behind the opt-in `codemode` tool. Agent Runtime's own adapter
+  dispatches every nested call through the session's tool pipeline; the
+  coding-agent codemode extension and `AgentSession` are not used (ADR
+  codemode-sandbox-boundary).
 - Rust `host-core` remains the sole owner of SQLite and authoritative durable
   session state. The Node sidecar asks it to persist checkpoints and tool
   outcomes through the existing RPC contract.
@@ -38,6 +44,7 @@ in `docs/project/pi-150-adoption.md`.
 - Native Pi sessions use pi-coding-agent's SDK-managed identity, whose
   attribution follows that SDK's install-telemetry setting. The Desktop-owned
   main and delegated Agent paths use the explicit identity above.
+
 The extension shim is a versioned compatibility subset, not the full 1.5.2
 coding-agent API. Its legacy `VERSION` marker remains sourced from
 `TRUSTED_EXTENSION_KERNEL_VERSION` and intentionally identifies the modeled

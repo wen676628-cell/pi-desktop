@@ -37,12 +37,15 @@ export function promptAttachmentsFromDraft(
     // Inline chips use tokens for both files and images. Ordinary file chips
     // already serialize to @path text (the model can Read them); only image
     // chips need the structured transport for vision/fallback handling.
-    if (reference.token && kind !== "image") return [];
+    if (reference.token && kind !== "image" && !reference.localReference && !reference.lineRange) return [];
     return [
       {
         path: reference.path,
         name: reference.name,
         kind,
+        ...(reference.size !== undefined ? { size: reference.size } : {}),
+        ...(reference.localReference ? { localReference: reference.localReference } : {}),
+        ...(reference.lineRange ? { lineRange: reference.lineRange } : {}),
         ...(reference.mimeType ? { mimeType: reference.mimeType } : {}),
       },
     ];
@@ -60,8 +63,10 @@ export function promptAttachmentsFromMessage(
       path: attachment.ref,
       name: attachment.name,
       kind: attachment.kind,
+      ...(attachment.lineRange ? { lineRange: attachment.lineRange } : {}),
       ...(attachment.mimeType ? { mimeType: attachment.mimeType } : {}),
       ...(attachment.size !== undefined ? { size: attachment.size } : {}),
+      ...(attachment.localReference ? { localReference: attachment.localReference } : {}),
     }));
 }
 

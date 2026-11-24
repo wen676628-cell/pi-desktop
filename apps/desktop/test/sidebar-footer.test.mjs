@@ -3,10 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { loadStyles } from "./helpers/styles.mjs";
 
-const sidebarSource = await readFile(
-  new URL("../src/components/Sidebar.tsx", import.meta.url),
-  "utf8",
-);
+const sidebarSource =
+  (await readFile(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8")) +
+  (await readFile(new URL("../src/components/SidebarNavigation.tsx", import.meta.url), "utf8"));
+const footerSource = sidebarSource.slice(sidebarSource.indexOf("export function SidebarFooter"));
 const globalStyles = await loadStyles();
 const zhLocale = await readFile(
   new URL("../../../packages/i18n/src/locales/zh-CN/index.ts", import.meta.url),
@@ -31,37 +31,20 @@ test("the sidebar footer is an action bar, not a fabricated identity", () => {
   }
 });
 
-test("footer keeps settings beside notifications; destinations live in the primary nav", () => {
-  assert.match(sidebarSource, /className="footer-actions"/);
-  assert.match(sidebarSource, /data-nav="settings"/);
-  // Extensions and automation are labeled rows in the primary nav now; the
-  // footer keeps only the settings destination plus status controls.
-  assert.match(sidebarSource, /className="sidebar-primary-nav"/);
-  for (const destination of ["new-task", "scheduled", "plugins"]) {
-    assert.match(sidebarSource, new RegExp(`data-nav="${destination}"`));
-  }
-  assert.doesNotMatch(sidebarSource, /data-nav="theme"/);
-  assert.match(
-    sidebarSource,
-    /<NotificationCenter onBeforeOpen=\{\(\) => closeMenus\(false\)\} \/>/,
+test("footer keeps only Settings and the version chip", () => {
+  assert.deepEqual(
+    [...footerSource.matchAll(/data-nav="([^"]+)"/g)].map((match) => match[1]),
+    ["settings", "build"],
   );
+  // Settings is a labelled entry that opens the Settings dialog.
+  assert.match(footerSource, /className=\{cx\("footer-settings", settingsOpen && "active"\)\}/);
+  assert.match(footerSource, /aria-haspopup="dialog"/);
+  assert.match(footerSource, /onClick=\{\(\) => openSettings\(\)\}/);
+  assert.match(footerSource, /t\("nav\.settings"\)/);
+  // The notification entry is gone from the sidebar (issue #2431).
+  assert.doesNotMatch(sidebarSource, /NotificationCenter/);
   // Logs live in Settings → About; the footer stays down to daily controls.
   assert.doesNotMatch(sidebarSource, /openLogs/);
-  // Every action is icon-only, so each needs a label for pointer and AT users.
-  const actions = sidebarSource
-    .split("<TooltipButton")
-    .filter((chunk) => /className=(?:"footer-action"|\{`footer-action )/.test(chunk));
-  assert.equal(actions.length, 1);
-  for (const action of actions) {
-    const attrs = action.slice(0, action.indexOf(">"));
-    assert.match(attrs, /tooltip=/);
-    assert.match(attrs, /ariaLabel=/);
-    assert.match(attrs, /data-nav="settings"/);
-  }
-  assert.match(
-    sidebarSource,
-    /data-nav="settings"[\s\S]*?aria-pressed=\{page === "settings"\}/,
-  );
 });
 
 test("footer sits on the sidebar content grid without a hairline", () => {
@@ -74,18 +57,14 @@ test("footer sits on the sidebar content grid without a hairline", () => {
   assert.match(globalStyles, /\.footer-build\s*\{[^}]*padding:\s*5px 8px/s);
 });
 
-test("footer action buttons share the notification trigger's hit target", () => {
-  const block = globalStyles.match(/\.footer-action\s*\{[^}]+\}/)?.[0] ?? "";
-  assert.match(block, /width:\s*32px/);
+test("footer Settings entry shares the 32px control line", () => {
+  const block = globalStyles.match(/\.footer-settings\s*\{[^}]+\}/)?.[0] ?? "";
   assert.match(block, /height:\s*32px/);
   assert.match(block, /transition:[^;]*var\(--motion-duration-fast\)/);
+  assert.doesNotMatch(globalStyles, /\.footer-action\s*\{/);
 });
 
-test("build chip hides the version label and only dots an actionable update", () => {
-  assert.doesNotMatch(sidebarSource, /footer-build-version/);
-  assert.doesNotMatch(sidebarSource, /buildLabel|appVersion/);
-  assert.match(sidebarSource, /<IconRefresh size=\{14\} aria-hidden \/>/);
-  assert.match(sidebarSource, /<IconDownload size=\{14\} aria-hidden \/>/);
+test("build chip surfaces the version and only dots an actionable update", () => {
   assert.match(sidebarSource, /const update = useUpdateState\(\)/);
   assert.match(
     sidebarSource,

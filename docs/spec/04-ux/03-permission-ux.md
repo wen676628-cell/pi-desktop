@@ -188,8 +188,8 @@ after a full Host/app restart.
 6. concurrent session requests remain isolated and never take over the visible
    conversation or its work panel; post-approval artifacts remain assigned to
    the request's originating session
-7. Plan/Goal approval displays only the title and artifact opener, remembers the
-   selected permission mode for the next approval on this device, and sends that
+7. Plan/Goal approval displays only the title and artifact opener, defaults to
+   its owning Session's effective permission mode, and sends that
    mode only on approval; no question/description, validity/deadline, status,
    inline Markdown/hash/byte-size, or revision/feedback action is rendered
 8. reject, expiry, abort, crash, stale response, and persistence failure close

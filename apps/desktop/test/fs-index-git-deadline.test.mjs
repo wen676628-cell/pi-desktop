@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { buildSync } from "esbuild";
 
-test("workspace file index and search fall back at the Git deadline without a close event", async t => {
+test("workspace file index and search fall back at the Git deadline without a close event", { timeout: 5_000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), "pi-index-deadline-"));
   await writeFile(join(root, "note.txt"), "fixture");
   const require = createRequire(import.meta.url);
@@ -33,30 +33,16 @@ test("workspace file index and search fall back at the Git deadline without a cl
     const module = { exports: {} };
     new Function("require", "module", "exports", result.outputFiles[0].text)(require, module, module.exports);
     t.mock.timers.enable({ apis: ["setTimeout"] });
-    let listing;
-    let failure;
-    const pending = module.exports.getWorkspaceFileIndex(root).then(
-      value => { listing = value; },
-      error => { failure = error; },
-    );
+    const pending = module.exports.getWorkspaceFileIndex(root);
     await ready;
-    t.mock.timers.tick(4000);
+    t.mock.timers.tick(3_999);
+    assert.equal(killed, false, "Git must remain running before its deadline");
+    t.mock.timers.tick(1);
     assert.equal(killed, true);
-    // The Git deadline was the only mocked timer this test needs. Restoring
-    // real timers lets the fallback walk settle on I/O completion instead of
-    // a fixed spin count: how many event-loop turns a `readdir` needs is a
-    // property of the machine, not of the contract under test, and a budgeted
-    // spin failed on slower runners with the file index still pending.
-    t.mock.timers.reset();
-    const settled = await Promise.race([
-      pending.then(() => true),
-      new Promise(resolve => setTimeout(() => resolve(false), 5000)),
-    ]);
-    assert.ok(settled, "the file index must settle after the Git deadline");
-    assert.equal(failure, undefined, "the file index must not reject");
+    // The deadline starts fallback; real disk IO need not finish in a fixed number of event-loop turns.
+    const listing = await pending;
     assert.ok(listing, "the file index must settle without Git close");
     assert.deepEqual(listing.entries, [{ path: "note.txt", kind: "file" }]);
-    await pending;
     assert.deepEqual((await module.exports.searchWorkspaceFiles(root, "note")).entries, listing.entries);
   } finally {
     t.mock.timers.reset();

@@ -34,10 +34,14 @@ builtin command contracts.
 - The six IDs are the complete first-party registry. Removed IDs are not
   palette results and are not renderer dispatch cases; plugin commands remain
   independently discoverable.
-- `New Task` uses the current project or temporary group. It selects the
-  group's most recent empty session when present; otherwise it reveals the
-  empty home on the first frame and creates the durable empty session. The
-  action is idempotent within a group.
+- `New Task` starts in the temporary group, never the project the user happens
+  to be viewing (issue #2455). It selects that group's most recent empty
+  session when present; otherwise it reveals the empty home on the first frame
+  and creates the durable empty session. The action is idempotent within the
+  temporary group. Project-scoped actions — a project row's `+`, the empty-home
+  project switcher, the project index, and worktree sessions — pass their
+  target path explicitly and stay in that project. An active remote session
+  keeps creating in its remote project.
 - `Compact Conversation Context` is available while the active session is idle;
   an active turn or checkpoint remains busy according to the existing compaction
   contract.

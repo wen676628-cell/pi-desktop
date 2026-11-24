@@ -162,7 +162,7 @@ test("native prompt only dispatches sidecar and cannot create a host queue entry
 test("native model readiness never depends on a Desktop provider but read-only fails closed", () => {
   const expression = composer.match(/const modelReady = ([\s\S]*?);/)[1];
   const evaluateReady = new Function("isImageGenerationModel", "imageGenerationCandidates", "settings", "nativeSession", "activeSessionSummary", "provider", "modelId", "remoteSession", "promptAllowed", `return ${expression}`);
-  const ready = (nativeSession, activeSessionSummary, provider, modelId, settings, remoteSession = false, promptAllowed = false) =>
+  const ready = (nativeSession, activeSessionSummary, provider, modelId, settings, remoteSession = false, promptAllowed = false, selectedModelInfo = undefined) =>
     evaluateReady(isImageGenerationModel, imageGenerationBindings(settings?.imageGenerationModels, settings?.imageGeneration), settings, nativeSession, activeSessionSummary, provider, modelId, remoteSession, promptAllowed);
   assert.equal(ready(true, { capabilities: { canPrompt: true } }, undefined, undefined), true);
   assert.equal(ready(true, { capabilities: { canPrompt: false } }, { enabled: true, hasSecret: true }, "model"), false);
@@ -172,11 +172,22 @@ test("native model readiness never depends on a Desktop provider but read-only f
   assert.equal(ready(false, {}, { enabled: true, hasSecret: true }, "model"), true);
   const settings = { imageGeneration: { providerId: "images", modelId: "model" } };
   const imageProvider = { id: "images", enabled: true, hasSecret: true };
+  // The fork treats a model designated for image generation as not ready for
+  // chat in the composer; the launch path applies the same rule.
   assert.equal(ready(false, {}, imageProvider, "model", settings), false);
+  // A pure image-generation endpoint id stays unready for chat.
+  assert.equal(ready(false, {}, { ...imageProvider, id: "img" }, "gpt-image-2.5",
+    { imageGeneration: { providerId: "img", modelId: "gpt-image-2.5" } }), false);
+  // Another provider's image designation does not block this one.
   assert.equal(ready(false, {}, { ...imageProvider, id: "chat" }, "model", settings), true);
   assert.equal(ready(false, {}, imageProvider, "other-model", settings), true);
+  // A native session ignores the local provider entirely.
   assert.equal(ready(true, { capabilities: { canPrompt: true } }, imageProvider, "model", settings), true);
   assert.equal(ready(true, { capabilities: { canPrompt: false } }, imageProvider, "model", settings), false);
+
+  // The fork's composer decides readiness from the image-generation candidate
+  // list, not from per-row modalities; a discovered image-only row is still
+  // rejected at session launch, and the launch contract is covered there.
 
   // A remote session reads its own prompt capability and never a local provider.
   assert.equal(ready(false, {}, { enabled: true, hasSecret: true }, "model", undefined, true, true), true);

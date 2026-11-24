@@ -21,6 +21,7 @@ mod device;
 mod install;
 mod install_review;
 mod manifest;
+pub(crate) mod market_browse;
 mod market_download;
 pub mod marketplace;
 mod model;
@@ -39,13 +40,13 @@ pub(crate) use market_download::{
     MarketDownloadContext, MarketInstallCommit, MarketInstallPlan, PendingUpdate,
 };
 pub use marketplace::{market_channel_from_settings, MarketChannel, OFFICIAL_CHANNEL_CATALOG_URL};
+pub(crate) use model::{CategoryLabels, MarketCatalogEntry, MarketCatalogFile};
 pub use model::{
     InstallOptions, InstallResult, InstallReview, MarketDownloadInfo, MarketPluginDetail,
     MarketPluginSummary, MarketProvenance, MarketReview, MarketVersion, PluginDisplayI18n,
     PluginI18nMap, PluginMarketplaceMeta, PluginSettingDefinition, PluginSettingOption,
     PluginSummary, PluginUiMeta, PluginUpdateInfo, PluginYankNotice,
 };
-pub(crate) use model::{MarketCatalogEntry, MarketCatalogFile};
 pub(crate) use progress::{
     CancelToken, DownloadReport, InstallObserver, InstallPhase, InstallProgress, NoProgress,
     TriedMirror,
