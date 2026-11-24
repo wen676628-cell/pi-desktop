@@ -9,14 +9,15 @@ import {
   type PluginComposerTransformMeta,
 } from "@pi-desktop/shared";
 import { type AppState, useAppStore } from "../../../stores/app-store";
+import { ComposerModePicker } from "./ComposerModePicker";
 import { modeErrorMessage } from "../../modes/mode-run-model";
 import { ComposerPermissionPicker } from "./ComposerPermissionPicker";
-import { ComposerPlusMenu } from "./ComposerPlusMenu";
 import { ContextUsageInspector } from "../../../components/ContextUsageInspector";
 import { ComposerControlSlots } from "./ComposerControlSlots";
 import { TooltipButton } from "../../../components/ui";
 import {
   IconArrowUp,
+  IconPlus,
   IconSparkles,
   IconStop,
   IconUndo2,
@@ -37,6 +38,8 @@ export type ComposerToolbarProps = {
   modelId?: string;
   thinkingLevel: SessionThinkingLevel;
   composerPermissionMode: Exclude<PermissionMode, "inherit">;
+  modeOpen: boolean;
+  setModeOpen: Dispatch<SetStateAction<boolean>>;
   permissionOpen: boolean;
   setPermissionOpen: Dispatch<SetStateAction<boolean>>;
   controlsBlocked: boolean;
@@ -45,10 +48,6 @@ export type ComposerToolbarProps = {
   stopAllowed?: boolean;
   pasting: boolean;
   pickAndAttach: () => Promise<void>;
-  plusOpen: boolean;
-  setPlusOpen: Dispatch<SetStateAction<boolean>>;
-  /** Inserts `/name ` into the draft from the add menu. */
-  onPickCommand: (name: string) => void;
   configureActiveSession: AppState["configureActiveSession"];
   showToast: AppState["showToast"];
   modelMenu: ModelMenuController;
@@ -82,6 +81,8 @@ export function ComposerToolbar({
   modelId,
   thinkingLevel,
   composerPermissionMode,
+  modeOpen,
+  setModeOpen,
   permissionOpen,
   setPermissionOpen,
   controlsBlocked,
@@ -90,9 +91,6 @@ export function ComposerToolbar({
   stopAllowed = true,
   pasting,
   pickAndAttach,
-  plusOpen,
-  setPlusOpen,
-  onPickCommand,
   configureActiveSession,
   showToast,
   modelMenu,
@@ -121,31 +119,58 @@ export function ComposerToolbar({
     <div className="composer-toolbar">
       <div className="composer-left">
         <div className="composer-plus">
-          <ComposerPlusMenu
-            open={plusOpen}
-            setOpen={setPlusOpen}
-            controlsBlocked={controlsBlocked}
-            pasting={pasting}
-            attachmentsAllowed={attachmentsAllowed}
-            onCloseOtherMenus={() => {
+          <TooltipButton
+            type="button"
+            className="icon-btn icon-btn-square"
+            tooltip={t("chat.addFiles")}
+            ariaLabel={t("chat.addFiles")}
+            disabled={controlsBlocked || pasting || !attachmentsAllowed}
+            onClick={() => {
               setPermissionOpen(false);
-              modelMenu.setOpen(false);
+              void pickAndAttach();
             }}
-            onAttach={() => void pickAndAttach()}
-            onPickCommand={onPickCommand}
-          />
+          >
+            <IconPlus size={15} aria-hidden="true" />
+          </TooltipButton>
         </div>
         {localToolsAllowed ? <LiveVoiceControls t={t} workSessionId={workSessionId} /> : null}
         {localToolsAllowed ? (
           <ComputerUseIndicator sessionId={workSessionId ?? null} abort={abort} />
         ) : null}
+        <ComposerModePicker
+          t={t}
+          mode={mode}
+          planningLive={planningLive}
+          open={modeOpen}
+          setOpen={setModeOpen}
+          controlsBlocked={controlsBlocked}
+          onCloseOtherMenus={() => {
+            modelMenu.setOpen(false);
+            setPermissionOpen(false);
+          }}
+          onSelect={async (next) => {
+            try {
+              await configureActiveSession({
+                mode: next,
+                providerId,
+                modelId,
+                thinkingLevel,
+              });
+            } catch (error) {
+              // MODE_RUN_ACTIVE / MODE_NOT_FOUND are named, not shown raw.
+              showToast(modeErrorMessage(t, error), {
+                variant: "error",
+              });
+            }
+          }}
+        />
         <ComposerPermissionPicker t={t} mode={mode}
           composerPermissionMode={composerPermissionMode}
           permissionOpen={permissionOpen} setPermissionOpen={setPermissionOpen}
           controlsBlocked={controlsBlocked}
           onCloseOtherMenus={() => {
             modelMenu.setOpen(false);
-            setPlusOpen(false);
+            setModeOpen(false);
           }}
           onSelect={async (candidate) => {
                 try {
@@ -225,7 +250,9 @@ export function ComposerToolbar({
             tooltip={t("chat.stopGenerating")}
             ariaLabel={t("chat.stopGenerating")}
             disabled={!stopAllowed}
-            onClick={() => void abort()}
+            onClick={() => void abort().catch((error) => {
+              showToast(error instanceof Error ? error.message : String(error), { variant: "error" });
+            })}
           >
             <IconStop size={14} />
           </TooltipButton>
