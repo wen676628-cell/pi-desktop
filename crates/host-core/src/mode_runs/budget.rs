@@ -59,13 +59,3 @@ pub fn validate_goal_budget_setting(settings: &Value) -> Result<(), String> {
             .map_err(|error| format!("{GOAL_BUDGET_SETTING}: {error}")),
     }
 }
-
-/// The Goal default stored in the app settings, when it is set and valid.
-/// An invalid stored value is ignored: the definition budget applies.
-pub fn goal_budget_from_settings(settings: Option<&Value>) -> Option<RunBudget> {
-    let value = settings?.get(GOAL_BUDGET_SETTING)?;
-    if value.is_null() {
-        return None;
-    }
-    parse(value).ok()
-}
