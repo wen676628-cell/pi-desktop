@@ -94,7 +94,6 @@ export function SettingsPage() {
   }
   const contentRef = useRef<HTMLDivElement>(null);
   const settingsSearchRef = useRef<HTMLInputElement>(null);
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const destination = activeExtension ? `extension:${activeExtension.ref}` : `builtin:${tab}`;
 
   useLayoutEffect(() => {
