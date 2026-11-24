@@ -114,14 +114,17 @@ test("Settings is a dialog over the current page, not a route", () => {
   assert.equal(h.get().page, "plugins");
 });
 
-test("the shell owns its settings surface and keeps one overlay host", async () => {
-  const [shell, host] = await Promise.all([
+test("the shell mounts one overlay host and Settings no longer replaces the shell", async () => {
+  const [shell, host, runtime] = await Promise.all([
     read("../src/features/app/AppShell.tsx"),
     read("../src/features/startup/AppOverlayHost.tsx"),
+    read("../src/features/app/useAppShellRuntime.tsx"),
   ]);
-  assert.match(shell, /hidden=\{settingsOpen\}/);
+  assert.match(shell, /<AppOverlayHost active=\{!showSplash\} \/>/);
   assert.doesNotMatch(shell, /page === "settings"/);
+  assert.doesNotMatch(runtime, /"settings"/);
   assert.match(host, /resolveAppOverlay\(/);
+  assert.match(host, /<SettingsDialog onClose=\{closeSettings\} \/>/);
 });
 
 test("the startup guide embeds the shared Settings destination", async () => {

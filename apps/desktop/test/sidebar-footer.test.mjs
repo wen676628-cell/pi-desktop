@@ -31,19 +31,10 @@ test("the sidebar footer is an action bar, not a fabricated identity", () => {
   }
 });
 
-test("footer keeps settings beside notifications; destinations live in the primary nav", () => {
-  assert.match(sidebarSource, /className="footer-actions"/);
-  assert.match(sidebarSource, /data-nav="settings"/);
-  // Extensions and automation are labeled rows in the primary nav now; the
-  // footer keeps only the settings destination plus status controls.
-  assert.match(sidebarSource, /className="sidebar-primary-nav"/);
-  for (const destination of ["new-task", "scheduled", "plugins"]) {
-    assert.match(sidebarSource, new RegExp(`data-nav="${destination}"`));
-  }
-  assert.doesNotMatch(sidebarSource, /data-nav="theme"/);
-  assert.match(
-    sidebarSource,
-    /<NotificationCenter onBeforeOpen=\{\(\) => closeMenus\(false\)\} \/>/,
+test("footer keeps only Settings and the version chip", () => {
+  assert.deepEqual(
+    [...footerSource.matchAll(/data-nav="([^"]+)"/g)].map((match) => match[1]),
+    ["settings", "build"],
   );
   // Settings is a labelled entry that opens the Settings dialog.
   assert.match(footerSource, /className=\{cx\("footer-settings", settingsOpen && "active"\)\}/);
@@ -54,21 +45,6 @@ test("footer keeps settings beside notifications; destinations live in the prima
   assert.doesNotMatch(sidebarSource, /NotificationCenter/);
   // Logs live in Settings → About; the footer stays down to daily controls.
   assert.doesNotMatch(sidebarSource, /openLogs/);
-  // Every action is icon-only, so each needs a label for pointer and AT users.
-  const actions = sidebarSource
-    .split("<TooltipButton")
-    .filter((chunk) => /className=(?:"footer-action"|\{`footer-action )/.test(chunk));
-  assert.equal(actions.length, 1);
-  for (const action of actions) {
-    const attrs = action.slice(0, action.indexOf(">"));
-    assert.match(attrs, /tooltip=/);
-    assert.match(attrs, /ariaLabel=/);
-    assert.match(attrs, /data-nav="settings"/);
-  }
-  assert.match(
-    sidebarSource,
-    /data-nav="settings"[\s\S]*?aria-pressed=\{page === "settings"\}/,
-  );
 });
 
 test("footer sits on the sidebar content grid without a hairline", () => {
@@ -88,11 +64,7 @@ test("footer Settings entry shares the 32px control line", () => {
   assert.doesNotMatch(globalStyles, /\.footer-action\s*\{/);
 });
 
-test("build chip hides the version label and only dots an actionable update", () => {
-  assert.doesNotMatch(sidebarSource, /footer-build-version/);
-  assert.doesNotMatch(sidebarSource, /buildLabel|appVersion/);
-  assert.match(sidebarSource, /<IconRefresh size=\{14\} aria-hidden \/>/);
-  assert.match(sidebarSource, /<IconDownload size=\{14\} aria-hidden \/>/);
+test("build chip surfaces the version and only dots an actionable update", () => {
   assert.match(sidebarSource, /const update = useUpdateState\(\)/);
   assert.match(
     sidebarSource,

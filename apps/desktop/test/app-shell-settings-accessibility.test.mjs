@@ -11,14 +11,20 @@ const settingsPage = await readFile(
   "utf8",
 );
 
-test("Settings replaces the chat shell in the fork layout", async () => {
+test("Settings is a modal over the chat shell, which stays mounted and visible", async () => {
   const chatShell = appShell.match(
     /<div\s+className="app-chat-shell"[\s\S]*?>/,
   )?.[0];
+  const dialog = await readFile(
+    new URL("../src/features/settings/SettingsDialog.tsx", import.meta.url),
+    "utf8",
+  );
 
   assert.ok(chatShell, "chat shell must exist");
-  assert.match(chatShell, /hidden=\{settingsOpen\}/);
-  assert.match(chatShell, /inert=\{settingsOpen \? true : undefined\}/);
+  assert.doesNotMatch(chatShell, /hidden=|inert=|aria-hidden/);
+  assert.match(dialog, /role="dialog"/);
+  assert.match(dialog, /aria-modal="true"/);
+  assert.match(dialog, /useModalDialog\(dialogRef, \{ onClose \}\)/);
 });
 
 test("entering Settings moves focus to its first search control", () => {
