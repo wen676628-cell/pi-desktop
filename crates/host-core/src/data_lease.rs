@@ -11,10 +11,17 @@
 //! The lease lives on `pi.writer.lock`, not on `pi.sqlite`: the memory server
 //! and analysis tools read the database without taking a write lease, and a
 //! lock on the database file itself would also collide with backup copies.
+//!
+//! A second acquire inside the same process shares the lease it already holds.
+//! Host Core opens one state per process; the shared case is test harnesses
+//! that reopen a state to simulate a restart, and the operating-system lock is
+//! still what keeps two *processes* apart.
 
+use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 
 use anyhow::{anyhow, Context, Result};
 
@@ -24,11 +31,25 @@ const LOCK_FILE: &str = "pi.writer.lock";
 #[cfg(windows)]
 const HOLDER_BYTES: u32 = 4096;
 
-/// Held for the lifetime of the owning state; dropping it releases the lease.
-pub struct DataDirLease {
+struct LeaseInner {
     file: File,
-    #[allow(dead_code)]
     path: PathBuf,
+}
+
+impl Drop for LeaseInner {
+    fn drop(&mut self) {
+        unlock(&self.file);
+    }
+}
+
+/// Held for the lifetime of the owning state; the last clone releases it.
+pub struct DataDirLease {
+    inner: Arc<LeaseInner>,
+}
+
+fn held_leases() -> &'static Mutex<HashMap<PathBuf, Weak<LeaseInner>>> {
+    static HELD: OnceLock<Mutex<HashMap<PathBuf, Weak<LeaseInner>>>> = OnceLock::new();
+    HELD.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 impl DataDirLease {
@@ -36,7 +57,16 @@ impl DataDirLease {
     pub fn acquire(data_dir: &Path) -> Result<Self> {
         std::fs::create_dir_all(data_dir)
             .with_context(|| format!("create data directory {}", data_dir.display()))?;
-        let path = data_dir.join(LOCK_FILE);
+        let key = std::fs::canonicalize(data_dir).unwrap_or_else(|_| data_dir.to_path_buf());
+        let mut held = held_leases()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(inner) = held.get(&key).and_then(Weak::upgrade) {
+            return Ok(Self { inner });
+        }
+        held.remove(&key);
+
+        let path = key.join(LOCK_FILE);
         let mut file = OpenOptions::new()
             .create(true)
             .truncate(false)
@@ -55,20 +85,16 @@ impl DataDirLease {
             ),
         })?;
         write_holder(&mut file);
-        Ok(Self { file, path })
-    }
-}
-
-impl Drop for DataDirLease {
-    fn drop(&mut self) {
-        unlock(&self.file);
+        let inner = Arc::new(LeaseInner { file, path });
+        held.insert(key, Arc::downgrade(&inner));
+        Ok(Self { inner })
     }
 }
 
 impl std::fmt::Debug for DataDirLease {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DataDirLease")
-            .field("path", &self.path)
+            .field("path", &self.inner.path)
             .finish()
     }
 }
@@ -125,7 +151,7 @@ fn lock_exclusive(file: &File) -> std::io::Result<()> {
     let mut overlapped: OVERLAPPED = unsafe { std::mem::zeroed() };
     // The refusal message has to be readable by the process that lost the
     // race, and a locked byte range cannot be read through a second handle.
-    // Lock everything past the holder line instead of the whole file.
+    // Lock one byte past the holder line instead of the whole file.
     overlapped.Anonymous.Anonymous.Offset = HOLDER_BYTES;
     let acquired = unsafe {
         LockFileEx(
@@ -162,31 +188,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_second_writer_is_refused_and_the_directory_reopens_after_release() {
+    fn a_second_file_description_is_refused_and_the_directory_reopens_after_release() {
         let dir = tempfile::tempdir().unwrap();
         let lease = DataDirLease::acquire(dir.path()).unwrap();
 
-        let error = DataDirLease::acquire(dir.path()).unwrap_err().to_string();
-        assert!(
-            error.contains("DATA_DIR_IN_USE"),
-            "refusal must name the condition: {error}"
-        );
-        assert!(
-            error.contains(&format!("pid {}", std::process::id())),
-            "refusal must name the holder: {error}"
-        );
+        // The registry shares an in-process lease, so probe the OS lock the way
+        // a second host process would: a fresh file description.
+        let path = dir.path().join(LOCK_FILE);
+        let rival = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        let error = lock_exclusive(&rival).unwrap_err();
+        assert!(error.raw_os_error().is_some());
+        let holder = read_holder(&path).expect("the losing side must be able to read the holder");
+        assert!(holder.contains(&format!("pid {}", std::process::id())));
 
         drop(lease);
-        DataDirLease::acquire(dir.path()).expect("a released directory must reopen");
+        lock_exclusive(&rival).expect("a released directory must accept a new writer");
+        unlock(&rival);
     }
 
     #[test]
-    fn an_empty_lease_file_still_refuses_without_a_holder_name() {
+    fn a_reopen_inside_the_same_process_shares_the_lease() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join(LOCK_FILE), b"").unwrap();
-        let lease = DataDirLease::acquire(dir.path()).unwrap();
-        let error = DataDirLease::acquire(dir.path()).unwrap_err().to_string();
-        assert!(error.contains("DATA_DIR_IN_USE"));
-        drop(lease);
+        let first = DataDirLease::acquire(dir.path()).unwrap();
+        let second = DataDirLease::acquire(dir.path()).expect("same process shares the lease");
+        drop(first);
+        // The second handle still owns the lease; a cross-process probe fails.
+        let path = dir.path().join(LOCK_FILE);
+        let rival = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        assert!(lock_exclusive(&rival).is_err());
+        drop(second);
+        lock_exclusive(&rival).expect("the last handle releases the directory");
+        unlock(&rival);
     }
 }
