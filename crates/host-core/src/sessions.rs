@@ -2322,7 +2322,10 @@ pub fn move_session_project(
     id: &str,
     project_path: Option<&str>,
 ) -> Result<MoveSessionProjectResult> {
-    if get_session(db, id)?.is_none() {
+    // Only the summary is needed to prove the row exists and to answer the
+    // caller; reading the transcript here parsed every persisted message for a
+    // project move that never touches them.
+    if session_summary(db, id)?.is_none() {
         return Ok(MoveSessionProjectResult::NotFound);
     }
     if session_has_running_turn(db, id)? {
@@ -2335,10 +2338,10 @@ pub fn move_session_project(
     db.conn()
         .prepare_cached("UPDATE sessions SET project_id = ?1, updated_at = ?2 WHERE id = ?3")?
         .execute(params![project_id, now_ms(), id])?;
-    let Some(moved) = get_session(db, id)? else {
+    let Some(moved) = session_summary(db, id)? else {
         return Ok(MoveSessionProjectResult::NotFound);
     };
-    Ok(MoveSessionProjectResult::Moved(Box::new(moved.summary)))
+    Ok(MoveSessionProjectResult::Moved(Box::new(moved)))
 }
 
 /// Per-message records plus their extracted index text, in input order.
