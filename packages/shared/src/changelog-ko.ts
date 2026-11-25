@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const koEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "하나의 데이터 디렉터리는 하나의 Host Core만 열 수 있습니다. 두 번째 실행(Dev 공유 데이터, 경쟁한 시작, 수동 CLI)은 DATA_DIR_IN_USE로 거부되고 보유 프로세스를 알려 주므로, 나란히 쓰지 않습니다.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

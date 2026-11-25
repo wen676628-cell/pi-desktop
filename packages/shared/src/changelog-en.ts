@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const enEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Only one Host Core can open a data directory: a second launch (Dev shared-data mode, a raced start, a manual CLI) now refuses with DATA_DIR_IN_USE naming the holding process instead of writing alongside it.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const trEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Bir veri dizinini yalnızca bir Host Core açabilir: ikinci başlatma (Dev paylaşımlı veri, yarışan başlangıç, elle CLI) artık DATA_DIR_IN_USE ile reddedilir ve dizini tutan süreç belirtilir; yan yana yazmaz.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

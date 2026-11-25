@@ -29,6 +29,8 @@ const PLUGIN_MESSAGE_WRITE_RATE_LIMIT: usize = 60;
 
 pub struct AppState {
     pub data_dir: std::path::PathBuf,
+    /// Exclusive writer lease for `data_dir`, held for the process lifetime.
+    _data_lease: crate::data_lease::DataDirLease,
     pub db: Database,
     pub secrets: SecretStore,
     pub workspace: WorkspaceState,
@@ -108,6 +110,10 @@ pub struct AppState {
 
 impl AppState {
     pub fn open(data_dir: &std::path::Path) -> Result<Self> {
+        // Before the database, before any recovery write: a second host over
+        // the same directory would race migrations and transcript/outbox
+        // pairing even though SQLite keeps the file itself consistent.
+        let data_lease = crate::data_lease::DataDirLease::acquire(data_dir)?;
         let db = Database::open_in_dir(data_dir)?;
         crate::scheduled::automation::recover(&db)?;
         // Replies that were still streaming when the previous process ended
@@ -167,6 +173,7 @@ impl AppState {
         let user_subagents = UserSubagentRegistry::new(data_dir);
         Ok(Self {
             data_dir: data_dir.to_path_buf(),
+            _data_lease: data_lease,
             db,
             secrets,
             workspace: WorkspaceState::default(),

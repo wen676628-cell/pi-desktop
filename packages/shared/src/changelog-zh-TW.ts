@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const zhTWEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "同一個資料目錄現在只允許一個 Host Core 開啟：第二次啟動（Dev 共享資料、搶跑的啟動、手動 CLI）會以 DATA_DIR_IN_USE 拒絕，並指出持有程序，而不是並列寫入。",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

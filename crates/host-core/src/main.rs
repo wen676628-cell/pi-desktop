@@ -6,6 +6,7 @@ mod background_tasks;
 mod computer;
 mod config_backend;
 mod config_sync;
+mod data_lease;
 mod data_relocation;
 mod db;
 mod file_batches;

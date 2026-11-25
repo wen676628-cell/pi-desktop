@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const frEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Un seul Host Core peut ouvrir un répertoire de données : un second lancement (mode partagé Dev, démarrage concurrent, CLI manuel) est désormais refusé avec DATA_DIR_IN_USE et le nom du processus détenteur, au lieu d'écrire en parallèle.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

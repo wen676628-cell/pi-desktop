@@ -252,9 +252,10 @@ keeps the same tree in `~/.pi-desktop-dev`, because a shipped app and a
 ADR 0094). `PI_DESKTOP_DATA_DIR` replaces either root outright and is resolved
 to an absolute path before it reaches host-core as a child-process variable.
 
-```text
+ ```text
 ~/.pi-desktop/
  ├── pi.sqlite            # index database (WAL: + -wal/-shm) — host-core only
+ ├── pi.writer.lock       # exclusive writer lease; names the holding host
  ├── pi.sqlite.v6.bak     # archived pre-v7 database (D119 breaking reset)
  ├── pi.sqlite.v8.bak     # exact readable backup before v8→v15 destructive work
  ├── pi.sqlite.v9.bak     # exact readable backup before v9→v15 destructive work
@@ -287,11 +288,17 @@ to an absolute path before it reaches host-core as a child-process variable.
 
 One database file keeps cross-entity writes transactional (e.g. session +
 turn + artifact in one commit). The DB stores **no large payloads**: message
-
-turn + artifact in one commit). The DB stores **no large payloads**: message
 content lives in `sessions/`, attachments and tool outputs beyond the limits
 of [16-tool-result-limits](16-tool-result-limits.md) live on disk, referenced
 by path/hash.
+
+`pi.writer.lock` is a cross-process exclusive lease. Host Core takes it before
+opening the database and holds it for the process lifetime; a second host over
+the same directory refuses to boot with `DATA_DIR_IN_USE` naming the holder
+(pid and host) instead of racing migrations, run claims, or transcript/outbox
+pairing. The lease is advisory and separate from `pi.sqlite`, so read-only
+consumers (the memory server, analysis tools) are unaffected, and the kernel
+releases it when the host exits or crashes.
 
 ### 1.3 Portable configuration sync
 
