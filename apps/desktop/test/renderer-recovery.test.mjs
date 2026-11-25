@@ -106,4 +106,40 @@ describe("recoverRendererAfterGone", () => {
     assert.equal(recoverRendererAfterGone(details, second.dependencies), true);
     assert.equal(second.calls.reload, 1, "should reload immediately after cooldown");
   });
+
+  it("a crash that keeps repeating stops reloading after three attempts a minute", () => {
+    mock.timers.enable({ apis: ["Date", "setTimeout"] });
+    mock.timers.tick(10_000);
+
+    const details = { reason: "crashed", exitCode: 1 };
+    let reloads = 0;
+    const results = [];
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const session = recovery();
+      results.push(recoverRendererAfterGone(details, session.dependencies));
+      reloads += session.calls.reload;
+      mock.timers.tick(3_000);
+    }
+
+    assert.deepEqual(results, [true, true, true, false, false]);
+    assert.equal(reloads, 3, "the fourth crash in the same minute must not reload");
+  });
+
+  it("the reload budget refills once the earlier crashes leave the minute", () => {
+    mock.timers.enable({ apis: ["Date", "setTimeout"] });
+    mock.timers.tick(10_000);
+    const details = { reason: "crashed", exitCode: 1 };
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      recoverRendererAfterGone(details, recovery().dependencies);
+      mock.timers.tick(3_000);
+    }
+    assert.equal(recoverRendererAfterGone(details, recovery().dependencies), false);
+
+    // Past the rolling window the old crashes no longer count.
+    mock.timers.tick(61_000);
+    const later = recovery();
+    assert.equal(recoverRendererAfterGone(details, later.dependencies), true);
+    assert.equal(later.calls.reload, 1);
+  });
 });
