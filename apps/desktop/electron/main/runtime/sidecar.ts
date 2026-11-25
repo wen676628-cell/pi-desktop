@@ -727,12 +727,21 @@ export function createSidecarRuntime({
   });
   runtimeState.sidecar = s;
   if (runtimeState.host) s.setHost(runtimeState.host);
-  await s.call("sidecar.configure", {
-    hostBinary: runtimeState.host?.binaryPath,
-    dataDir,
-    networkProxy: currentNetworkProxy(),
-    systemProxyRelayUrl: currentSystemProxyRelayUrl(),
-  });
+  try {
+    await s.call("sidecar.configure", {
+      hostBinary: runtimeState.host?.binaryPath,
+      dataDir,
+      networkProxy: currentNetworkProxy(),
+      systemProxyRelayUrl: currentSystemProxyRelayUrl(),
+    });
+  } catch (error) {
+    // A configure failure must not leave a half-initialized child behind: the
+    // next ensureSidecar would return it as if it were usable, with no dataDir
+    // or host binary, and no later launch would replace it.
+    if (runtimeState.sidecar === s) runtimeState.sidecar = null;
+    await s.dispose().catch(() => undefined);
+    throw error;
+  }
   logger.app("runtime", "info", "agent sidecar configured");
   };
 
