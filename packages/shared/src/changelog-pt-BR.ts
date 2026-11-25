@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const ptBREntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Apenas um Host Core pode abrir um diretório de dados: um segundo início (modo compartilhado do Dev, uma inicialização concorrente, CLI manual) agora é recusado com DATA_DIR_IN_USE e o processo detentor, em vez de escrever em paralelo.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

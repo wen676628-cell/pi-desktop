@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const esEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Solo un Host Core puede abrir un directorio de datos: un segundo arranque (modo compartido de Dev, un inicio adelantado, CLI manual) ahora se rechaza con DATA_DIR_IN_USE indicando el proceso que lo tiene, en lugar de escribir en paralelo.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

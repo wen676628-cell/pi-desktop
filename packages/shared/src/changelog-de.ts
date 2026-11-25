@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const deEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "Nur ein Host Core darf ein Datenverzeichnis öffnen: ein zweiter Start (Dev-Shared-Data, ein überholter Start, manuelles CLI) wird jetzt mit DATA_DIR_IN_USE und der Angabe des haltenden Prozesses abgelehnt, statt daneben zu schreiben.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [

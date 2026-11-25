@@ -2,6 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const zhCNEntries: ChangelogEntry[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-25",
+    highlights: [
+      "同一个数据目录现在只允许一个 Host Core 打开：第二次启动（Dev 共享数据、抢跑的启动、手动 CLI）会以 DATA_DIR_IN_USE 拒绝，并指出持有进程，而不是并列写入。",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-11-25",
     highlights: [
