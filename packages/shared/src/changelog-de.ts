@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const deEntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "Die Desktop-App folgt jetzt der Upstream-Linie 0.24.0-beta.1 (23. November): Modus-Läufe, Codemode-Skripte, Fortsetzung von Hintergrundaufgaben sowie die neue Seitenleiste mit einem Einstellungsdialog über der Chat-Oberfläche.",
-      "Der Fork behält seine eigenen Oberflächen: Workbench-Stil, ausgeblendete leere „Neue Aufgabe“-Zeilen, IPC-Gate für vertrauenswürdige Renderer, vom System verschlüsselte Provider-Schlüssel, Dev-Kanal, Agent-Gedächtnis, Ausgabestile und die Sperre gegen wiederholte Inspektionen.",
-      "Vorhandene Daten öffnen ohne Handgriff: Die lokale Datenbank wandert in einem gesicherten, transaktionalen Schritt vom Schema 29 des Forks auf Schema 34 des Upstreams; die v29-Migration ist bytegleich.",
-      "Behebt den Start des ersten Prompts vor dem Agent-Sidecar und doppelte Helfer aus dem Baum-Merge und kürzt die chinesische Dokumentation auf Einstiegsseiten, sodass der Docs-Build keine toten Links mehr hat.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Ein abgestürzter Renderer wird höchstens dreimal pro Minute automatisch neu geladen; danach bleibt das Fenster zu und der Grund steht im Protokoll, statt in einer Reload-Schleife zu flackern.",
+      "Ein erfolgreicher Befehl ohne Ausgabe sagt das jetzt auch, sodass das Modell das leere Ergebnis meldet, statt dieselbe Suche erneut auszuführen.",
+      "Ein Sidecar, dessen Konfiguration fehlschlägt, wird entsorgt, statt halb initialisiert beim nächsten Agent-Aufruf wieder aufzutauchen.",
+      "Beim Verschieben einer Sitzung zwischen Projekten wird nur ihre Zusammenfassung gelesen, nicht das ganze Transkript.",
       "Bei einer Neuinstallation erzeugt das mitgelieferte Plugin „Offizielle Erweiterungen“ Sitzungstitel automatisch; Vorschläge, Entwurfsverbesserung und KI-Gedächtnis bleiben aus, bis du sie einschaltest.",
       "Neue Aufgabe startet jetzt einen temporären Chat außerhalb von Projekten, und Unterhaltungen lassen sich zwischen Projekten oder zurück in den temporären Chat verschieben.",
       "Auf der leeren Startseite wechselst du das Projekt per Klick auf den Projektnamen oder „temporär“ im Titel; das projektlose Ziel heißt jetzt überall Temporärer Chat.",
@@ -25,6 +19,16 @@ export const deEntries: ChangelogEntry[] = [
       "Persische, arabische und andere rechtsläufige Absätze, die mit einem englischen Wort beginnen, werden jetzt in der richtigen Richtung angezeigt.",
       "Das Dateimanager-Plugin 0.9.1 zeigt eingebettete Markdown-Bilder sicher an und bietet schreibgeschützte Tabellenvorschauen.",
       "Behoben: Verzweigen älterer, aus dem Verlauf geladener Antworten, wiederholt fehlschlagende Konfigurationssynchronisierung nach einseitigem Löschen, abgeschnittene Modellnamen in den Einstellungen, der Arbeitsbereich-Schalter über der Suche und von manchen Responses-Endpunkten abgelehnte Tooldefinitionen.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "Die Desktop-App folgt jetzt der Upstream-Linie 0.24.0-beta.1 (23. November): Modus-Läufe, Codemode-Skripte, Fortsetzung von Hintergrundaufgaben sowie die neue Seitenleiste mit einem Einstellungsdialog über der Chat-Oberfläche.",
+      "Der Fork behält seine eigenen Oberflächen: Workbench-Stil, ausgeblendete leere „Neue Aufgabe“-Zeilen, IPC-Gate für vertrauenswürdige Renderer, vom System verschlüsselte Provider-Schlüssel, Dev-Kanal, Agent-Gedächtnis, Ausgabestile und die Sperre gegen wiederholte Inspektionen.",
+      "Vorhandene Daten öffnen ohne Handgriff: Die lokale Datenbank wandert in einem gesicherten, transaktionalen Schritt vom Schema 29 des Forks auf Schema 34 des Upstreams; die v29-Migration ist bytegleich.",
+      "Behebt den Start des ersten Prompts vor dem Agent-Sidecar und doppelte Helfer aus dem Baum-Merge und kürzt die chinesische Dokumentation auf Einstiegsseiten, sodass der Docs-Build keine toten Links mehr hat.",
     ],
   },
   {

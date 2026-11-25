@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const enEntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "The desktop moves to the upstream 0.24.0-beta.1 line (November 23): mode runs, codemode scripts, background job continuation, and the new sidebar with a Settings dialog over the chat shell.",
-      "Keeps the fork's own surfaces through the sync: workbench styling, hidden empty New Task rows, the trusted-renderer IPC gate, OS-wrapped provider keys, the Dev channel, agent memory, output styles, and the repeated-inspection guard.",
-      "Opens existing data without manual steps: the local database migrates in one backed-up, transactional step from the fork's schema 29 to upstream's 34, and the fork's v29 migration matches upstream byte for byte.",
-      "Fixes the first prompt starting before the agent sidecar, duplicate helpers left by the tree merge, and trims the Chinese documentation to the entry-point pages so the docs build has no dead links.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Renderer crashes recover at most three times a minute; after that the window stays down with the reason logged instead of flashing in a reload loop.",
+      "A successful command that printed nothing now says so, so the model reports the empty result instead of re-running the same search.",
+      "A sidecar that fails to configure is disposed instead of being handed out half-initialized by the next agent call.",
+      "Moving a session between projects reads its summary only, not the whole transcript.",
       "On a fresh install, session titles are generated automatically by the bundled Official enhancements plugin; suggestions, draft enhancement and AI memory stay off until you turn them on.",
       "New task now starts a temporary chat outside any project, and conversations can move between projects or back to Temporary chat.",
       "On the empty home, click the project name or \"temporarily\" in the title to switch projects; the project-free destination is now called Temporary chat everywhere.",
@@ -25,6 +19,16 @@ export const enEntries: ChangelogEntry[] = [
       "Persian, Arabic and other right-to-left paragraphs that begin with an English word now display in the correct direction.",
       "The File Manager plugin 0.9.1 shows inline Markdown images safely and previews spreadsheets read-only.",
       "Fixed forking from older replies loaded from history, config sync failing repeatedly after a record was deleted on one side, clipped model names in Settings, the work-panel toggle covering conversation Search, and tool definitions rejected by some Responses endpoints.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "The desktop moves to the upstream 0.24.0-beta.1 line (November 23): mode runs, codemode scripts, background job continuation, and the new sidebar with a Settings dialog over the chat shell.",
+      "Keeps the fork's own surfaces through the sync: workbench styling, hidden empty New Task rows, the trusted-renderer IPC gate, OS-wrapped provider keys, the Dev channel, agent memory, output styles, and the repeated-inspection guard.",
+      "Opens existing data without manual steps: the local database migrates in one backed-up, transactional step from the fork's schema 29 to upstream's 34, and the fork's v29 migration matches upstream byte for byte.",
+      "Fixes the first prompt starting before the agent sidecar, duplicate helpers left by the tree merge, and trims the Chinese documentation to the entry-point pages so the docs build has no dead links.",
     ],
   },
   {
