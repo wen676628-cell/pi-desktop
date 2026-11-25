@@ -84,6 +84,20 @@ test("sidecar detaches host listeners and gates every child write", () => {
   );
 });
 
+test("a sidecar that fails to configure is disposed and never reused", () => {
+  // The child is published before the configure call so the rest of the
+  // runtime can reach it; a failed configure must therefore unpublish and
+  // dispose it, or ensureSidecar keeps handing out an unconfigured child.
+  const block = runtimeSidecarSource.match(
+    /runtimeState\.sidecar = s;[\s\S]*?agent sidecar configured/,
+  )?.[0] ?? "";
+  assert.ok(block.length > 0, "launch sequence not found");
+  assert.match(block, /try \{\s*await s\.call\("sidecar\.configure"/);
+  assert.match(block, /runtimeState\.sidecar === s\) runtimeState\.sidecar = null/);
+  assert.match(block, /await s\.dispose\(\)\.catch\(\(\) => undefined\)/);
+  assert.match(block, /throw error;/);
+});
+
 test("tool diagnostics emit one bounded outcome instead of start/end spam", () => {
   assert.match(runtimeSidecarSource, /summarizeToolResult/);
   assert.match(runtimeSidecarSource, /tool execution completed/);

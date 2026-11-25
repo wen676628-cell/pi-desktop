@@ -2231,6 +2231,33 @@ describe("DesktopAgentRuntime configuration matching", () => {
     await runtime.dispose();
   });
 
+  it("tells the model what a successful silent command means", async () => {
+    const replies = [
+      { ok: true, content: "" },
+      { ok: false, isError: true, content: "" },
+      { ok: true, content: "found\n" },
+    ];
+    const host = {
+      call: vi.fn(async (method: string) =>
+        method === "tools.execute" ? replies.shift() : undefined),
+    };
+    const runtime = createRuntime({ host });
+    const bash = runtimeTool(runtime, "Bash");
+    const textOf = (result: { content: Array<{ type: string; text?: string }> }) =>
+      result.content.map((block) => (block.type === "text" ? block.text ?? "" : "")).join("\n");
+
+    try {
+      expect(textOf(await bash.execute("silent-ok", { command: "grep -r needle ." })))
+        .toContain("printed nothing");
+      // A failed empty result keeps its own error; the note would claim success.
+      expect(textOf(await bash.execute("silent-failed", { command: "false" })))
+        .not.toContain("printed nothing");
+      expect(textOf(await bash.execute("spoken", { command: "echo hi" }))).toBe("found\n");
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
   it("terminates repeated failed shell patch recovery for quoted git arguments", async () => {
     // #2016 review: a quoted option value (`-C "/tmp/my project"`) used to be
     // split on whitespace, its tail mistaken for the subcommand, so these real

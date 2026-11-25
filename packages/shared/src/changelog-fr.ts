@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const frEntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "Le bureau passe à la ligne upstream 0.24.0-beta.1 (23 novembre) : exécutions de mode, scripts codemode, reprise des tâches d'arrière-plan et la nouvelle barre latérale avec une boîte de dialogue Réglages par-dessus le chat.",
-      "Le fork conserve ses propres surfaces : le style du workbench, les lignes vides « Nouvelle tâche » masquées, la barrière IPC des renderers de confiance, les clés de fournisseur chiffrées par l'OS, le canal Dev, la mémoire de l'agent, les styles de sortie et le garde-fou contre les inspections répétées.",
-      "Les données existantes s'ouvrent sans intervention : la base locale migre en une étape transactionnelle sauvegardée du schéma 29 du fork au schéma 34 d'upstream ; la migration v29 est identique octet pour octet.",
-      "Corrige le démarrage du premier prompt avant le sidecar de l'agent et les aides dupliquées laissées par la fusion, et réduit la documentation chinoise aux pages d'entrée, sans lien mort.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Un renderer qui plante est relancé au plus trois fois par minute ; ensuite la fenêtre reste fermée avec la raison journalisée, au lieu de clignoter en boucle.",
+      "Une commande réussie sans sortie le dit désormais, pour que le modèle rapporte le résultat vide au lieu de relancer la même recherche.",
+      "Un sidecar dont la configuration échoue est libéré, au lieu d'être réutilisé à moitié initialisé à l'appel suivant.",
+      "Déplacer une session entre projets ne lit que son résumé, pas tout l'historique.",
       "Sur une nouvelle installation, le plugin intégré Améliorations officielles génère automatiquement les titres de session ; les suggestions, l'amélioration des brouillons et la mémoire IA restent désactivées jusqu'à ce que vous les activiez.",
       "Nouvelle tâche ouvre désormais une discussion temporaire hors de tout projet, et les conversations peuvent passer d'un projet à l'autre ou revenir en Discussion temporaire.",
       "Sur l'accueil vide, cliquez sur le nom du projet ou sur « temporairement » dans le titre pour changer de projet ; la destination sans projet s'appelle désormais partout Discussion temporaire.",
@@ -25,6 +19,16 @@ export const frEntries: ChangelogEntry[] = [
       "Les paragraphes en persan, en arabe et dans d'autres langues de droite à gauche qui commencent par un mot anglais s'affichent maintenant dans le bon sens.",
       "Le plugin Gestionnaire de fichiers 0.9.1 affiche en toute sécurité les images Markdown intégrées et prévisualise les feuilles de calcul en lecture seule.",
       "Corrigé : la bifurcation depuis d'anciennes réponses chargées de l'historique, la synchronisation de configuration en échec répété après une suppression d'un côté, les noms de modèles tronqués dans les Réglages, le bouton du panneau de travail masquant la Recherche et les définitions d'outils refusées par certains points de terminaison Responses.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "Le bureau passe à la ligne upstream 0.24.0-beta.1 (23 novembre) : exécutions de mode, scripts codemode, reprise des tâches d'arrière-plan et la nouvelle barre latérale avec une boîte de dialogue Réglages par-dessus le chat.",
+      "Le fork conserve ses propres surfaces : le style du workbench, les lignes vides « Nouvelle tâche » masquées, la barrière IPC des renderers de confiance, les clés de fournisseur chiffrées par l'OS, le canal Dev, la mémoire de l'agent, les styles de sortie et le garde-fou contre les inspections répétées.",
+      "Les données existantes s'ouvrent sans intervention : la base locale migre en une étape transactionnelle sauvegardée du schéma 29 du fork au schéma 34 d'upstream ; la migration v29 est identique octet pour octet.",
+      "Corrige le démarrage du premier prompt avant le sidecar de l'agent et les aides dupliquées laissées par la fusion, et réduit la documentation chinoise aux pages d'entrée, sans lien mort.",
     ],
   },
   {

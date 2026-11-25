@@ -171,6 +171,10 @@ import {
   hostContentBlockText,
   restoredToolResultContent,
 } from "./tool-result-content.js";
+import {
+  isEmptySuccessfulBash,
+  successfulSilentBashNote,
+} from "./tool-result-notes.js";
 import { withExplicitRequired } from "./tool-schema.js";
 import { buildSessionContext } from "./session-context.js";
 import {
@@ -4188,6 +4192,9 @@ Do not invent objections or turn speculative risks into blockers. Stop when the 
         ) {
           const issues = checkGenUiFragment(recordParams.content);
           if (issues.length > 0) text += `\n${genUiFragmentCheckNote(issues)}`;
+        }
+        if (isEmptySuccessfulBash(toolName, text, result)) {
+          text = successfulSilentBashNote();
         }
         return {
           content: [{ type: "text", text }, ...imageBlocks],

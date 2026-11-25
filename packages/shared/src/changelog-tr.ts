@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const trEntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "Masaüstü upstream 0.24.0-beta.1 (23 Kasım) hattına geçiyor: mod çalışmaları, codemode betikleri, arka plan işlerinin sürdürülmesi ve sohbetin üzerinde Ayarlar iletişim kutusu bulunan yeni kenar çubuğu.",
-      "Çatal kendi yüzeylerini koruyor: workbench stili, gizlenen boş «Yeni görev» satırları, güvenilir renderer IPC kapısı, işletim sistemiyle sarmalanan sağlayıcı anahtarları, Dev kanalı, ajan belleği, çıktı stilleri ve tekrarlanan incelemelere karşı koruma.",
-      "Mevcut veriler elle işlem gerektirmeden açılıyor: yerel veritabanı yedekli ve işlemsel tek adımda çatalın şema 29'undan upstream'in 34'üne geçiyor; çatalın v29 geçişi upstream ile bayt bayt aynı.",
-      "İlk istemin ajan sidecar'ından önce başlamasını ve ağaç birleştirmesinden kalan yinelenen yardımcıları düzeltiyor, Çince belgeleri giriş sayfalarına indiriyor; belge derlemesinde ölü bağlantı kalmıyor.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Çöken bir renderer dakikada en fazla üç kez kurtarılır; sonrasında pencere kapalı kalır ve neden günlüğe yazılır, yeniden yükleme döngüsünde yanıp sönmez.",
+      "Başarılı ama çıktısı olmayan bir komut bunu artık söyler; model aynı aramayı yeniden çalıştırmak yerine boş sonucu bildirir.",
+      "Yapılandırması başarısız olan agent sidecar'ı atılır; bir sonraki çağrıya yarı kurulmuş halde bırakılmaz.",
+      "Bir oturumu projeler arasında taşımak tüm transkripti değil yalnızca özetini okur.",
       "Yeni kurulumda, birlikte gelen Resmi geliştirmeler eklentisi oturum başlıklarını otomatik oluşturur; öneriler, taslak iyileştirme ve yapay zekâ belleği siz açana kadar kapalı kalır.",
       "Yeni görev artık herhangi bir projenin dışında geçici bir sohbet başlatır ve sohbetler projeler arasında ya da Geçici sohbete geri taşınabilir.",
       "Boş ana sayfada projeyi değiştirmek için başlıktaki proje adına veya \"geçici\" sözcüğüne tıklayın; projesiz hedefin adı artık her yerde Geçici sohbet.",
@@ -25,6 +19,16 @@ export const trEntries: ChangelogEntry[] = [
       "İngilizce bir sözcükle başlayan Farsça, Arapça ve diğer sağdan sola paragraflar artık doğru yönde görüntülenir.",
       "Dosya Yöneticisi eklentisi 0.9.1, satır içi Markdown görsellerini güvenle gösterir ve tabloları salt okunur önizler.",
       "Düzeltildi: geçmişten yüklenen eski yanıtlardan dallanma, bir tarafta kayıt silindikten sonra sürekli başarısız olan yapılandırma eşitleme, Ayarlar'da kırpılan model adları, sohbet Aramasını örten çalışma paneli düğmesi ve bazı Responses uç noktalarının reddettiği araç tanımları.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "Masaüstü upstream 0.24.0-beta.1 (23 Kasım) hattına geçiyor: mod çalışmaları, codemode betikleri, arka plan işlerinin sürdürülmesi ve sohbetin üzerinde Ayarlar iletişim kutusu bulunan yeni kenar çubuğu.",
+      "Çatal kendi yüzeylerini koruyor: workbench stili, gizlenen boş «Yeni görev» satırları, güvenilir renderer IPC kapısı, işletim sistemiyle sarmalanan sağlayıcı anahtarları, Dev kanalı, ajan belleği, çıktı stilleri ve tekrarlanan incelemelere karşı koruma.",
+      "Mevcut veriler elle işlem gerektirmeden açılıyor: yerel veritabanı yedekli ve işlemsel tek adımda çatalın şema 29'undan upstream'in 34'üne geçiyor; çatalın v29 geçişi upstream ile bayt bayt aynı.",
+      "İlk istemin ajan sidecar'ından önce başlamasını ve ağaç birleştirmesinden kalan yinelenen yardımcıları düzeltiyor, Çince belgeleri giriş sayfalarına indiriyor; belge derlemesinde ölü bağlantı kalmıyor.",
     ],
   },
   {

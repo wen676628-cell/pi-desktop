@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const ptBREntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "O desktop passa para a linha upstream 0.24.0-beta.1 (23 de novembro): execuções de modo, scripts de codemode, continuação de tarefas em segundo plano e a nova barra lateral com uma caixa de Configurações sobre o chat.",
-      "O fork mantém suas próprias superfícies: o estilo do workbench, as linhas vazias de «Nova tarefa» ocultas, a barreira IPC de renderers confiáveis, as chaves de provedor cifradas pelo sistema, o canal Dev, a memória do agente, os estilos de saída e a proteção contra inspeções repetidas.",
-      "Os dados existentes abrem sem passos manuais: o banco local migra em uma etapa transacional com backup do esquema 29 do fork para o 34 do upstream; a migração v29 é idêntica byte a byte.",
-      "Corrige o início do primeiro prompt antes do sidecar do agente e os auxiliares duplicados deixados pela fusão, e reduz a documentação chinesa às páginas de entrada, sem links quebrados.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Um renderer que falha é recuperado no máximo três vezes por minuto; depois a janela fica fechada com o motivo registrado, em vez de piscar em um ciclo de recargas.",
+      "Um comando bem-sucedido que não imprimiu nada agora diz isso, para o modelo relatar o resultado vazio em vez de repetir a mesma busca.",
+      "Um sidecar cuja configuração falha é descartado, em vez de ser reutilizado meio inicializado na chamada seguinte.",
+      "Mover uma sessão entre projetos lê apenas o resumo, não o histórico inteiro.",
       "Em uma instalação nova, o plugin incluído Melhorias oficiais gera automaticamente os títulos das sessões; sugestões, aprimoramento de rascunho e memória de IA continuam desligados até você ativá-los.",
       "Nova tarefa agora inicia um chat temporário fora de qualquer projeto, e as conversas podem ser movidas entre projetos ou de volta para Chat temporário.",
       "Na tela inicial vazia, clique no nome do projeto ou em \"temporariamente\" no título para trocar de projeto; o destino sem projeto agora se chama Chat temporário em todo lugar.",
@@ -25,6 +19,16 @@ export const ptBREntries: ChangelogEntry[] = [
       "Parágrafos em persa, árabe e outros idiomas da direita para a esquerda que começam com uma palavra em inglês agora aparecem na direção correta.",
       "O plugin Gerenciador de arquivos 0.9.1 exibe com segurança imagens Markdown embutidas e mostra prévias de planilhas somente leitura.",
       "Corrigido: bifurcar respostas antigas carregadas do histórico, sincronização de configuração falhando repetidamente após excluir um registro de um lado, nomes de modelos cortados em Configurações, o botão do painel de trabalho cobrindo a Pesquisa e definições de ferramentas rejeitadas por alguns endpoints Responses.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "O desktop passa para a linha upstream 0.24.0-beta.1 (23 de novembro): execuções de modo, scripts de codemode, continuação de tarefas em segundo plano e a nova barra lateral com uma caixa de Configurações sobre o chat.",
+      "O fork mantém suas próprias superfícies: o estilo do workbench, as linhas vazias de «Nova tarefa» ocultas, a barreira IPC de renderers confiáveis, as chaves de provedor cifradas pelo sistema, o canal Dev, a memória do agente, os estilos de saída e a proteção contra inspeções repetidas.",
+      "Os dados existentes abrem sem passos manuais: o banco local migra em uma etapa transacional com backup do esquema 29 do fork para o 34 do upstream; a migração v29 é idêntica byte a byte.",
+      "Corrige o início do primeiro prompt antes do sidecar do agente e os auxiliares duplicados deixados pela fusão, e reduz a documentação chinesa às páginas de entrada, sem links quebrados.",
     ],
   },
   {

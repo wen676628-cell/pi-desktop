@@ -2,19 +2,13 @@ import type { ChangelogEntry } from "./changelog.js";
 
 export const esEntries: ChangelogEntry[] = [
   {
-    version: "0.24.0-beta.1",
-    date: "2026-11-24",
-    highlights: [
-      "El escritorio pasa a la línea upstream 0.24.0-beta.1 (23 de noviembre): ejecuciones de modo, scripts de codemode, continuación de tareas en segundo plano y la nueva barra lateral con un diálogo de Ajustes sobre el chat.",
-      "El fork conserva sus propias superficies: el estilo del workbench, las filas vacías de «Nueva tarea» ocultas, la puerta IPC para renderers de confianza, las claves de proveedor cifradas por el sistema, el canal Dev, la memoria del agente, los estilos de salida y el guardia contra inspecciones repetidas.",
-      "Los datos existentes se abren sin pasos manuales: la base local migra en un paso transaccional con copia de seguridad del esquema 29 del fork al 34 de upstream; la migración v29 coincide byte a byte.",
-      "Corrige el arranque del primer prompt antes del sidecar del agente y los ayudantes duplicados que dejó la fusión, y reduce la documentación china a las páginas de entrada, sin enlaces muertos.",
-    ],
-  },
-  {
     version: "0.24.0",
-    date: "2026-11-20",
+    date: "2026-11-25",
     highlights: [
+      "Un renderer que falla se recupera como máximo tres veces por minuto; después la ventana queda cerrada con el motivo registrado, en lugar de parpadear en un bucle de recargas.",
+      "Un comando correcto que no imprimió nada ahora lo dice, para que el modelo informe el resultado vacío en vez de repetir la misma búsqueda.",
+      "Un sidecar cuya configuración falla se descarta, en lugar de quedar a medias para la siguiente llamada del agente.",
+      "Mover una sesión entre proyectos lee solo su resumen, no todo el historial.",
       "En una instalación nueva, el complemento incluido Mejoras oficiales genera automáticamente los títulos de las sesiones; las sugerencias, la mejora de borradores y la memoria de IA siguen desactivadas hasta que las actives.",
       "Nueva tarea ahora inicia un chat temporal fuera de cualquier proyecto, y las conversaciones pueden moverse entre proyectos o volver a Chat temporal.",
       "En la página de inicio vacía, haz clic en el nombre del proyecto o en «temporal» del título para cambiar de proyecto; el destino sin proyecto ahora se llama Chat temporal en todas partes.",
@@ -25,6 +19,16 @@ export const esEntries: ChangelogEntry[] = [
       "Los párrafos en persa, árabe y otros idiomas de derecha a izquierda que empiezan con una palabra en inglés ahora se muestran en la dirección correcta.",
       "El complemento Administrador de archivos 0.9.1 muestra de forma segura las imágenes Markdown en línea y ofrece vistas previas de hojas de cálculo de solo lectura.",
       "Corregido: bifurcar respuestas antiguas cargadas del historial, la sincronización de configuración que fallaba repetidamente tras borrar un registro en un lado, nombres de modelo recortados en Ajustes, el botón del panel de trabajo sobre la búsqueda y definiciones de herramientas rechazadas por algunos endpoints Responses.",
+    ],
+  },
+  {
+    version: "0.24.0-beta.1",
+    date: "2026-11-24",
+    highlights: [
+      "El escritorio pasa a la línea upstream 0.24.0-beta.1 (23 de noviembre): ejecuciones de modo, scripts de codemode, continuación de tareas en segundo plano y la nueva barra lateral con un diálogo de Ajustes sobre el chat.",
+      "El fork conserva sus propias superficies: el estilo del workbench, las filas vacías de «Nueva tarea» ocultas, la puerta IPC para renderers de confianza, las claves de proveedor cifradas por el sistema, el canal Dev, la memoria del agente, los estilos de salida y el guardia contra inspecciones repetidas.",
+      "Los datos existentes se abren sin pasos manuales: la base local migra en un paso transaccional con copia de seguridad del esquema 29 del fork al 34 de upstream; la migración v29 coincide byte a byte.",
+      "Corrige el arranque del primer prompt antes del sidecar del agente y los ayudantes duplicados que dejó la fusión, y reduce la documentación china a las páginas de entrada, sin enlaces muertos.",
     ],
   },
   {
